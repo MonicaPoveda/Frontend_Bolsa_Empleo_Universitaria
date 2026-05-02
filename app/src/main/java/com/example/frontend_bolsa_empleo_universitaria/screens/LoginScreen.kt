@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.screens
+package com.example.frontend_bolsa_empleo_universitaria.Screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -22,11 +22,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginState
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
+import com.example.frontend_bolsa_empleo_universitaria.ViewModel.LoginState
+import com.example.frontend_bolsa_empleo_universitaria.ViewModel.LoginViewModel
 
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
+import com.example.frontend_bolsa_empleo_universitaria.Repository.UsuarioRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
 
 @Composable

@@ -1,9 +1,9 @@
-package com.example.frontend_bolsa_empleo_universitaria.repository
+package com.example.frontend_bolsa_empleo_universitaria.Repository
 
-import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
-import com.example.frontend_bolsa_empleo_universitaria.interfaces.UsuarioApi
-import com.example.frontend_bolsa_empleo_universitaria.model.LoginRequest
-import com.example.frontend_bolsa_empleo_universitaria.model.Usuario
+
+import com.example.frontend_bolsa_empleo_universitaria.Interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.Model.LoginRequest
+import com.example.frontend_bolsa_empleo_universitaria.Model.Usuario
 
 // repository/UsuarioRepository.kt
 // repository/UsuarioRepository.kt

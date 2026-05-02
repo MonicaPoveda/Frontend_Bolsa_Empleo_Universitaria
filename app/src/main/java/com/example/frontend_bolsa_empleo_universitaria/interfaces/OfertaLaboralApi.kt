@@ -1,6 +1,7 @@
-package com.example.frontend_bolsa_empleo_universitaria.interfaces
+package com.example.frontend_bolsa_empleo_universitaria.Interfaces
 
-import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+
+import com.example.frontend_bolsa_empleo_universitaria.Model.OfertaLaboral
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

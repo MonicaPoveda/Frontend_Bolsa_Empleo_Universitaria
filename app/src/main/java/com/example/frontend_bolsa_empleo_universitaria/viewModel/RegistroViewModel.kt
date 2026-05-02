@@ -1,16 +1,18 @@
-package com.example.frontend_bolsa_empleo_universitaria.viewModel
+package com.example.frontend_bolsa_empleo_universitaria.ViewModel
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.frontend_bolsa_empleo_universitaria.model.Usuario
-import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
+import com.example.frontend_bolsa_empleo_universitaria.Model.Usuario
+import com.example.frontend_bolsa_empleo_universitaria.Repository.UsuarioRepository
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+import androidx.lifecycle.ViewModelProvider
 
 class RegistroViewModel(private val repo: UsuarioRepository) : ViewModel() {
 
@@ -43,7 +45,7 @@ class RegistroViewModel(private val repo: UsuarioRepository) : ViewModel() {
             )
 
             uiState = repo.guardar(nuevoUsuario).fold(
-                onSuccess = { RegistroState.Success },
+                onSuccess = { RegistroState.Success(it) },
                 onFailure = { RegistroState.Error(it.message ?: "Error al registrar") }
             )
         }
@@ -68,9 +70,19 @@ class RegistroViewModel(private val repo: UsuarioRepository) : ViewModel() {
     fun resetState() { uiState = RegistroState.Idle }
 }
 
+class RegistroViewModelFactory(private val repository: UsuarioRepository) : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(RegistroViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return RegistroViewModel(repository) as T
+        }
+        throw IllegalArgumentException("Unknown ViewModel class")
+    }
+}
+
 sealed class RegistroState {
     object Idle : RegistroState()
     object Loading : RegistroState()
-    object Success : RegistroState()
+    data class Success(val usuario: Usuario) : RegistroState()
     data class Error(val mensaje: String) : RegistroState()
 }

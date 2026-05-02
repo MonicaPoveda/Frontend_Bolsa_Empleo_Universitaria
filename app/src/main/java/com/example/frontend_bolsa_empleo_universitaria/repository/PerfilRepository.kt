@@ -1,7 +1,7 @@
-package com.example.frontend_bolsa_empleo_universitaria.Repository
+package com.example.frontend_bolsa_empleo_universitaria.repository
 
-import com.example.frontend_bolsa_empleo_universitaria.Interfaces.RetrofitClient
-import com.example.frontend_bolsa_empleo_universitaria.Model.Perfil
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
 
 class PerfilRepository {
     private val api = RetrofitClient.perfilApi

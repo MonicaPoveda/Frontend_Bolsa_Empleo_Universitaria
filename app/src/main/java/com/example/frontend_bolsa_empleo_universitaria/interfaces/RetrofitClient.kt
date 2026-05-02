@@ -1,6 +1,5 @@
-package com.example.frontend_bolsa_empleo_universitaria.Interfaces
+package com.example.frontend_bolsa_empleo_universitaria.interfaces
 
-import com.example.frontend_bolsa_empleo_universitaria.interfaces.UsuarioApi
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -9,7 +8,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.20.36:8080/"
+    private const val BASE_URL = "http://192.168.10.43:8080/"
 
     private val retrofit: Retrofit by lazy {
         val okHttpClient = OkHttpClient.Builder()

@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Screens
+package com.example.frontend_bolsa_empleo_universitaria.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -10,7 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.frontend_bolsa_empleo_universitaria.Model.Usuario
+import com.example.frontend_bolsa_empleo_universitaria.model.Usuario
 
 import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Search

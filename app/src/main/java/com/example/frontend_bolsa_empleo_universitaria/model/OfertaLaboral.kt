@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Model
+package com.example.frontend_bolsa_empleo_universitaria.model
 
 data class OfertaLaboral(
     val idOferta: Long = 0,

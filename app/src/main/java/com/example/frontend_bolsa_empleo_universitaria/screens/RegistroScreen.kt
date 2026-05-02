@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Screens
+package com.example.frontend_bolsa_empleo_universitaria.screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
@@ -31,12 +31,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.frontend_bolsa_empleo_universitaria.ViewModel.ExperienciaLaboral
-import com.example.frontend_bolsa_empleo_universitaria.ViewModel.RegistroState
-import com.example.frontend_bolsa_empleo_universitaria.ViewModel.RegistroViewModel
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.ExperienciaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.RegistroState
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.RegistroViewModel
 
 import androidx.compose.ui.tooling.preview.Preview
-import com.example.frontend_bolsa_empleo_universitaria.Repository.UsuarioRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +44,7 @@ import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_E
 fun RegistroScreen(
     viewModel: RegistroViewModel,
     onNavigateBack: () -> Unit,
-    onRegistroSuccess: (com.example.frontend_bolsa_empleo_universitaria.Model.Usuario) -> Unit
+    onRegistroSuccess: (com.example.frontend_bolsa_empleo_universitaria.model.Usuario) -> Unit
 ) {
     LaunchedEffect(Unit) {
         viewModel.resetState()

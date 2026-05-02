@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Screens
+package com.example.frontend_bolsa_empleo_universitaria.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*

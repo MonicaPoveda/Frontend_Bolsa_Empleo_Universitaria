@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Model
+package com.example.frontend_bolsa_empleo_universitaria.model
 
 data class Perfil(
     val idPerfil: Long? = null,

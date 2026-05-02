@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Model
+package com.example.frontend_bolsa_empleo_universitaria.model
 
 // model/Usuario.kt
 data class Usuario(

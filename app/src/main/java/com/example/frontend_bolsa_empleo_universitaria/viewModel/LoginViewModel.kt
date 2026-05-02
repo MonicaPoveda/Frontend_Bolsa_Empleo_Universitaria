@@ -1,16 +1,14 @@
-package com.example.frontend_bolsa_empleo_universitaria.ViewModel
+package com.example.frontend_bolsa_empleo_universitaria.viewModel
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.frontend_bolsa_empleo_universitaria.Model.Usuario
-import com.example.frontend_bolsa_empleo_universitaria.Repository.UsuarioRepository
+import com.example.frontend_bolsa_empleo_universitaria.model.Usuario
+import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
 import kotlinx.coroutines.launch
 
-
-import androidx.lifecycle.ViewModelProvider
 
 class LoginViewModel(private val repo: UsuarioRepository) : ViewModel() {
 
@@ -20,21 +18,21 @@ class LoginViewModel(private val repo: UsuarioRepository) : ViewModel() {
     fun login(email: String, password: String) {
         // Limpiamos estado previo para agilidad y evitar bloqueos
         uiState = LoginState.Idle
-        
+
         if (!validar(email, password)) return
 
         viewModelScope.launch {
             uiState = LoginState.Loading
             uiState = repo.login(email, password).fold(
                 onSuccess = { LoginState.Success(it) },
-                onFailure = { 
+                onFailure = {
                     // Si falla por credenciales (401) o no encontrado (404), mensaje unificado por seguridad y claridad
                     val errorMsg = if (it.message?.contains("401") == true || it.message?.contains("404") == true) {
                         "El correo o la contraseña son inválidas"
                     } else {
                         it.message ?: "Error de conexión"
                     }
-                    LoginState.Error(errorMsg) 
+                    LoginState.Error(errorMsg)
                 }
             )
         }
@@ -74,16 +72,6 @@ class LoginViewModel(private val repo: UsuarioRepository) : ViewModel() {
         viewModelScope.launch {
             repo.recuperarPassword(email)
         }
-    }
-}
-
-class LoginViewModelFactory(private val repository: UsuarioRepository) : ViewModelProvider.Factory {
-    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(LoginViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return LoginViewModel(repository) as T
-        }
-        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }
 

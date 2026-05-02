@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Screens
+package com.example.frontend_bolsa_empleo_universitaria.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,8 +20,10 @@ import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.example.frontend_bolsa_empleo_universitaria.Model.OfertaLaboral
-import com.example.frontend_bolsa_empleo_universitaria.ViewModel.OfertasViewModel
+
+
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import kotlinx.coroutines.delay
 
 // ─── Colores mockup ──────────────────

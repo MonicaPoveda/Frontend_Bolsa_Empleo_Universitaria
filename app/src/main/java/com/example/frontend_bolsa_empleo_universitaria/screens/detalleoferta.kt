@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.Screens
+package com.example.frontend_bolsa_empleo_universitaria.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.frontend_bolsa_empleo_universitaria.Model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
 
 // ─── Colores Corporativos ────────────────────────────────────────────────────
 private val AzulPrimario = Color(0xFF1A3C6E)

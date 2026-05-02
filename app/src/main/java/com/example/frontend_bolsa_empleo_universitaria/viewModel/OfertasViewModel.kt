@@ -1,17 +1,17 @@
-package com.example.frontend_bolsa_empleo_universitaria.ViewModel
+package com.example.frontend_bolsa_empleo_universitaria.viewModel
 
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.frontend_bolsa_empleo_universitaria.Repository.OfertaRepository
-import com.example.frontend_bolsa_empleo_universitaria.Interfaces.RetrofitClient
-import com.example.frontend_bolsa_empleo_universitaria.Model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
 import kotlinx.coroutines.launch
 
 class OfertasViewModel : ViewModel() {
 
-    private val repository = OfertaRepository(RetrofitClient.ofertaLaboralApi)
+    private val repository = OfertasRepository(RetrofitClient.ofertaLaboralApi)
 
     private val _ofertas = mutableStateOf<List<OfertaLaboral>>(emptyList())
     val ofertas: State<List<OfertaLaboral>> = _ofertas

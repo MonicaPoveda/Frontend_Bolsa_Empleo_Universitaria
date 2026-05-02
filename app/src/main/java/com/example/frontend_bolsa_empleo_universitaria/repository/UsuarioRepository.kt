@@ -1,11 +1,11 @@
-package com.example.frontend_bolsa_empleo_universitaria.Repository
+package com.example.frontend_bolsa_empleo_universitaria.repository
 
 
-import com.example.frontend_bolsa_empleo_universitaria.Interfaces.RetrofitClient
-import com.example.frontend_bolsa_empleo_universitaria.Model.LoginRequest
-import com.example.frontend_bolsa_empleo_universitaria.Model.Usuario
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.model.LoginRequest
+import com.example.frontend_bolsa_empleo_universitaria.model.Usuario
 
-// repository/UsuarioRepository.kt
+
 // repository/UsuarioRepository.kt
 class UsuarioRepository {
     private val api = RetrofitClient.usuarioApi

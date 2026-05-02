@@ -1,5 +1,5 @@
-package com.example.frontend_bolsa_empleo_universitaria.Interfaces
-import com.example.frontend_bolsa_empleo_universitaria.Model.SeguimientoPostulacion
+package com.example.frontend_bolsa_empleo_universitaria.interfaces
+import com.example.frontend_bolsa_empleo_universitaria.model.SeguimientoPostulacion
 import retrofit2.http.*
 import retrofit2.*
 

@@ -1,11 +1,11 @@
-package com.example.frontend_bolsa_empleo_universitaria.Repository
+package com.example.frontend_bolsa_empleo_universitaria.repository
 
-import com.example.frontend_bolsa_empleo_universitaria.Interfaces.OfertaLaboralApi
-import com.example.frontend_bolsa_empleo_universitaria.Model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.OfertaLaboralApi
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 
-
-class OfertaRepository(
-    private val api: OfertaLaboralApi
+class OfertasRepository(
+    private val api: OfertaLaboralApi = RetrofitClient.ofertaLaboralApi
 ) {
     suspend fun listarOfertas(): List<OfertaLaboral> {
         val response = api.listar()

@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.screens
+package com.example.frontend_bolsa_empleo_universitaria.Screens
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.BorderStroke
@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -30,15 +31,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.ExperienciaLaboral
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.RegistroState
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.RegistroViewModel
+import com.example.frontend_bolsa_empleo_universitaria.ViewModel.ExperienciaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.ViewModel.RegistroState
+import com.example.frontend_bolsa_empleo_universitaria.ViewModel.RegistroViewModel
 
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.frontend_bolsa_empleo_universitaria.Repository.UsuarioRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegistroScreen(
     viewModel: RegistroViewModel,
     onNavigateBack: () -> Unit,
-    onRegistroSuccess: (com.example.frontend_bolsa_empleo_universitaria.model.Usuario) -> Unit
+    onRegistroSuccess: (com.example.frontend_bolsa_empleo_universitaria.Model.Usuario) -> Unit
 ) {
     LaunchedEffect(Unit) {
         viewModel.resetState()
@@ -63,10 +69,10 @@ fun RegistroScreen(
         ) {
             val pasoActualStr = "Paso ${viewModel.pasoActual} de 2"
             val tituloPaso = if (viewModel.pasoActual == 2) "PERFIL PROFESIONAL" else "DATOS BÁSICOS"
-            
+
             Column {
                 Text(pasoActualStr, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { 
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable {
                     if (viewModel.pasoActual == 2) viewModel.volverAlPaso1() else onNavigateBack()
                 }) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, null, modifier = Modifier.size(16.dp))
@@ -105,7 +111,7 @@ fun RegistroScreen(
 @Composable
 fun Paso1DatosBasicos(viewModel: RegistroViewModel, onNavigateBack: () -> Unit) {
     var passwordVisible by remember { mutableStateOf(false) }
-    
+
     val primaryBlue = Color(0xFF001F3F)
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
@@ -449,7 +455,7 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
         // Habilidades
         FieldLabel("Habilidades y Palabras Clave")
         Text("Selecciona sugerencias o agrega palabras clave (máx 30 caracteres cada una).", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-        
+
         OutlinedTextField(
             value = skillInput,
             onValueChange = { if (it.length <= 30) skillInput = it },
@@ -476,7 +482,7 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
         )
 
         Spacer(modifier = Modifier.height(8.dp))
-        
+
         FlowRow(modifier = Modifier.fillMaxWidth()) {
             // Sugerencias
             viewModel.sugerenciasHabilidades.forEach { skill ->
@@ -527,7 +533,7 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                                 Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(20.dp))
                             }
                         }
-                        
+
                         OutlinedTextField(
                             value = exp.empresa,
                             onValueChange = { viewModel.listaExperiencia[index] = exp.copy(empresa = it) },
@@ -552,10 +558,10 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                     }
                 }
             }
-            
+
             OutlinedButton(
-                onClick = { 
-                    viewModel.listaExperiencia.add(ExperienciaLaboral()) 
+                onClick = {
+                    viewModel.listaExperiencia.add(ExperienciaLaboral())
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp)
@@ -593,7 +599,7 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                 }
             }
         }
-        
+
         if (viewModel.uiState is RegistroState.Error) {
             Text(
                 (viewModel.uiState as RegistroState.Error).mensaje,
@@ -602,7 +608,7 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                 textAlign = TextAlign.Center
             )
         }
-        
+
         Spacer(modifier = Modifier.height(48.dp))
     }
 }

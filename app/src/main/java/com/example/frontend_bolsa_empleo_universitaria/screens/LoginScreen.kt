@@ -1,4 +1,4 @@
-package com.example.frontend_bolsa_empleo_universitaria.screens
+package com.example.frontend_bolsa_empleo_universitaria.Screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
@@ -28,10 +29,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
+
+import com.example.frontend_bolsa_empleo_universitaria.ViewModel.LoginState
+import com.example.frontend_bolsa_empleo_universitaria.ViewModel.LoginViewModel
+
+import com.example.frontend_bolsa_empleo_universitaria.Repository.UsuarioRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginState
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
+
 
 @Composable
 fun LoginScreen(
@@ -296,10 +300,12 @@ fun ForgotPasswordDialog(viewModel: LoginViewModel, onDismiss: () -> Unit) {
 @Composable
 fun LoginScreenPreview() {
     Frontend_Bolsa_Empleo_UniversitariaTheme {
-        val repository = UsuarioRepository()
-        val viewModel = LoginViewModel(repository)
         LoginScreen(
-            viewModel = viewModel,
+            viewModel = androidx.lifecycle.viewmodel.compose.viewModel(
+                factory = com.example.frontend_bolsa_empleo_universitaria.ViewModel.LoginViewModelFactory(
+                    com.example.frontend_bolsa_empleo_universitaria.Repository.UsuarioRepository()
+                )
+            ),
             onLoginSuccess = {},
             onNavigateToRegister = {}
         )

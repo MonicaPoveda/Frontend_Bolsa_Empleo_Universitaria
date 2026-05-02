@@ -33,4 +33,7 @@ interface UsuarioApi {
 
     @GET("api/usuarios/buscar-email")
     suspend fun buscarPorEmail(@Query("email") email: String): Response<Usuario>
+
+    @POST("api/usuarios/recuperar-password")
+    suspend fun recuperarPassword(@Query("email") email: String): Response<Void>
 }

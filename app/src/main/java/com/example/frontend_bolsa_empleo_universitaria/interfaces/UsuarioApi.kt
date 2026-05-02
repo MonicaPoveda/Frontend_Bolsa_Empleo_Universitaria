@@ -1,6 +1,9 @@
 package com.example.frontend_bolsa_empleo_universitaria.interfaces
-import com.example.frontend_bolsa_empleo_universitaria.model.LoginRequest
-import com.example.frontend_bolsa_empleo_universitaria.model.Usuario
+
+
+
+import com.example.frontend_bolsa_empleo_universitaria.Model.Usuario
+import com.example.frontend_bolsa_empleo_universitaria.Model.LoginRequest
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

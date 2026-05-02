@@ -12,14 +12,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
-import com.example.frontend_bolsa_empleo_universitaria.Screens.HomeScreen
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val repository = UsuarioRepository()
+        val loginViewModel = LoginViewModel(repository)
+        val registroViewModel = RegistroViewModel(repository)
+
         setContent {
             Frontend_Bolsa_Empleo_UniversitariaTheme {
-                AppNavigation()
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    Greeting(
+                        name = "Android",
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
             }
         }
     }

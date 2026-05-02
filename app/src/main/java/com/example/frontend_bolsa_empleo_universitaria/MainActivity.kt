@@ -13,6 +13,7 @@ import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_E
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
 import com.example.frontend_bolsa_empleo_universitaria.screens.LoginScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.RegistroScreen
@@ -28,8 +29,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         
         val repository = UsuarioRepository()
+        val perfilRepository = PerfilRepository()
         val loginViewModel = LoginViewModel(repository)
-        val registroViewModel = RegistroViewModel(repository)
+        val registroViewModel = RegistroViewModel(repository, perfilRepository)
 
         setContent {
             Frontend_Bolsa_Empleo_UniversitariaTheme {
@@ -55,8 +57,11 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = {
                                 navController.popBackStack()
                             },
-                            onRegistroSuccess = {
-                                navController.popBackStack()
+                            onRegistroSuccess = { usuario ->
+                                loginViewModel.setSuccessState(usuario)
+                                navController.navigate("home") {
+                                    popUpTo("login") { inclusive = true }
+                                }
                             }
                         )
                     }

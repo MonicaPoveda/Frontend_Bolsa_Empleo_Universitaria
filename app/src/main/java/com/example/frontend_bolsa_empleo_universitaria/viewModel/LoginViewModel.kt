@@ -16,30 +16,63 @@ class LoginViewModel(private val repo: UsuarioRepository) : ViewModel() {
         private set
 
     fun login(email: String, password: String) {
+        // Limpiamos estado previo para agilidad y evitar bloqueos
+        uiState = LoginState.Idle
+        
         if (!validar(email, password)) return
 
         viewModelScope.launch {
             uiState = LoginState.Loading
             uiState = repo.login(email, password).fold(
                 onSuccess = { LoginState.Success(it) },
-                onFailure = { LoginState.Error(it.message ?: "Error desconocido") }
+                onFailure = { 
+                    // Si falla por credenciales (401) o no encontrado (404), mensaje unificado por seguridad y claridad
+                    val errorMsg = if (it.message?.contains("401") == true || it.message?.contains("404") == true) {
+                        "El correo o la contraseña son inválidas"
+                    } else {
+                        it.message ?: "Error de conexión"
+                    }
+                    LoginState.Error(errorMsg) 
+                }
             )
         }
     }
 
     private fun validar(email: String, password: String): Boolean {
-        if (email.isBlank() || !email.contains("@")) {
-            uiState = LoginState.Error("Correo inválido")
+        if (email.isBlank()) {
+            uiState = LoginState.Error("El campo Correo es obligatorio")
+            return false
+        }
+        if (!email.contains("@") || !email.contains(".")) {
+            uiState = LoginState.Error("El correo debe tener un formato válido (ejemplo@dominio.com)")
+            return false
+        }
+        if (password.isBlank()) {
+            uiState = LoginState.Error("La Contraseña es obligatoria")
             return false
         }
         if (password.length < 8) {
-            uiState = LoginState.Error("Contraseña muy corta")
+            uiState = LoginState.Error("La Contraseña debe tener al menos 8 caracteres")
             return false
         }
         return true
     }
 
     fun resetState() { uiState = LoginState.Idle }
+
+    fun setSuccessState(usuario: Usuario) {
+        uiState = LoginState.Success(usuario)
+    }
+
+    fun recuperarPassword(email: String) {
+        if (email.isBlank() || !email.contains("@")) {
+            uiState = LoginState.Error("Por favor ingresa un correo válido")
+            return
+        }
+        viewModelScope.launch {
+            repo.recuperarPassword(email)
+        }
+    }
 }
 
 sealed class LoginState {

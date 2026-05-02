@@ -51,4 +51,10 @@ class UsuarioRepository {
         if (r.isSuccessful) Result.success(r.body()!!)
         else Result.failure(Exception("Usuario no encontrado"))
     } catch (e: Exception) { Result.failure(Exception("Sin conexión")) }
+
+    suspend fun recuperarPassword(email: String): Result<Unit> = try {
+        val r = api.recuperarPassword(email)
+        if (r.isSuccessful) Result.success(Unit)
+        else Result.failure(Exception("Error al enviar correo de recuperación"))
+    } catch (e: Exception) { Result.failure(Exception("Sin conexión")) }
 }

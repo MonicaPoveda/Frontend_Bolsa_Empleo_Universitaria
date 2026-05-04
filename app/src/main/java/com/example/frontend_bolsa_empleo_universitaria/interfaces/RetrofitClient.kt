@@ -8,7 +8,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.10.43:8080/"
+   // private const val BASE_URL = "http://192.168.10.43:8080/"
+    private const val BASE_URL = "http://10.40.3.133:8080/"
 
     private val retrofit: Retrofit by lazy {
         val okHttpClient = OkHttpClient.Builder()

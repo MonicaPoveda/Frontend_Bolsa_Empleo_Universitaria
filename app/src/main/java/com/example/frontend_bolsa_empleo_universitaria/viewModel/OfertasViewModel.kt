@@ -24,13 +24,23 @@ class OfertasViewModel : ViewModel() {
     private val _empresaNombre = mutableStateOf("Cargando...")
     val empresaNombre: State<String> = _empresaNombre
 
+    private val _todasLasOfertas = mutableStateOf<List<OfertaLaboral>>(emptyList())
+
+    private val sinonimos = mapOf(
+        "Diseño" to listOf("diseño", "disenador", "disenar", "design", "grafico", "grafica", "ux/ui", "figma", "prototipado", "interfaces"),
+        "Desarrollo" to listOf("desarrollador", "developer", "programacion", "programador", "software", "backend", "frontend", "fullstack", "kotlin", "java", "python", "android"),
+        "Marketing" to listOf("marketing", "publicidad", "digital", "community", "branding", "pauta"),
+        "Ventas" to listOf("ventas", "vendedor", "comercial", "asesor comercial", "negocios", "comisiones"),
+        "TI" to listOf("tecnologia", "sistemas", "infraestructura", "soporte tecnico", "redes", "informatica", "data", "analista de datos", "power bi", "tableau", "sql")
+    )
+
     fun cargarActivas() {
         viewModelScope.launch {
             _loading.value = true
             try {
                 val datos = repository.listarActivas()
-                println("OFERTAS CARGADAS: ${datos.size}")
-                _ofertas.value = datos
+                _todasLasOfertas.value = datos
+                _ofertas.value = datos.filter { it.estado }
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -39,29 +49,43 @@ class OfertasViewModel : ViewModel() {
         }
     }
 
-    fun buscarPorArea(area: String) {
-        viewModelScope.launch {
-            _loading.value = true
-            try {
-                _ofertas.value = repository.buscarPorArea(area)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                _loading.value = false
-            }
+    fun filtrarPorCategoria(categoria: String) {
+        println("FILTRANDO POR: $categoria")
+        println("TOTAL EN MEMORIA: ${_todasLasOfertas.value.size}")
+
+        if (categoria == "Todas") {
+            _ofertas.value = _todasLasOfertas.value.filter { it.estado }
+            return
         }
+
+        val palabrasClave = sinonimos[categoria] ?: listOf(categoria.lowercase())
+        println("PALABRAS CLAVE: $palabrasClave")
+
+        val resultado = _todasLasOfertas.value.filter { oferta ->
+            oferta.estado &&
+                    run {
+                        val textoOferta = "${oferta.titulo} ${oferta.area} ${oferta.descripcion}".lowercase().normalize()
+                        val coincide = palabrasClave.any { palabra -> textoOferta.contains(palabra.normalize()) }
+                        println("  '${oferta.titulo}' → texto='$textoOferta' coincide=$coincide")
+                        coincide
+                    }
+        }
+        println("RESULTADO: ${resultado.size} ofertas")
+        _ofertas.value = resultado
     }
 
-    fun buscarPorCargo(cargo: String) {
-        viewModelScope.launch {
-            _loading.value = true
-            try {
-                _ofertas.value = repository.buscarPorCargo(cargo)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            } finally {
-                _loading.value = false
-            }
+    fun buscarGeneral(query: String) {
+        if (query.isBlank()) {
+            _ofertas.value = _todasLasOfertas.value.filter { it.estado }
+            return
+        }
+        val q = query.trim().lowercase().normalize()
+        _ofertas.value = _todasLasOfertas.value.filter { oferta ->
+            oferta.estado &&
+                    (oferta.titulo.lowercase().normalize().contains(q) ||
+                            oferta.area.lowercase().normalize().contains(q) ||
+                            oferta.descripcion.lowercase().normalize().contains(q) ||
+                            oferta.modalidad.lowercase().normalize().contains(q))
         }
     }
 
@@ -74,5 +98,11 @@ class OfertasViewModel : ViewModel() {
                 _empresaNombre.value = "Empresa no disponible"
             }
         }
+    }
+
+    fun String.normalize(): String {
+        return java.text.Normalizer
+            .normalize(this, java.text.Normalizer.Form.NFD)
+            .replace(Regex("\\p{InCombiningDiacriticalMarks}+"), "")
     }
 }

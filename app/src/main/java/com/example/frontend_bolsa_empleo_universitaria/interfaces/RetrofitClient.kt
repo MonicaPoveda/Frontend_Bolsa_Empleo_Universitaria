@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.20.36:8080/"
+    private const val BASE_URL = "http://10.157.67.52:8080/"
 
     private val retrofit: Retrofit by lazy {
 

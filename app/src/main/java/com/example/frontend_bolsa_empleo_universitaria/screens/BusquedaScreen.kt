@@ -1,6 +1,5 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -20,15 +19,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-
-
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import kotlinx.coroutines.delay
 
-// ─── Colores mockup ──────────────────
 private val BlueGradientStart = Color(0xFF0056D2)
 private val BlueGradientEnd = Color(0xFF007BFF)
 private val BackgroundGray = Color(0xFFF8FAFF)
@@ -36,7 +31,6 @@ private val ChipHybridColor = Color(0xFFE3F2FD)
 private val ChipHybridText = Color(0xFF1976D2)
 private val PriceColor = Color(0xFF2E7D32)
 
-// ─── NAV ITEMS ───────────────────────
 data class NavItem(
     val label: String,
     val icon: ImageVector,
@@ -70,13 +64,13 @@ fun BusquedaScreen(
         viewModel.cargarActivas()
     }
 
-    // Debounce para la búsqueda
-    LaunchedEffect(busqueda) {
+    // ✅ Escucha AMBOS cambios juntos para evitar que se pisen
+    LaunchedEffect(busqueda, filtroSeleccionado) {
+        delay(300)
         if (busqueda.isNotBlank()) {
-            delay(500) // Esperar 500ms después de que el usuario deje de escribir
-            viewModel.buscarPorCargo(busqueda)
-        } else if (filtroSeleccionado == "Todas") {
-            viewModel.cargarActivas()
+            viewModel.buscarGeneral(busqueda)
+        } else {
+            viewModel.filtrarPorCategoria(filtroSeleccionado)
         }
     }
 
@@ -90,9 +84,9 @@ fun BusquedaScreen(
                 navItems.forEachIndexed { index, item ->
                     NavigationBarItem(
                         selected = selectedTab == index,
-                        onClick = { 
+                        onClick = {
                             selectedTab = index
-                            when(item.route) {
+                            when (item.route) {
                                 "perfil" -> onNavigateToProfile()
                                 "postulaciones" -> onNavigateToPostulations()
                             }
@@ -116,7 +110,6 @@ fun BusquedaScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Header con Gradiente y Buscador flotante
             HeaderSection(
                 nombreUsuario = nombreUsuario,
                 busqueda = busqueda,
@@ -129,17 +122,12 @@ fun BusquedaScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Filtros Rápidos
                 item {
                     FiltrosSection(
                         seleccionado = filtroSeleccionado,
                         onFiltroClick = { filtro ->
                             filtroSeleccionado = filtro
-                            busqueda = "" // Limpiar búsqueda al cambiar filtro
-                            when (filtro) {
-                                "Todas" -> viewModel.cargarActivas()
-                                else -> viewModel.buscarPorArea(filtro)
-                            }
+                            busqueda = "" // ← limpia búsqueda, LaunchedEffect se encarga del resto
                         }
                     )
                 }
@@ -155,7 +143,10 @@ fun BusquedaScreen(
 
                 if (loading) {
                     item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             CircularProgressIndicator(color = BlueGradientStart)
                         }
                     }
@@ -170,16 +161,24 @@ fun BusquedaScreen(
 
                 if (!loading && ofertas.isEmpty()) {
                     item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                        Box(
+                            Modifier.fillMaxWidth().padding(32.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Default.SearchOff, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
+                                Icon(
+                                    Icons.Default.SearchOff,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = Color.LightGray
+                                )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text("No se encontraron ofertas", color = Color.Gray)
                             }
                         }
                     }
                 }
-                
+
                 item { Spacer(modifier = Modifier.height(20.dp)) }
             }
         }
@@ -199,7 +198,6 @@ fun HeaderSection(
             .wrapContentHeight()
     ) {
         Column {
-            // Fondo Gradiente
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -238,19 +236,17 @@ fun HeaderSection(
                             .background(Color.White.copy(alpha = 0.2f), CircleShape)
                     ) {
                         Icon(
-                            Icons.Default.Notifications, 
-                            contentDescription = "Notificaciones", 
+                            Icons.Default.Notifications,
+                            contentDescription = "Notificaciones",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
-            // Espacio para que el buscador flote
             Spacer(modifier = Modifier.height(30.dp))
         }
 
-        // Buscador Flotante
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -263,8 +259,10 @@ fun HeaderSection(
                 value = busqueda,
                 onValueChange = onBusquedaChange,
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Buscar cargo, empresa o área...") },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = BlueGradientStart) },
+                placeholder = { Text("Buscar cargo, modalidad, área...") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = null, tint = BlueGradientStart)
+                },
                 trailingIcon = if (busqueda.isNotEmpty()) {
                     {
                         IconButton(onClick = { onBusquedaChange("") }) {
@@ -337,7 +335,6 @@ fun JobCard(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono de Empresa (Placeholder)
             Box(
                 modifier = Modifier
                     .size(54.dp)
@@ -346,7 +343,7 @@ fun JobCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = when(oferta.area.lowercase()) {
+                    imageVector = when (oferta.area.lowercase()) {
                         "diseño" -> Icons.Default.Palette
                         "desarrollo", "ti" -> Icons.Default.Code
                         "ventas" -> Icons.Default.TrendingUp
@@ -374,11 +371,10 @@ fun JobCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Chip Modalidad
                     Surface(
                         color = ChipHybridColor,
                         shape = RoundedCornerShape(8.dp)
@@ -416,4 +412,3 @@ fun JobCard(
         }
     }
 }
-

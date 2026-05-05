@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -20,6 +21,7 @@ import com.example.frontend_bolsa_empleo_universitaria.screens.DetalleOfertaScre
 import com.example.frontend_bolsa_empleo_universitaria.screens.HomeScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.LoginScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.NotificacionScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.PerfilScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.RegistroScreen
 
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginState
@@ -28,6 +30,7 @@ import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewMode
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.RegistroViewModel
 
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.PerfilViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -39,7 +42,7 @@ class MainActivity : ComponentActivity() {
         setContent {
 
             Frontend_Bolsa_Empleo_UniversitariaTheme {
-
+                val perfilViewModel: PerfilViewModel = viewModel()
                 val navController = rememberNavController()
 
                 val usuarioRepository = remember { UsuarioRepository() }
@@ -172,11 +175,11 @@ class MainActivity : ComponentActivity() {
                             },
 
                             onNavigateToProfile = {
-                                navController.navigate("home")
+                                navController.navigate("perfil")
                             },
 
                             onNavigateToPostulations = {
-
+                                navController.navigate("home")
                             }
                         )
                     }
@@ -192,35 +195,47 @@ class MainActivity : ComponentActivity() {
 
                     composable(
                         route = "detalle/{ofertaId}",
-
                         arguments = listOf(
-                            navArgument("ofertaId") {
-                                type = NavType.LongType
-                            }
+                            navArgument("ofertaId") { type = NavType.LongType }
                         )
-
                     ) { backStackEntry ->
 
-                        val ofertaId =
-                            backStackEntry.arguments
-                                ?.getLong("ofertaId")
-                                ?: 0L
+                        val ofertaId = backStackEntry.arguments?.getLong("ofertaId") ?: 0L
 
-                        val oferta =
-                            ofertasViewModel.ofertas.value.find {
-                                it.idOferta == ofertaId
-                            }
+                        val oferta = ofertasViewModel.ofertas.value.find { it.idOferta == ofertaId }
 
                         if (oferta != null) {
 
+
+                            LaunchedEffect(oferta.idEmpresa) {
+                                ofertasViewModel.cargarEmpresa(oferta.idEmpresa)
+                            }
+
                             DetalleOfertaScreen(
-
                                 oferta = oferta,
+                                empresaNombre = ofertasViewModel.empresaNombre.value, // 👈 ya no hardcodeado
+                                onBack = { navController.popBackStack() }
+                            )
+                        }
+                    }
+                    // Nueva ruta
+                    composable("perfil") {
+                        val state = loginViewModel.uiState
+                        val usuario = if (state is LoginState.Success) state.usuario else null
 
-                                empresaNombre = "Tech Solutions S.A.",
-
-                                onBack = {
-                                    navController.popBackStack()
+                        if (usuario != null) {
+                            PerfilScreen(
+                                usuario = usuario,
+                                viewModel = perfilViewModel,
+                                onBack = { navController.popBackStack() },
+                                onUsuarioActualizado = { usuarioActualizado ->  // 👈 agregar
+                                    loginViewModel.setSuccessState(usuarioActualizado)
+                                },
+                                onLogout = {
+                                    loginViewModel.resetState()
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
                                 }
                             )
                         }

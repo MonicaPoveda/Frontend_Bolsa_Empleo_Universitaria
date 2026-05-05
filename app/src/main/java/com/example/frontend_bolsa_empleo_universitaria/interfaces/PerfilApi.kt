@@ -12,7 +12,7 @@ interface PerfilApi {
     @POST("api/perfiles/guardar")
     suspend fun guardar(@Body perfil: Perfil): Response<Perfil>
 
-    @PUT("api/perfiles/actualizar/{id}")
+    @PATCH("api/perfiles/actualizar/{id}")
     suspend fun actualizar(@Path("id") id: Long, @Body perfil: Perfil): Response<Perfil>
 
     @DELETE("api/perfiles/eliminar/{id}")

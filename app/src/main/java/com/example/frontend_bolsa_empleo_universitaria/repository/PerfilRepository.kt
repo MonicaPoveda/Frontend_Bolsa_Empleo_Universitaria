@@ -26,6 +26,9 @@ class PerfilRepository {
     suspend fun actualizar(id: Long, perfil: Perfil): Result<Perfil> = try {
         val r = api.actualizar(id, perfil)
         if (r.isSuccessful) Result.success(r.body()!!)
-        else Result.failure(Exception("Error al actualizar perfil"))
-    } catch (e: Exception) { Result.failure(Exception("Sin conexión")) }
+        else {
+            val errorMsg = r.errorBody()?.string() ?: "Error al actualizar perfil"
+            Result.failure(Exception(errorMsg))
+        }
+    } catch (e: Exception) { Result.failure(Exception("Sin conexión: ${e.message}")) }
 }

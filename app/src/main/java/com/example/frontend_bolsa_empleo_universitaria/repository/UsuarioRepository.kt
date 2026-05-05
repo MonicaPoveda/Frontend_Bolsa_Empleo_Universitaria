@@ -28,8 +28,11 @@ class UsuarioRepository {
     suspend fun actualizar(id: Long, usuario: Usuario): Result<Usuario> = try {
         val r = api.actualizar(id, usuario)
         if (r.isSuccessful) Result.success(r.body()!!)
-        else Result.failure(Exception("Error al actualizar usuario"))
-    } catch (e: Exception) { Result.failure(Exception("Sin conexión")) }
+        else {
+            val errorMsg = r.errorBody()?.string() ?: "Error al actualizar usuario"
+            Result.failure(Exception(errorMsg))
+        }
+    } catch (e: Exception) { Result.failure(Exception("Sin conexión: ${e.message}")) }
 
     suspend fun login(email: String, password: String): Result<Usuario> = try {
         val r = api.login(LoginRequest(email, password))

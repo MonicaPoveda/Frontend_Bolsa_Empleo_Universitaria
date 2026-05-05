@@ -5,6 +5,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -22,7 +23,7 @@ interface UsuarioApi {
     @POST("api/usuarios/guardar")
     suspend fun guardar(@Body usuario: Usuario): Response<Usuario>
 
-    @PUT("api/usuarios/actualizar/{id}")
+    @PATCH("api/usuarios/actualizar/{id}")
     suspend fun actualizar(@Path("id") id: Long, @Body usuario: Usuario): Response<Usuario>
 
     @DELETE("api/usuarios/eliminar/{id}")

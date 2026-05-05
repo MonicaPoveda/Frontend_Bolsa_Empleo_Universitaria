@@ -171,10 +171,10 @@ class RegistroViewModel(
         viewModelScope.launch {
             uiState = RegistroState.Loading
 
-            // Formatear experiencia como String para el backend
-            val experienciaStr = if (tieneExperiencia) {
-                listaExperiencia.joinToString("\n") {
-                    "${it.empresa} - ${it.cargo} (${it.duracion})"
+            // Formatear experiencia como String para el backend (formato consistente con Perfil)
+            val experienciaStr = if (tieneExperiencia && listaExperiencia.isNotEmpty()) {
+                listaExperiencia.joinToString(" | ") {
+                    "${it.empresa} (${it.cargo}, ${it.duracion})"
                 }
             } else "Sin experiencia"
 

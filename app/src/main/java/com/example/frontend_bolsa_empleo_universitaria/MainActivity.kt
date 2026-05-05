@@ -17,10 +17,8 @@ import androidx.navigation.navArgument
 
 import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
-
 import com.example.frontend_bolsa_empleo_universitaria.screens.BusquedaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.DetalleOfertaScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.HomeScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.PostulacionesScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.DetalleEmpresaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.LoginScreen
@@ -65,7 +63,9 @@ class MainActivity : ComponentActivity() {
                         LoginScreen(
                             viewModel = loginViewModel,
                             onLoginSuccess = {
-                                navController.navigate("home") {
+                                val state = loginViewModel.uiState
+                                val usuario = (state as? LoginState.Success)?.usuario
+                                navController.navigate("busqueda?nombre=${usuario?.nombre ?: "Usuario"}") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             },
@@ -79,26 +79,10 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.popBackStack() },
                             onRegistroSuccess = { usuario ->
                                 loginViewModel.setSuccessState(usuario)
-                                navController.navigate("home") {
+                                navController.navigate("busqueda?nombre=${usuario.nombre ?: "Usuario"}") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             }
-                        )
-                    }
-
-                    composable("home") {
-                        val state = loginViewModel.uiState
-                        val usuario = (state as? LoginState.Success)?.usuario
-                        HomeScreen(
-                            usuario = usuario,
-                            onNavigateToPostulaciones = { navController.navigate("postulaciones") },
-                            onNavigateToSearch = { navController.navigate("busqueda?nombre=${usuario?.nombre ?: "Usuario"}") },
-                            onNavigateToNotificaciones = { navController.navigate("notifications") },
-                            onLogout = {
-                                loginViewModel.resetState()
-                                navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                            },
-                            notifViewModel = notificacionViewModel
                         )
                     }
 
@@ -108,8 +92,13 @@ class MainActivity : ComponentActivity() {
                         PostulacionesScreen(
                             idUsuario = usuarioId,
                             viewModel = postulacionesViewModel,
-                            onBack = { navController.popBackStack() },
-                            onEmpresaClick = { idEmp -> navController.navigate("detalle_empresa/$idEmp") }
+                            onBack = { 
+                                navController.navigate("busqueda") {
+                                    popUpTo("busqueda") { inclusive = true }
+                                }
+                            },
+                            onEmpresaClick = { idEmp -> navController.navigate("detalle_empresa/$idEmp") },
+                            onNavigateToProfile = { navController.navigate("perfil") }
                         )
                     }
 
@@ -190,12 +179,17 @@ class MainActivity : ComponentActivity() {
                             PerfilScreen(
                                 usuario = usuario,
                                 viewModel = perfilViewModel,
-                                onBack = { navController.popBackStack() },
+                                onBack = { 
+                                    navController.navigate("busqueda") {
+                                        popUpTo("busqueda") { inclusive = true }
+                                    }
+                                },
                                 onUsuarioActualizado = { loginViewModel.setSuccessState(it) },
                                 onLogout = {
                                     loginViewModel.resetState()
                                     navController.navigate("login") { popUpTo(0) { inclusive = true } }
-                                }
+                                },
+                                onNavigateToPostulations = { navController.navigate("postulaciones") }
                             )
                         }
                     }

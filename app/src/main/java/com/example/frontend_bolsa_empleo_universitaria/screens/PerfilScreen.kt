@@ -52,6 +52,7 @@ fun PerfilScreen(
     viewModel: PerfilViewModel,
     onBack: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToPostulations: () -> Unit = {},
     onUsuarioActualizado: (Usuario) -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
@@ -100,6 +101,37 @@ fun PerfilScreen(
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
+        },
+        bottomBar = {
+            NavigationBar(
+                containerColor = Color.White,
+                tonalElevation = 8.dp
+            ) {
+                listOf(
+                    Triple("Buscar", Icons.Default.Search, "busqueda"),
+                    Triple("Postulaciones", Icons.Default.AssignmentTurnedIn, "postulaciones"),
+                    Triple("Perfil", Icons.Default.Person, "perfil")
+                ).forEach { (label, icon, route) ->
+                    NavigationBarItem(
+                        selected = route == "perfil",
+                        onClick = {
+                            when (route) {
+                                "busqueda" -> onBack()
+                                "postulaciones" -> onNavigateToPostulations()
+                            }
+                        },
+                        icon = { Icon(icon, contentDescription = label) },
+                        label = { Text(label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = AzulOscuro,
+                            selectedTextColor = AzulOscuro,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray,
+                            indicatorColor = AzulMedio.copy(alpha = 0.2f)
+                        )
+                    )
+                }
+            }
         }
     ) { padding ->
         Column(

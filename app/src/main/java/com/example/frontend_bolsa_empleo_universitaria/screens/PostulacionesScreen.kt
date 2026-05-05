@@ -36,6 +36,7 @@ fun PostulacionesScreen(
     idUsuario: Long,
     onBack: () -> Unit,
     onEmpresaClick: (Long) -> Unit,
+    onNavigateToProfile: () -> Unit = {},
     viewModel: PostulacionesViewModel = viewModel()
 ) {
     val postulaciones by viewModel.postulaciones
@@ -58,7 +59,38 @@ fun PostulacionesScreen(
     val aceptadas = postulaciones.count { it.estado.equals("ACEPTADO", true) || it.estado.equals("ACEPTADA", true) }
 
     Scaffold(
-        containerColor = FondoPantalla
+        containerColor = FondoPantalla,
+        bottomBar = {
+            NavigationBar(
+                containerColor = Color.White,
+                tonalElevation = 8.dp
+            ) {
+                listOf(
+                    Triple("Buscar", Icons.Default.Search, "busqueda"),
+                    Triple("Postulaciones", Icons.Default.AssignmentTurnedIn, "postulaciones"),
+                    Triple("Perfil", Icons.Default.Person, "perfil")
+                ).forEach { (label, icon, route) ->
+                    NavigationBarItem(
+                        selected = route == "postulaciones",
+                        onClick = {
+                            when (route) {
+                                "busqueda" -> onBack()
+                                "perfil" -> onNavigateToProfile()
+                            }
+                        },
+                        icon = { Icon(icon, contentDescription = label) },
+                        label = { Text(label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = AzulFondoHeader,
+                            selectedTextColor = AzulFondoHeader,
+                            unselectedIconColor = Color.Gray,
+                            unselectedTextColor = Color.Gray,
+                            indicatorColor = AzulTarjetaStats.copy(alpha = 0.2f)
+                        )
+                    )
+                }
+            }
+        }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             HeaderConStats(total = total, pendientes = pendientes, aceptadas = aceptadas, onBack = onBack)

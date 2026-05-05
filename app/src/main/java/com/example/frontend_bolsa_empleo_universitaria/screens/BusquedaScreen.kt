@@ -53,7 +53,6 @@ fun BusquedaScreen(
     onNavigateToPostulations: () -> Unit = {}
 ) {
     var busqueda by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableStateOf(0) }
     var filtroSeleccionado by remember { mutableStateOf("Todas") }
 
     val ofertas = viewModel.ofertas.value
@@ -81,11 +80,13 @@ fun BusquedaScreen(
                 containerColor = Color.White,
                 tonalElevation = 8.dp
             ) {
-                navItems.forEachIndexed { index, item ->
+                navItems.forEach { item ->
                     NavigationBarItem(
-                        selected = selectedTab == index,
+                        selected = when (item.route) {
+                            "busqueda" -> true
+                            else -> false
+                        },
                         onClick = {
-                            selectedTab = index
                             when (item.route) {
                                 "perfil" -> onNavigateToProfile()
                                 "postulaciones" -> onNavigateToPostulations()

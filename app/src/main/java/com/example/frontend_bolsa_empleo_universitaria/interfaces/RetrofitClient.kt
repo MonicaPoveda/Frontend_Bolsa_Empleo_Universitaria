@@ -30,6 +30,7 @@ object RetrofitClient {
             .build()
     }
 
+    val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
     val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
     val perfilApi: PerfilApi by lazy { retrofit.create(PerfilApi::class.java) }

@@ -32,11 +32,10 @@ open class PerfilViewModel : ViewModel() {
 
     var usuarioActual by mutableStateOf<Usuario?>(null)
         private set
-    var nombreUsuario by mutableStateOf("")
+    var nombre by mutableStateOf("")
+    var apellido by mutableStateOf("")
     var emailUsuario by mutableStateOf("")
-    var identificacionUsuario by mutableStateOf("")
     var telefonoUsuario by mutableStateOf("")
-    var passwordUsuario by mutableStateOf("")
     var tipoUsuario by mutableStateOf("ESTUDIANTE")
     var isEditing by mutableStateOf(false)
 
@@ -44,17 +43,15 @@ open class PerfilViewModel : ViewModel() {
     var carrera by mutableStateOf("")
     var universidad by mutableStateOf("")
     var semestre by mutableStateOf("")
-    var promedio by mutableStateOf("")
     var disponibilidad by mutableStateOf("")
     var cvUrl by mutableStateOf("")
-    var experiencia by mutableStateOf("")
     var habilidades by mutableStateOf("")
     var listaExperiencia = mutableStateListOf<ExperienciaLaboral>()
     var tieneExperiencia by mutableStateOf(false)
 
     // Listas para los dropdowns
     val opcionesCarreras = listOf("Ingeniería de Sistemas", "Ingeniería Industrial", "Administración de Empresas", "Psicología", "Derecho", "Medicina", "Diseño Gráfico")
-    val opcionesSemestres = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Egresado")
+    val opcionesSemestres = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "10")
     val opcionesDisponibilidad = listOf("Tiempo Completo", "Medio Tiempo", "Remoto", "Prácticas")
     val sugerenciasHabilidades = listOf("Java", "Kotlin", "Python", "SQL", "Liderazgo", "Inglés B2", "Trabajo en Equipo", "Resolución de Problemas")
 
@@ -67,13 +64,11 @@ open class PerfilViewModel : ViewModel() {
                     carrera = p.carrera
                     universidad = p.universidad
                     semestre = p.semestre
-                    promedio = p.promedio?.toString() ?: ""
                     disponibilidad = p.disponibilidad ?: ""
                     cvUrl = p.cvUrl ?: ""
-                    experiencia = p.experiencia ?: ""
                     habilidades = p.habilidades
                     
-                    // Parsear experiencia si existe
+                    // Parsear experiencia
                     val exp = p.experiencia ?: ""
                     if (exp.isNotBlank() && exp != "Sin experiencia") {
                         tieneExperiencia = true
@@ -87,6 +82,9 @@ open class PerfilViewModel : ViewModel() {
                                 }
                             } catch (e: Exception) { }
                         }
+                    } else {
+                        tieneExperiencia = false
+                        listaExperiencia.clear()
                     }
                     
                     uiState = PerfilState.Idle
@@ -100,9 +98,9 @@ open class PerfilViewModel : ViewModel() {
 
     fun cargarUsuario(usuario: Usuario) {
         usuarioActual = usuario
-        nombreUsuario = "${usuario.nombre} ${usuario.apellido}".trim()
+        nombre = usuario.nombre
+        apellido = usuario.apellido
         emailUsuario = usuario.email
-        identificacionUsuario = usuario.identificacion ?: ""
         telefonoUsuario = usuario.telefono ?: ""
         tipoUsuario = usuario.tipoUsuario
     }
@@ -114,10 +112,8 @@ open class PerfilViewModel : ViewModel() {
             carrera = p.carrera
             universidad = p.universidad
             semestre = p.semestre
-            promedio = p.promedio?.toString() ?: ""
             disponibilidad = p.disponibilidad ?: ""
             cvUrl = p.cvUrl ?: ""
-            experiencia = p.experiencia ?: ""
             habilidades = p.habilidades
             
             val exp = p.experiencia ?: ""
@@ -138,22 +134,15 @@ open class PerfilViewModel : ViewModel() {
                 listaExperiencia.clear()
             }
         }
-        passwordUsuario = ""
     }
 
-    // 👈 Nuevo: guardar cambios del usuario
     fun guardarCambiosUsuario(onSuccess: (Usuario) -> Unit) {
         val actual = usuarioActual ?: return
         val id = actual.idUsuario ?: return
         
-        if (passwordUsuario.isBlank()) {
-            uiState = PerfilState.Error("Debes ingresar tu contraseña para confirmar los cambios")
-            return
-        }
-
-        // Validaciones de negocio
-        if (nombreUsuario.trim().split("\\s+".toRegex()).size < 2) {
-            uiState = PerfilState.Error("El nombre debe incluir al menos un apellido")
+        // Validaciones
+        if (nombre.isBlank() || apellido.isBlank()) {
+            uiState = PerfilState.Error("Nombre y apellido son obligatorios")
             return
         }
 
@@ -167,25 +156,18 @@ open class PerfilViewModel : ViewModel() {
             return
         }
 
-        val partesNombre = nombreUsuario.trim().split("\\s+".toRegex(), limit = 2)
-        val nombre = partesNombre.getOrNull(0) ?: ""
-        val apellido = partesNombre.getOrNull(1) ?: ""
-
         viewModelScope.launch {
             uiState = PerfilState.Loading
             val actualizado = actual.copy(
-                nombre = nombre,
-                apellido = apellido,
+                nombre = nombre.trim(),
+                apellido = apellido.trim(),
                 email = emailUsuario,
-                identificacion = identificacionUsuario,
                 telefono = telefonoUsuario,
-                tipoUsuario = tipoUsuario,
-                password = passwordUsuario
+                tipoUsuario = tipoUsuario
             )
             usuarioRepository.actualizar(id, actualizado).fold(
                 onSuccess = { usuarioActualizado ->
                     usuarioActual = usuarioActualizado
-                    // Después de actualizar el usuario, actualizamos el perfil
                     guardarCambios()
                     onSuccess(usuarioActualizado)
                 },
@@ -195,20 +177,11 @@ open class PerfilViewModel : ViewModel() {
             )
         }
     }
+
     fun guardarCambios() {
         val perfilActual = perfil ?: return
         val id = perfilActual.idPerfil ?: return
 
-        // Validación de promedio para estudiantes
-        if (tipoUsuario == "ESTUDIANTE") {
-            val prom = promedio.replace(",", ".").toDoubleOrNull()
-            if (prom == null || prom < 0.0 || prom > 5.0) {
-                uiState = PerfilState.Error("El promedio debe ser un número entre 0.0 y 5.0")
-                return
-            }
-        }
-
-        // Convertir lista de experiencia a string para guardar
         val expString = if (tieneExperiencia && listaExperiencia.isNotEmpty()) {
             listaExperiencia.joinToString(" | ") { "${it.empresa} (${it.cargo}, ${it.duracion})" }
         } else "Sin experiencia"
@@ -219,7 +192,7 @@ open class PerfilViewModel : ViewModel() {
                 carrera = carrera,
                 universidad = universidad,
                 semestre = if (tipoUsuario == "ESTUDIANTE") semestre else "Graduado",
-                promedio = if (tipoUsuario == "ESTUDIANTE") promedio.toDoubleOrNull() else null,
+                promedio = null,
                 disponibilidad = disponibilidad,
                 cvUrl = cvUrl,
                 experiencia = expString,
@@ -228,7 +201,6 @@ open class PerfilViewModel : ViewModel() {
             repository.actualizar(id, actualizado).fold(
                 onSuccess = {
                     perfil = it
-                    passwordUsuario = ""
                     isEditing = false
                     uiState = PerfilState.Success
                 },

@@ -184,28 +184,38 @@ fun Paso1DatosBasicos(viewModel: RegistroViewModel, onNavigateBack: () -> Unit) 
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        FieldLabel("Nombre completo")
-        OutlinedTextField(
-            value = viewModel.nombre,
-            onValueChange = { viewModel.nombre = it },
-            placeholder = { Text("Ej. Juan Pérez") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        FieldLabel("Identificación")
-        OutlinedTextField(
-            value = viewModel.identificacion,
-            onValueChange = { viewModel.identificacion = it },
-            placeholder = { Text("Número de documento") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next)
-        )
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(modifier = Modifier.weight(1f)) {
+                FieldLabel("Nombres")
+                OutlinedTextField(
+                    value = viewModel.nombre,
+                    onValueChange = { viewModel.nombre = it },
+                    placeholder = { Text("Ej. Juan", color = Color.Gray.copy(alpha = 0.5f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primaryBlue,
+                        unfocusedBorderColor = Color(0xFFE0E0E0)
+                    )
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                FieldLabel("Apellidos")
+                OutlinedTextField(
+                    value = viewModel.apellido,
+                    onValueChange = { viewModel.apellido = it },
+                    placeholder = { Text("Ej. Pérez", color = Color.Gray.copy(alpha = 0.5f)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primaryBlue,
+                        unfocusedBorderColor = Color(0xFFE0E0E0)
+                    )
+                )
+            }
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -213,24 +223,32 @@ fun Paso1DatosBasicos(viewModel: RegistroViewModel, onNavigateBack: () -> Unit) 
         OutlinedTextField(
             value = viewModel.telefono,
             onValueChange = { viewModel.telefono = it },
-            placeholder = { Text("Ej. 3001234567") },
+            placeholder = { Text("Ej. 3001234567", color = Color.Gray.copy(alpha = 0.5f)) },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.Phone, null, tint = Color.LightGray) },
             shape = RoundedCornerShape(8.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone, imeAction = ImeAction.Next),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryBlue,
+                unfocusedBorderColor = Color(0xFFE0E0E0)
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        FieldLabel("Correo institucional")
+        FieldLabel("Correo Electrónico")
         OutlinedTextField(
             value = viewModel.email,
             onValueChange = { viewModel.email = it },
-            placeholder = { Text("usuario@universidad.edu.co") },
+            placeholder = { Text("ejemplo@correo.com", color = Color.Gray.copy(alpha = 0.5f)) },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.Email, null, tint = Color.LightGray) },
             shape = RoundedCornerShape(8.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryBlue,
+                unfocusedBorderColor = Color(0xFFE0E0E0)
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -239,6 +257,7 @@ fun Paso1DatosBasicos(viewModel: RegistroViewModel, onNavigateBack: () -> Unit) 
         OutlinedTextField(
             value = viewModel.password,
             onValueChange = { viewModel.password = it },
+            placeholder = { Text("Mínimo 6 caracteres", color = Color.Gray.copy(alpha = 0.5f)) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -246,7 +265,11 @@ fun Paso1DatosBasicos(viewModel: RegistroViewModel, onNavigateBack: () -> Unit) 
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null)
                 }
-            }
+            },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryBlue,
+                unfocusedBorderColor = Color(0xFFE0E0E0)
+            )
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -312,11 +335,15 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
         OutlinedTextField(
             value = viewModel.universidad,
             onValueChange = { viewModel.universidad = it },
-            placeholder = { Text("Ej. Universidad Nacional") },
+            placeholder = { Text("Ej. Universidad Nacional", color = Color.Gray.copy(alpha = 0.5f)) },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.LocationCity, null, tint = Color.LightGray) },
             shape = RoundedCornerShape(8.dp),
-            singleLine = true
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryBlue,
+                unfocusedBorderColor = Color(0xFFE0E0E0)
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -330,12 +357,16 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
             OutlinedTextField(
                 value = viewModel.carrera,
                 onValueChange = { viewModel.carrera = it },
-                placeholder = { Text("Selecciona o escribe tu carrera") },
+                placeholder = { Text("Selecciona o escribe tu carrera", color = Color.Gray.copy(alpha = 0.5f)) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
                 leadingIcon = { Icon(Icons.Default.School, null, tint = Color.LightGray) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCarrera) },
                 shape = RoundedCornerShape(8.dp),
-                readOnly = false // Permitimos escribir si no está en la lista
+                readOnly = false,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryBlue,
+                    unfocusedBorderColor = Color(0xFFE0E0E0)
+                )
             )
             ExposedDropdownMenu(
                 expanded = expandedCarrera,
@@ -366,11 +397,15 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                     value = viewModel.semestre,
                     onValueChange = {},
                     readOnly = true,
-                    placeholder = { Text("Selecciona tu semestre") },
+                    placeholder = { Text("Selecciona tu semestre", color = Color.Gray.copy(alpha = 0.5f)) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(),
                     leadingIcon = { Icon(Icons.Default.CalendarToday, null, tint = Color.LightGray) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSemestre) },
-                    shape = RoundedCornerShape(8.dp)
+                    shape = RoundedCornerShape(8.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = primaryBlue,
+                        unfocusedBorderColor = Color(0xFFE0E0E0)
+                    )
                 )
                 ExposedDropdownMenu(
                     expanded = expandedSemestre,
@@ -387,19 +422,6 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            FieldLabel("Promedio Acumulado")
-            OutlinedTextField(
-                value = viewModel.promedio,
-                onValueChange = { viewModel.promedio = it },
-                placeholder = { Text("Ej. 4.2") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.StarBorder, null, tint = Color.LightGray) },
-                shape = RoundedCornerShape(8.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-            )
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -414,11 +436,15 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                 value = viewModel.disponibilidad,
                 onValueChange = {},
                 readOnly = true,
-                placeholder = { Text("Selecciona disponibilidad") },
+                placeholder = { Text("Selecciona disponibilidad", color = Color.Gray.copy(alpha = 0.5f)) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(),
                 leadingIcon = { Icon(Icons.Default.AccessTime, null, tint = Color.LightGray) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDispo) },
-                shape = RoundedCornerShape(8.dp)
+                shape = RoundedCornerShape(8.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = primaryBlue,
+                    unfocusedBorderColor = Color(0xFFE0E0E0)
+                )
             )
             ExposedDropdownMenu(
                 expanded = expandedDispo,
@@ -443,11 +469,15 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
         OutlinedTextField(
             value = viewModel.cvUrl,
             onValueChange = { viewModel.cvUrl = it },
-            placeholder = { Text("https://drive.google.com/...") },
+            placeholder = { Text("https://drive.google.com/...", color = Color.Gray.copy(alpha = 0.5f)) },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = { Icon(Icons.Default.Link, null, tint = Color.LightGray) },
             shape = RoundedCornerShape(8.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri)
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryBlue,
+                unfocusedBorderColor = Color(0xFFE0E0E0)
+            )
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -459,7 +489,7 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
         OutlinedTextField(
             value = skillInput,
             onValueChange = { if (it.length <= 30) skillInput = it },
-            placeholder = { Text("Agregar habilidad...") },
+            placeholder = { Text("Agregar habilidad...", color = Color.Gray.copy(alpha = 0.5f)) },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             trailingIcon = {
                 IconButton(onClick = {
@@ -478,7 +508,11 @@ fun Paso2Perfil(viewModel: RegistroViewModel) {
                     viewModel.areasInteres.add(skillInput.trim())
                     skillInput = ""
                 }
-            })
+            }),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = primaryBlue,
+                unfocusedBorderColor = Color(0xFFE0E0E0)
+            )
         )
 
         Spacer(modifier = Modifier.height(8.dp))

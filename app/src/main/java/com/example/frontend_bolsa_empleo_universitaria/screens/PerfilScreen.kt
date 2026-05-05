@@ -3,6 +3,7 @@ package com.example.frontend_bolsa_empleo_universitaria.screens
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,16 +15,18 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -34,13 +37,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.frontend_bolsa_empleo_universitaria.model.Usuario
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.ExperienciaLaboral
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PerfilState
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PerfilViewModel
 
 private val AzulOscuro = Color(0xFF001F3F)
 private val AzulMedio = Color(0xFF0056D2)
 private val FondoGris = Color(0xFFF8FAFF)
-private val TextoGrisPerfil = Color(0xFF8A94A6)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +56,7 @@ fun PerfilScreen(
 ) {
     val scrollState = rememberScrollState()
     var mostrarDialogoCerrarSesion by remember { mutableStateOf(false) }
+    val uriHandler = LocalUriHandler.current
 
     LaunchedEffect(usuario.idUsuario) {
         viewModel.cargarUsuario(usuario)
@@ -69,86 +73,289 @@ fun PerfilScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = Color.White,
+        containerColor = FondoGris,
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        if (viewModel.isEditing) "EDITAR PERFIL" else "MI PERFIL",
-                        fontWeight = FontWeight.ExtraBold, 
+                        "PERFIL UNIVERSITARIO",
+                        fontWeight = FontWeight.ExtraBold,
                         color = AzulOscuro,
-                        style = MaterialTheme.typography.labelLarge
+                        style = MaterialTheme.typography.titleMedium,
+                        letterSpacing = 1.sp
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = { if (viewModel.isEditing) viewModel.cancelarEdicion() else onBack() }) {
-                        Icon(if (viewModel.isEditing) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
+                        Icon(if (viewModel.isEditing) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, tint = AzulOscuro)
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { mostrarDialogoCerrarSesion = true },
+                        modifier = Modifier.padding(end = 8.dp).size(40.dp).background(Color(0xFFFFEBEE), CircleShape)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Salir", tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(scrollState)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Card Principal: Foto y Datos Básicos
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                     if (!viewModel.isEditing) {
-                        IconButton(onClick = { viewModel.isEditing = true }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Editar", tint = AzulMedio)
+                        IconButton(
+                            onClick = { viewModel.isEditing = true },
+                            modifier = Modifier.align(Alignment.TopEnd).size(32.dp)
+                        ) {
+                            Icon(Icons.Default.Edit, contentDescription = "Editar Perfil", tint = AzulMedio)
                         }
-                        IconButton(onClick = { mostrarDialogoCerrarSesion = true }) {
-                            Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Salir", tint = Color.Red)
+                    }
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        // "Foto" de perfil (Iniciales)
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(FondoGris)
+                                .border(1.dp, Color(0xFFE0E0E0), RoundedCornerShape(12.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val iniciales = (viewModel.nombre.take(1) + viewModel.apellido.take(1)).uppercase()
+                            Text(
+                                text = iniciales.ifEmpty { "U" },
+                                fontSize = 40.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AzulOscuro
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Text(
+                            text = "${viewModel.nombre} ${viewModel.apellido}",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = AzulOscuro,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth(),
+                            lineHeight = 34.sp
+                        )
+
+                        Text(
+                            text = if (viewModel.tipoUsuario == "EGRESADO") 
+                                "Título: ${viewModel.carrera.ifBlank { "No especificado" }}" 
+                            else 
+                                viewModel.carrera.ifBlank { "Carrera no especificada" },
+                            fontSize = 18.sp,
+                            color = AzulMedio,
+                            fontWeight = FontWeight.SemiBold,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(Icons.Default.AccountBalance, null, tint = AzulMedio, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = viewModel.universidad.ifBlank { "Universidad no especificada" },
+                                fontSize = 14.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 }
-            )
-        },
-        bottomBar = {
+            }
+
             if (viewModel.isEditing) {
-                Surface(modifier = Modifier.fillMaxWidth(), shadowElevation = 16.dp, color = Color.White) {
-                    Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        OutlinedButton(
-                            onClick = { viewModel.cancelarEdicion() }, 
-                            modifier = Modifier.weight(1f).height(56.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Cancelar", color = Color.Black)
+                DatosEdicion(viewModel)
+                
+                Button(
+                    onClick = { viewModel.guardarCambiosUsuario { onUsuarioActualizado(it) } },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = viewModel.uiState !is PerfilState.Loading
+                ) {
+                    if (viewModel.uiState is PerfilState.Loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Guardar Cambios", fontWeight = FontWeight.Bold)
+                    }
+                }
+                
+                OutlinedButton(
+                    onClick = { viewModel.cancelarEdicion() },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Cancelar", color = AzulOscuro)
+                }
+            } else {
+                // Card: Información de Contacto
+                SeccionCardPerfil(
+                    titulo = "Información de Contacto",
+                    icono = Icons.Default.ContactPage
+                ) {
+                    ItemInfoPerfil(Icons.Default.Email, "Correo Electrónico", viewModel.emailUsuario)
+                    ItemInfoPerfil(Icons.Default.Phone, "Teléfono", viewModel.telefonoUsuario.ifBlank { "No registrado" })
+                }
+
+                // Card: Datos Académicos
+                SeccionCardPerfil(
+                    titulo = "Datos Académicos",
+                    icono = Icons.Default.School
+                ) {
+                    ItemInfoPerfil(Icons.Default.LocationCity, "Universidad", viewModel.universidad.ifBlank { "No especificada" })
+                    ItemInfoPerfil(Icons.Default.MenuBook, if (viewModel.tipoUsuario == "EGRESADO") "Título Obtenido" else "Carrera", viewModel.carrera.ifBlank { "No especificada" })
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.Start,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CalendarMonth, null, tint = AzulMedio, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Estado actual: ", color = Color.Gray, fontSize = 13.sp)
+                        Text(
+                            text = if (viewModel.tipoUsuario == "ESTUDIANTE") "Estudiante de ${viewModel.semestre}° Semestre" else "Egresado / Graduado",
+                            fontWeight = FontWeight.Bold,
+                            color = AzulMedio,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                // Card: Experiencia Laboral
+                SeccionCardPerfil(
+                    titulo = "Trayectoria Profesional",
+                    icono = Icons.Default.Work
+                ) {
+                    if (viewModel.tieneExperiencia && viewModel.listaExperiencia.isNotEmpty()) {
+                        viewModel.listaExperiencia.forEachIndexed { index, exp ->
+                            Row(modifier = Modifier.padding(vertical = 8.dp)) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Box(modifier = Modifier.size(12.dp).background(AzulMedio, CircleShape))
+                                    if (index < viewModel.listaExperiencia.size - 1) {
+                                        Box(modifier = Modifier.width(2.dp).weight(1f).background(Color(0xFFE0E0E0)))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column {
+                                    Text(exp.cargo, fontWeight = FontWeight.Bold, color = AzulOscuro, fontSize = 16.sp)
+                                    Text(exp.empresa, color = Color.DarkGray, fontSize = 14.sp)
+                                    Text(exp.duracion, color = Color.Gray, fontSize = 12.sp)
+                                }
+                            }
                         }
-                        Button(
-                            onClick = {
-                                viewModel.guardarCambiosUsuario { onUsuarioActualizado(it) }
-                            },
-                            modifier = Modifier.weight(1.5f).height(56.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AzulOscuro),
-                            shape = RoundedCornerShape(8.dp),
-                            enabled = viewModel.uiState !is PerfilState.Loading
-                        ) {
-                            if (viewModel.uiState is PerfilState.Loading) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                            } else {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Guardar", fontWeight = FontWeight.Bold)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
+                    } else {
+                        Text("Sin experiencia laboral registrada.", color = Color.Gray, fontSize = 14.sp)
+                    }
+                }
+
+                // Card: Habilidades
+                SeccionCardPerfil(
+                    titulo = "Habilidades y Áreas de Interés",
+                    icono = Icons.Default.Psychology
+                ) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        viewModel.habilidades.split(",").forEach { skill ->
+                            if (skill.isNotBlank()) {
+                                Surface(
+                                    color = FondoGris,
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                                ) {
+                                    Text(
+                                        text = skill.trim(),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        fontSize = 12.sp,
+                                        color = Color.DarkGray
+                                    )
                                 }
                             }
                         }
                     }
                 }
-            }
-        }
-    ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(scrollState)) {
-            Box(modifier = Modifier.fillMaxWidth().height(140.dp).background(Brush.verticalGradient(listOf(AzulOscuro, AzulMedio)))) {
-                Box(modifier = Modifier.align(Alignment.BottomCenter).offset(y = 50.dp).size(100.dp).clip(CircleShape).background(Color.White).padding(4.dp)) {
-                    Box(modifier = Modifier.fillMaxSize().clip(CircleShape).background(FondoGris), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(50.dp), tint = AzulMedio)
+
+                // Card: Hoja de Vida
+                SeccionCardPerfil(
+                    titulo = "Documentación",
+                    icono = Icons.Default.Folder
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        if (viewModel.cvUrl.isNotBlank()) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { 
+                                        try {
+                                            uriHandler.openUri(if (viewModel.cvUrl.startsWith("http")) viewModel.cvUrl else "https://${viewModel.cvUrl}")
+                                        } catch (e: Exception) {}
+                                    },
+                                color = Color(0xFFE3F2FD),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, AzulMedio.copy(alpha = 0.3f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Link, null, tint = AzulMedio, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Ver Hoja de Vida en línea", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = AzulMedio)
+                                        Text(viewModel.cvUrl, color = Color.Gray, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, textDecoration = TextDecoration.Underline)
+                                    }
+                                    Icon(Icons.AutoMirrored.Filled.OpenInNew, null, tint = AzulMedio, modifier = Modifier.size(18.dp))
+                                }
+                            }
+                        } else {
+                            Text("No se ha proporcionado un enlace a la hoja de vida.", color = Color.Gray, fontSize = 14.sp)
+                        }
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Timer, null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Disponibilidad: ", color = Color.Gray, fontSize = 14.sp)
+                            Text(viewModel.disponibilidad.ifBlank { "No definida" }, fontWeight = FontWeight.Bold, color = AzulOscuro, fontSize = 14.sp)
+                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(60.dp))
 
-            if (!viewModel.isEditing) {
-                DatosVista(viewModel)
-            } else {
-                DatosEdicion(viewModel)
-            }
-
-            Spacer(modifier = Modifier.height(120.dp))
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 
@@ -156,36 +363,52 @@ fun PerfilScreen(
 }
 
 @Composable
-fun DatosVista(viewModel: PerfilViewModel) {
-    Column(modifier = Modifier.padding(horizontal = 24.dp)) {
-        Text(viewModel.nombreUsuario, fontSize = 24.sp, fontWeight = FontWeight.Bold, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center, color = AzulOscuro)
-        Text(viewModel.emailUsuario, color = Color.Gray, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-        
-        Spacer(modifier = Modifier.height(32.dp))
-        
-        SeccionPerfil("DATOS DE CONTACTO", Icons.Default.ContactPhone) {
-            InfoRowPerfil("Identificación", viewModel.identificacionUsuario)
-            InfoRowPerfil("Teléfono", viewModel.telefonoUsuario)
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SeccionPerfil("INFORMACIÓN ACADÉMICA", Icons.Default.School) {
-            InfoRowPerfil("Universidad", viewModel.universidad)
-            InfoRowPerfil("Carrera", viewModel.carrera)
-            if (viewModel.tipoUsuario == "ESTUDIANTE") {
-                InfoRowPerfil("Semestre", viewModel.semestre)
-                InfoRowPerfil("Promedio", viewModel.promedio)
+fun SeccionCardPerfil(
+    titulo: String,
+    icono: ImageVector? = null,
+    contenido: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icono != null) {
+                    Box(
+                        modifier = Modifier.size(36.dp).background(FondoGris, RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(icono, null, tint = AzulOscuro, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                }
+                Text(
+                    text = titulo,
+                    fontWeight = FontWeight.Bold,
+                    color = AzulOscuro,
+                    fontSize = 16.sp,
+                    modifier = Modifier.weight(1f)
+                )
             }
+            Spacer(modifier = Modifier.height(16.dp))
+            contenido()
         }
-        
-        Spacer(modifier = Modifier.height(16.dp))
+    }
+}
 
-        SeccionPerfil("PERFIL PROFESIONAL", Icons.Default.Work) {
-            InfoRowPerfil("Disponibilidad", viewModel.disponibilidad)
-            InfoRowPerfil("Habilidades", viewModel.habilidades)
-            InfoRowPerfil("Hoja de Vida", viewModel.cvUrl)
-        }
+@Composable
+fun ItemInfoPerfil(icono: ImageVector, label: String, valor: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(icono, null, tint = Color.LightGray, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = "$label: ", color = Color.Gray, fontSize = 13.sp)
+        Text(text = valor, fontWeight = FontWeight.Medium, color = AzulOscuro, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -194,65 +417,83 @@ fun DatosVista(viewModel: PerfilViewModel) {
 fun DatosEdicion(viewModel: PerfilViewModel) {
     var skillInput by remember { mutableStateOf("") }
 
-    Column(modifier = Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         
-        Text("DATOS BÁSICOS", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelLarge)
+        Text("DATOS DE CONTACTO", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelSmall)
         
-        FieldLabelPerfil("Nombre completo")
-        CampoRegistroPerfil(viewModel.nombreUsuario, { viewModel.nombreUsuario = it }, Icons.Default.Person)
+        CampoRegistroPerfil(viewModel.nombre, { viewModel.nombre = it }, Icons.Default.Person, label = "Nombres", placeholder = "Ej. Juan")
+        CampoRegistroPerfil(viewModel.apellido, { viewModel.apellido = it }, Icons.Default.Person, label = "Apellidos", placeholder = "Ej. Pérez")
+        CampoRegistroPerfil(viewModel.telefonoUsuario, { viewModel.telefonoUsuario = it }, Icons.Default.Phone, KeyboardType.Phone, label = "Teléfono", placeholder = "Ej. 3001234567")
+        CampoRegistroPerfil(viewModel.emailUsuario, { viewModel.emailUsuario = it }, Icons.Default.Email, KeyboardType.Email, label = "Correo Electrónico", placeholder = "ejemplo@correo.com")
         
-        FieldLabelPerfil("Identificación")
-        CampoRegistroPerfil(viewModel.identificacionUsuario, { viewModel.identificacionUsuario = it }, Icons.Default.Badge, KeyboardType.Number)
-
-        FieldLabelPerfil("Teléfono")
-        CampoRegistroPerfil(viewModel.telefonoUsuario, { viewModel.telefonoUsuario = it }, Icons.Default.Phone, KeyboardType.Phone)
-
-        FieldLabelPerfil("Email institucional")
-        CampoRegistroPerfil(viewModel.emailUsuario, { viewModel.emailUsuario = it }, Icons.Default.Email, KeyboardType.Email)
-        
-        FieldLabelPerfil("Tipo de Usuario")
         Row(modifier = Modifier.fillMaxWidth()) {
             SelectorTipoPerfil("Estudiante", Icons.Default.School, viewModel.tipoUsuario == "ESTUDIANTE", { viewModel.tipoUsuario = "ESTUDIANTE" }, Modifier.weight(1f))
             Spacer(modifier = Modifier.width(12.dp))
             SelectorTipoPerfil("Egresado", Icons.Default.WorkspacePremium, viewModel.tipoUsuario == "EGRESADO", { viewModel.tipoUsuario = "EGRESADO" }, Modifier.weight(1f))
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = FondoGris)
+        Text("DETALLES ACADÉMICOS", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelSmall)
         
-        Text("DETALLES ACADÉMICOS", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelLarge)
-        
-        FieldLabelPerfil("Universidad / Institución")
-        CampoRegistroPerfil(viewModel.universidad, { viewModel.universidad = it }, Icons.Default.LocationCity)
-        
-        FieldLabelPerfil(if (viewModel.tipoUsuario == "ESTUDIANTE") "Carrera" else "Título Obtenido")
-        DropdownCampoPerfil(viewModel.carrera, { viewModel.carrera = it }, viewModel.opcionesCarreras, Icons.Default.MenuBook, isSearchable = true)
+        CampoRegistroPerfil(viewModel.universidad, { viewModel.universidad = it }, Icons.Default.LocationCity, label = "Universidad", placeholder = "Ej. Universidad Nacional")
+        DropdownCampoPerfil(viewModel.carrera, { viewModel.carrera = it }, viewModel.opcionesCarreras, Icons.Default.MenuBook, isSearchable = true, label = if (viewModel.tipoUsuario == "EGRESADO") "Título Obtenido" else "Carrera", placeholder = "Selecciona o escribe")
         
         if (viewModel.tipoUsuario == "ESTUDIANTE") {
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Column(Modifier.weight(1f)) {
-                    FieldLabelPerfil("Semestre")
-                    DropdownCampoPerfil(viewModel.semestre, { viewModel.semestre = it }, viewModel.opcionesSemestres, Icons.Default.CalendarMonth)
+            DropdownCampoPerfil(viewModel.semestre, { viewModel.semestre = it }, viewModel.opcionesSemestres, Icons.Default.CalendarMonth, label = "Semestre Actual")
+        }
+
+        Text("DETALLES PROFESIONALES", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelSmall)
+        
+        CampoRegistroPerfil(viewModel.cvUrl, { viewModel.cvUrl = it }, Icons.Default.Link, KeyboardType.Uri, label = "Enlace Hoja de Vida", placeholder = "https://drive.google.com/...")
+
+        DropdownCampoPerfil(viewModel.disponibilidad, { viewModel.disponibilidad = it }, viewModel.opcionesDisponibilidad, Icons.Default.Timer, label = "Disponibilidad", placeholder = "Selecciona disponibilidad")
+
+        Text("EXPERIENCIA LABORAL", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelSmall)
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = viewModel.tieneExperiencia, onCheckedChange = { viewModel.tieneExperiencia = it })
+            Text("Tengo experiencia laboral", fontSize = 14.sp)
+        }
+
+        if (viewModel.tieneExperiencia) {
+            viewModel.listaExperiencia.forEachIndexed { index, exp ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = FondoGris)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Text("Experiencia #${index + 1}", fontWeight = FontWeight.Bold, color = AzulMedio)
+                            IconButton(onClick = { viewModel.listaExperiencia.removeAt(index) }, modifier = Modifier.size(24.dp)) {
+                                Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        CampoRegistroPerfil(exp.empresa, { viewModel.listaExperiencia[index] = exp.copy(empresa = it) }, Icons.Default.Business, label = "Empresa", placeholder = "Nombre de la empresa")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        CampoRegistroPerfil(exp.cargo, { viewModel.listaExperiencia[index] = exp.copy(cargo = it) }, Icons.Default.Work, label = "Cargo", placeholder = "Cargo ocupado")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        CampoRegistroPerfil(exp.duracion, { viewModel.listaExperiencia[index] = exp.copy(duracion = it) }, Icons.Default.Timer, label = "Duración", placeholder = "Ej. 1 año, 6 meses")
+                    }
                 }
-                Column(Modifier.weight(1f)) {
-                    FieldLabelPerfil("Promedio")
-                    CampoRegistroPerfil(viewModel.promedio, { viewModel.promedio = it }, Icons.Default.Star, KeyboardType.Decimal)
-                }
+            }
+            Button(
+                onClick = { viewModel.listaExperiencia.add(ExperienciaLaboral()) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = AzulMedio)
+            ) {
+                Icon(Icons.Default.Add, null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Agregar Experiencia")
             }
         }
 
-        Text("DISPONIBILIDAD Y SKILLS", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelLarge)
-        
-        FieldLabelPerfil("Disponibilidad horaria")
-        DropdownCampoPerfil(viewModel.disponibilidad, { viewModel.disponibilidad = it }, viewModel.opcionesDisponibilidad, Icons.Default.Timer)
-        
-        FieldLabelPerfil("Hoja de Vida (URL)")
-        CampoRegistroPerfil(viewModel.cvUrl, { viewModel.cvUrl = it }, Icons.Default.Link, KeyboardType.Uri)
+        Text("HABILIDADES", fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelSmall)
 
-        FieldLabelPerfil("Agregar Habilidades")
         OutlinedTextField(
             value = skillInput,
             onValueChange = { if (it.length <= 30) skillInput = it },
-            placeholder = { Text("Ej. Java, Liderazgo...") },
+            placeholder = { Text("Agregar Habilidad...") },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             trailingIcon = {
@@ -266,116 +507,26 @@ fun DatosEdicion(viewModel: PerfilViewModel) {
                         skillInput = ""
                     }
                 }) { Icon(Icons.Default.Add, null) }
-            },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = {
-                if (skillInput.isNotBlank()) {
-                    val lista = viewModel.habilidades.split(",").map { it.trim() }.toMutableList()
-                    if (!lista.contains(skillInput.trim())) {
-                        lista.add(skillInput.trim())
-                        viewModel.habilidades = lista.filter { it.isNotEmpty() }.joinToString(", ")
-                    }
-                    skillInput = ""
-                }
-            })
+            }
         )
-        
-        FlowRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            viewModel.sugerenciasHabilidades.forEach { skill ->
-                val isSelected = viewModel.habilidades.split(",").map { it.trim() }.contains(skill)
-                FilterChip(
-                    selected = isSelected,
-                    onClick = {
-                        val lista = viewModel.habilidades.split(",").map { it.trim() }.toMutableList()
-                        if (lista.contains(skill)) lista.remove(skill) else lista.add(skill)
-                        viewModel.habilidades = lista.filter { it.isNotEmpty() }.joinToString(", ")
-                    },
-                    label = { Text(skill, fontSize = 12.sp) },
-                    shape = RoundedCornerShape(8.dp)
-                )
-            }
-        }
 
-        // Experiencia Laboral
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            FieldLabelPerfil("Experiencia Laboral")
-            Spacer(modifier = Modifier.weight(1f))
-            Switch(
-                checked = viewModel.tieneExperiencia,
-                onCheckedChange = { viewModel.tieneExperiencia = it }
-            )
-        }
-
-        if (viewModel.tieneExperiencia) {
-            viewModel.listaExperiencia.forEachIndexed { index, exp ->
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = FondoGris),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Experiencia #${index + 1}", fontWeight = FontWeight.Bold, color = AzulOscuro)
-                            Spacer(modifier = Modifier.weight(1f))
-                            IconButton(onClick = { viewModel.listaExperiencia.removeAt(index) }) {
-                                Icon(Icons.Default.Delete, null, tint = Color.Red, modifier = Modifier.size(20.dp))
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = exp.empresa,
-                            onValueChange = { viewModel.listaExperiencia[index] = exp.copy(empresa = it) },
-                            label = { Text("Empresa") },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = exp.cargo,
-                            onValueChange = { viewModel.listaExperiencia[index] = exp.copy(cargo = it) },
-                            label = { Text("Cargo") },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        OutlinedTextField(
-                            value = exp.duracion,
-                            onValueChange = { viewModel.listaExperiencia[index] = exp.copy(duracion = it) },
-                            label = { Text("Duración (ej. 1 año, 6 meses)") },
-                            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-                }
-            }
-
-            OutlinedButton(
-                onClick = {
-                    viewModel.listaExperiencia.add(com.example.frontend_bolsa_empleo_universitaria.viewModel.ExperienciaLaboral())
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Icon(Icons.Default.Add, null)
-                Text(" Agregar otra experiencia")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
+        FlowRow(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)),
-            shape = RoundedCornerShape(8.dp),
-            border = BorderStroke(1.dp, Color(0xFFFBC02D))
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFF57F17), modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Confirmación Requerida", fontWeight = FontWeight.Bold, color = Color(0xFFF57F17))
+            viewModel.habilidades.split(",").forEach { skill ->
+                if (skill.isNotBlank()) {
+                    InputChip(
+                        selected = true,
+                        onClick = {
+                            val lista = viewModel.habilidades.split(",").map { it.trim() }.toMutableList()
+                            lista.remove(skill.trim())
+                            viewModel.habilidades = lista.filter { it.isNotEmpty() }.joinToString(", ")
+                        },
+                        label = { Text(skill.trim()) },
+                        trailingIcon = { Icon(Icons.Default.Close, null, modifier = Modifier.size(16.dp)) }
+                    )
                 }
-                Text("Ingresa tu contraseña actual para guardar los cambios.", fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
-                Spacer(modifier = Modifier.height(12.dp))
-                CampoPasswordPerfil("Contraseña actual", viewModel.passwordUsuario, { viewModel.passwordUsuario = it })
             }
         }
         
@@ -383,50 +534,27 @@ fun DatosEdicion(viewModel: PerfilViewModel) {
             Text(
                 (viewModel.uiState as PerfilState.Error).mensaje, 
                 color = Color.Red, 
-                fontSize = 13.sp, 
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp), 
-                textAlign = TextAlign.Center,
-                fontWeight = FontWeight.Medium
+                fontSize = 12.sp, 
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
         }
     }
 }
 
-// --- COMPONENTES AUXILIARES ---
-
 @Composable
-fun SeccionPerfil(titulo: String, icono: ImageVector, contenido: @Composable ColumnScope.() -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icono, null, tint = AzulMedio, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(titulo, fontWeight = FontWeight.ExtraBold, color = AzulOscuro, style = MaterialTheme.typography.labelLarge)
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = FondoGris),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                contenido()
-            }
-        }
-    }
-}
-
-@Composable
-fun InfoRowPerfil(label: String, value: String) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, color = TextoGrisPerfil, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        Text(if (value.isBlank()) "No especificado" else value, fontWeight = FontWeight.Medium, fontSize = 15.sp, color = Color.Black)
-    }
-}
-
-@Composable
-fun CampoRegistroPerfil(value: String, onValueChange: (String) -> Unit, icono: ImageVector, kType: KeyboardType = KeyboardType.Text) {
+fun CampoRegistroPerfil(
+    value: String, 
+    onValueChange: (String) -> Unit, 
+    icono: ImageVector, 
+    kType: KeyboardType = KeyboardType.Text,
+    label: String = "",
+    placeholder: String = ""
+) {
     OutlinedTextField(
         value = value, onValueChange = onValueChange,
+        label = if (label.isNotEmpty()) { { Text(label) } } else null,
+        placeholder = { Text(placeholder, color = Color.Gray.copy(alpha = 0.5f)) },
         leadingIcon = { Icon(icono, null, modifier = Modifier.size(20.dp), tint = Color.LightGray) },
         modifier = Modifier.fillMaxWidth(), 
         shape = RoundedCornerShape(8.dp),
@@ -434,7 +562,9 @@ fun CampoRegistroPerfil(value: String, onValueChange: (String) -> Unit, icono: I
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = AzulMedio,
-            unfocusedBorderColor = Color(0xFFE0E0E0)
+            unfocusedBorderColor = Color(0xFFE0E0E0),
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White
         )
     )
 }
@@ -459,27 +589,38 @@ fun CampoPasswordPerfil(label: String, value: String, onValueChange: (String) ->
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DropdownCampoPerfil(value: String, onValueChange: (String) -> Unit, opciones: List<String>, icono: ImageVector, isSearchable: Boolean = false) {
+fun DropdownCampoPerfil(
+    value: String, 
+    onValueChange: (String) -> Unit, 
+    opciones: List<String>, 
+    icono: ImageVector, 
+    isSearchable: Boolean = false,
+    label: String = "",
+    placeholder: String = ""
+) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             value = value, 
             onValueChange = { if (isSearchable) onValueChange(it) }, 
             readOnly = !isSearchable,
+            label = if (label.isNotEmpty()) { { Text(label) } } else null,
+            placeholder = { Text(placeholder, color = Color.Gray.copy(alpha = 0.5f)) },
             leadingIcon = { Icon(icono, null, modifier = Modifier.size(20.dp), tint = Color.LightGray) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(), 
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = AzulMedio,
-                unfocusedBorderColor = Color(0xFFE0E0E0)
+                unfocusedBorderColor = Color(0xFFE0E0E0),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             )
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            val filtered = if (isSearchable) opciones.filter { it.contains(value, ignoreCase = true) } else opciones
-            filtered.forEach { opt ->
+            opciones.forEach { opt ->
                 DropdownMenuItem(
-                    text = { Text(opt, style = MaterialTheme.typography.bodyMedium) }, 
+                    text = { Text(opt) }, 
                     onClick = { onValueChange(opt); expanded = false }
                 )
             }
@@ -504,18 +645,6 @@ fun SelectorTipoPerfil(titulo: String, icono: ImageVector, sel: Boolean, onClick
 }
 
 @Composable
-fun FieldLabelPerfil(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        fontWeight = FontWeight.Bold,
-        modifier = Modifier.padding(top = 4.dp),
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
-    )
-}
-
-@Composable
 fun DialogoCerrarSesion(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss, 
@@ -527,61 +656,22 @@ fun DialogoCerrarSesion(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     )
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true)
 @Composable
 fun PerfilScreenPreview() {
-
-    // Usuario de prueba
-    val usuarioMock = Usuario(
-        idUsuario = 1,
-        nombre = "Mónica",
-        apellido = "Poveda",
-        email = "monica@uni.edu.co",
-        telefono = "3001234567",
-        tipoUsuario = "ESTUDIANTE",
-        fechaRegistro = "2025-01-01",
-        estado = true,
-        password = "1234"
-    )
-
-    // ViewModel falso (mock manual)
+    val usuarioMock = Usuario(idUsuario = 1, nombre = "Andrés Felipe", apellido = "Gómez", email = "andres.gomez@uni.edu.co", tipoUsuario = "ESTUDIANTE", telefono = "", fechaRegistro = "", estado = true, password = "")
     val viewModel = object : PerfilViewModel() {
-
         init {
-            // Estado inicial de prueba
-            nombreUsuario = "Mónica Poveda"
-            emailUsuario = "monica@uni.edu.co"
-            identificacionUsuario = "123456789"
-            telefonoUsuario = "3001234567"
-            tipoUsuario = "ESTUDIANTE"
-
-            universidad = "Universidad de Cundinamarca"
+            nombre = "Andrés Felipe"
+            apellido = "Gómez"
+            emailUsuario = "andres.gomez@uni.edu.co"
             carrera = "Ingeniería de Sistemas"
+            universidad = "Universidad Nacional de Colombia"
             semestre = "8"
-            promedio = "4.2"
-
-            disponibilidad = "Tiempo completo"
-            habilidades = "Java, Spring Boot, SQL"
-            cvUrl = "https://mi-cv.com"
-
-            tieneExperiencia = true
-
-            listaExperiencia.add(
-                com.example.frontend_bolsa_empleo_universitaria.viewModel.ExperienciaLaboral(
-                    empresa = "Google",
-                    cargo = "Intern",
-                    duracion = "6 meses"
-                )
-            )
+            habilidades = "Desarrollo Web, Bases de Datos, Inteligencia Artificial, Cloud"
         }
     }
-
     MaterialTheme {
-        PerfilScreen(
-            usuario = usuarioMock,
-            viewModel = viewModel,
-            onBack = {},
-            onLogout = {}
-        )
+        PerfilScreen(usuario = usuarioMock, viewModel = viewModel, onBack = {}, onLogout = {})
     }
 }

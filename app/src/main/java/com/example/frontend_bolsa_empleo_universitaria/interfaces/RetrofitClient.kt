@@ -30,7 +30,6 @@ object RetrofitClient {
 
         val gson = GsonBuilder()
             .setDateFormat("yyyy-MM-dd")
-            .serializeNulls()
             .create()
 
         Retrofit.Builder()

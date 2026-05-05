@@ -64,13 +64,23 @@ class LoginViewModel(private val repo: UsuarioRepository) : ViewModel() {
         uiState = LoginState.Success(usuario)
     }
 
-    fun recuperarPassword(email: String) {
-        if (email.isBlank() || !email.contains("@")) {
-            uiState = LoginState.Error("Por favor ingresa un correo válido")
+    fun actualizarPassword(email: String, nuevaPass: String) {
+        if (nuevaPass.length < 8) {
+            uiState = LoginState.Error("La nueva contraseña debe tener al menos 8 caracteres")
             return
         }
         viewModelScope.launch {
-            repo.recuperarPassword(email)
+            uiState = LoginState.Loading
+            repo.buscarPorEmail(email).fold(
+                onSuccess = { usuario ->
+                    val actualizado = usuario.copy(password = nuevaPass)
+                    repo.actualizar(usuario.idUsuario!!, actualizado).fold(
+                        onSuccess = { uiState = LoginState.Error("Contraseña actualizada. Inicia sesión.") },
+                        onFailure = { uiState = LoginState.Error("Error al actualizar: ${it.message}") }
+                    )
+                },
+                onFailure = { uiState = LoginState.Error("Usuario no encontrado") }
+            )
         }
     }
 }

@@ -34,7 +34,7 @@ class RegistroViewModel(
 
     // Datos Paso 1
     var nombre by mutableStateOf("")
-    var identificacion by mutableStateOf("")
+    var apellido by mutableStateOf("")
     var email by mutableStateOf("")
     var telefono by mutableStateOf("")
     var password by mutableStateOf("")
@@ -44,7 +44,7 @@ class RegistroViewModel(
     var carrera by mutableStateOf("")
     var universidad by mutableStateOf("")
     var semestre by mutableStateOf("")
-    var promedio by mutableStateOf("")
+    var fechaGraduacion by mutableStateOf("")
     val areasInteres = mutableStateListOf<String>()
     var cvUrl by mutableStateOf("")
     var disponibilidad by mutableStateOf("")
@@ -66,19 +66,8 @@ class RegistroViewModel(
         // Reset state to clear previous errors
         uiState = RegistroState.Idle
 
-        if (nombre.isBlank()) {
-            uiState = RegistroState.Error("El campo Nombre no puede estar vacío")
-            return
-        }
-
-        val partesNombre = nombre.trim().split("\\s+".toRegex())
-        if (partesNombre.size < 2) {
-            uiState = RegistroState.Error("El campo Nombre debe incluir al menos un apellido (Nombre + Apellido)")
-            return
-        }
-
-        if (identificacion.isBlank()) {
-            uiState = RegistroState.Error("El campo Identificación es obligatorio")
+        if (nombre.isBlank() || apellido.isBlank()) {
+            uiState = RegistroState.Error("Nombre y Apellido son obligatorios")
             return
         }
 
@@ -109,25 +98,32 @@ class RegistroViewModel(
             return
         }
 
-        val partes = nombre.trim().split("\\s+".toRegex(), limit = 2)
-        val nombreUser = partes.getOrNull(0) ?: ""
-        val apellidoUser = partes.getOrNull(1) ?: ""
+        viewModelScope.launch {
+            uiState = RegistroState.Loading
+            
+            // Verificar si el correo ya existe
+            val checkEmail = repoUsuario.buscarPorEmail(email)
+            if (checkEmail.isSuccess) {
+                uiState = RegistroState.Error("Este correo ya se encuentra registrado")
+                return@launch
+            }
 
-        datosUsuario = Usuario(
-            idUsuario = null,
-            nombre = nombreUser,
-            apellido = apellidoUser,
-            identificacion = identificacion,
-            email = email,
-            telefono = telefono,
-            tipoUsuario = tipoUsuario,
-            fechaRegistro = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
-            estado = true,
-            password = password
-        )
-        Log.d("RegistroViewModel", "Paso 1 exitoso, datosUsuario: $datosUsuario")
-        pasoActual = 2
-        uiState = RegistroState.Idle // Limpiar errores previos al pasar de nivel
+            datosUsuario = Usuario(
+                idUsuario = null,
+                nombre = nombre.trim(),
+                apellido = apellido.trim(),
+                identificacion = null,
+                email = email,
+                telefono = telefono,
+                tipoUsuario = tipoUsuario,
+                fechaRegistro = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()),
+                estado = true,
+                password = password
+            )
+            Log.d("RegistroViewModel", "Paso 1 exitoso, datosUsuario: $datosUsuario")
+            pasoActual = 2
+            uiState = RegistroState.Idle 
+        }
     }
 
     fun finalizarRegistro() {
@@ -150,15 +146,6 @@ class RegistroViewModel(
         if (esEstudiante) {
             if (semestre.isBlank()) {
                 uiState = RegistroState.Error("El campo Semestre es obligatorio para estudiantes.")
-                return
-            }
-            if (promedio.isBlank()) {
-                uiState = RegistroState.Error("El campo Promedio es obligatorio.")
-                return
-            }
-            val promedioNum = promedio.replace(",", ".").toDoubleOrNull()
-            if (promedioNum == null || promedioNum < 0.0 || promedioNum > 5.0) {
-                uiState = RegistroState.Error("El campo Promedio debe ser un número válido entre 0.0 y 5.0")
                 return
             }
         }
@@ -190,7 +177,7 @@ class RegistroViewModel(
                         universidad = universidad,
                         semestre = if (esEstudiante) semestre else "Graduado",
                         habilidades = areasInteres.joinToString(", "),
-                        promedio = if (esEstudiante) promedio.toDoubleOrNull() else null,
+                        promedio = null,
                         experiencia = experienciaStr,
                         cvUrl = cvUrl,
                         disponibilidad = disponibilidad,
@@ -228,7 +215,7 @@ class RegistroViewModel(
         pasoActual = 1
         datosUsuario = null
         nombre = ""
-        identificacion = ""
+        apellido = ""
         email = ""
         telefono = ""
         password = ""
@@ -236,7 +223,6 @@ class RegistroViewModel(
         carrera = ""
         universidad = ""
         semestre = ""
-        promedio = ""
         areasInteres.clear()
         cvUrl = ""
         disponibilidad = ""

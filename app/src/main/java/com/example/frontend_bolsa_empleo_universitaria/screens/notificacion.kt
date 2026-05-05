@@ -8,11 +8,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Assignment
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,11 +18,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.NotificacionViewModel
 
-// ─── Colores Corporativos ──────────────────────────────────────────────────
 private val AzulPrimario   = Color(0xFF1A3C6E)
 private val AzulSecundario = Color(0xFF2D6BE4)
 private val FondoGris      = Color(0xFFF4F6FA)
@@ -32,7 +30,6 @@ private val TextoGris      = Color(0xFF8A94A6)
 private val TextoOscuro    = Color(0xFF1C2A3A)
 private val Blanco         = Color.White
 
-// ─── Modelo de Datos ────────────────────────────────────────────────────────
 data class Notificacion(
     val id: Int,
     val categoria: String,
@@ -49,25 +46,16 @@ enum class TipoNotificacion {
 
 @Composable
 fun NotificacionScreen(
-    onBack: () -> Unit = {}
+    idUsuario: Long,
+    onBack: () -> Unit = {},
+    viewModel: NotificacionViewModel = viewModel()
 ) {
-    // Datos de ejemplo basados en la imagen
-    val notificaciones = listOf(
-        Notificacion(
-            1, "NUEVA OFERTA", "Nueva oferta acorde a tu perfil",
-            "Hemos encontrado una nueva oportunidad laboral...", "Hace 2 horas",
-            TipoNotificacion.NUEVA_OFERTA
-        ),
-        Notificacion(
-            2, "POSTULACIONES", "Cambio de estado en tu postulación a TechCorp",
-            null, "Ayer", TipoNotificacion.POSTULACION, "En Revisión"
-        ),
-        Notificacion(
-            3, "PERFIL", "Tu CV ha sido visualizado",
-            "Un reclutador ha accedido a tu currículum vitae a través del portal de la bolsa de empleo.",
-            "Hace 3 días", TipoNotificacion.PERFIL
-        )
-    )
+    val notificaciones by viewModel.notificaciones
+    val loading by viewModel.loading
+
+    LaunchedEffect(idUsuario) {
+        viewModel.cargarNotificaciones(idUsuario)
+    }
 
     Scaffold(
         topBar = {
@@ -99,15 +87,39 @@ fun NotificacionScreen(
         },
         containerColor = FondoGris
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(notificaciones) { notificacion ->
-                NotificacionCard(notificacion)
+        when {
+            loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = AzulPrimario)
+                }
+            }
+            notificaciones.isEmpty() -> {
+                Box(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "No hay notificaciones",
+                        color = TextoGris,
+                        fontSize = 16.sp
+                    )
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(notificaciones) { notificacion ->
+                        NotificacionCard(notificacion)
+                    }
+                }
             }
         }
     }
@@ -118,26 +130,41 @@ fun NotificacionCard(notificacion: Notificacion) {
     val icono: ImageVector
     val colorIconoFondo: Color
     val colorIconoTint: Color
-    val tieneBordeLateral: Boolean
+    val colorBordeLateral: Color
+    val colorEstado: Color
+    val colorTextoEstado: Color
 
+    // Lógica de colores basada en el estado
+    val (statusColor, statusBg) = when (notificacion.estado?.uppercase()) {
+        "ACEPTADO", "ACEPTADA" -> Color(0xFF2E7D32) to Color(0xFFE6F4EA)
+        "RECHAZADO", "RECHAZADA" -> Color(0xFFC62828) to Color(0xFFFFEBEE)
+        else -> AzulPrimario to Color(0xFFE8F0FE)
+    }
+
+    colorBordeLateral = statusColor
+    colorEstado = statusBg
+    colorTextoEstado = statusColor
+
+    // Lógica de iconos
     when (notificacion.tipo) {
         TipoNotificacion.NUEVA_OFERTA -> {
             icono = Icons.Default.Work
             colorIconoFondo = Color(0xFFD6E4FF)
             colorIconoTint = AzulSecundario
-            tieneBordeLateral = true
         }
         TipoNotificacion.POSTULACION -> {
-            icono = Icons.AutoMirrored.Filled.Assignment
-            colorIconoFondo = Color(0xFFF1F3F7)
-            colorIconoTint = TextoGris
-            tieneBordeLateral = false
+            icono = when (notificacion.estado?.uppercase()) {
+                "ACEPTADO", "ACEPTADA" -> Icons.Default.CheckCircle
+                "RECHAZADO", "RECHAZADA" -> Icons.Default.Error
+                else -> Icons.Default.Schedule
+            }
+            colorIconoFondo = colorEstado
+            colorIconoTint = colorTextoEstado
         }
         TipoNotificacion.PERFIL -> {
             icono = Icons.Default.Visibility
             colorIconoFondo = Color(0xFFF1F3F7)
             colorIconoTint = TextoGris
-            tieneBordeLateral = false
         }
     }
 
@@ -152,22 +179,19 @@ fun NotificacionCard(notificacion: Notificacion) {
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
         ) {
-            // Borde lateral azul para destacar nuevas ofertas
-            if (tieneBordeLateral) {
-                Box(
-                    modifier = Modifier
-                        .width(4.dp)
-                        .fillMaxHeight()
-                        .background(AzulPrimario)
-                )
-            }
+            // Borde lateral de color igual que postulaciones
+            Box(
+                modifier = Modifier
+                    .width(6.dp)
+                    .fillMaxHeight()
+                    .background(colorBordeLateral)
+            )
 
             Row(
                 modifier = Modifier
                     .padding(16.dp)
                     .fillMaxWidth()
             ) {
-                // Contenedor del Icono
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -185,7 +209,6 @@ fun NotificacionCard(notificacion: Notificacion) {
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // Texto y Contenido
                 Column(modifier = Modifier.weight(1f)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -227,12 +250,11 @@ fun NotificacionCard(notificacion: Notificacion) {
                         )
                     }
 
-                    // Badge de estado para postulaciones
                     if (notificacion.estado != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Surface(
                             shape = RoundedCornerShape(4.dp),
-                            color = Color(0xFFE8F0FE)
+                            color = colorEstado
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -242,13 +264,13 @@ fun NotificacionCard(notificacion: Notificacion) {
                                     modifier = Modifier
                                         .size(6.dp)
                                         .clip(CircleShape)
-                                        .background(AzulPrimario)
+                                        .background(colorTextoEstado)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = notificacion.estado,
                                     fontSize = 11.sp,
-                                    color = AzulPrimario,
+                                    color = colorTextoEstado,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
@@ -258,10 +280,4 @@ fun NotificacionCard(notificacion: Notificacion) {
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun NotificacionScreenPreview() {
-    NotificacionScreen()
 }

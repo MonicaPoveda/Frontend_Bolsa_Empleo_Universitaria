@@ -2,16 +2,25 @@ package com.example.frontend_bolsa_empleo_universitaria.interfaces
 
 import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.10.43:8080/"
+    private const val BASE_URL = "http://192.168.20.36:8080/"
 
     private val retrofit: Retrofit by lazy {
+
+        // 🔥 LOGGING INTERCEPTOR
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        // 🔥 CLIENTE OKHTTP CON LOGGING + TUS CONFIGURACIONES
         val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(logging) // 👈 AQUÍ VA
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .writeTimeout(20, TimeUnit.SECONDS)
@@ -25,15 +34,10 @@ object RetrofitClient {
 
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(okHttpClient)
+            .client(okHttpClient) // 👈 IMPORTANTE (ya lo tenías bien)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
-    val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
-    val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
-    val perfilApi: PerfilApi by lazy { retrofit.create(PerfilApi::class.java) }
-    val postulacionApi: PostulacionApi by lazy { retrofit.create(PostulacionApi::class.java) }
-    val seguimientoPostulacionApi: SeguimientoPostulacionApi by lazy { retrofit.create(SeguimientoPostulacionApi::class.java) }
 }

@@ -1,313 +1,204 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens
 
-import androidx.compose.animation.*
+import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.frontend_bolsa_empleo_universitaria.repository.UsuarioRepository
-import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginState
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
+import com.example.frontend_bolsa_empleo_universitaria.utils.Token
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginUiState
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
-
-private val AzulPrimario     = Color(0xFF1565C0)
-private val AzulOscuro       = Color(0xFF0D47A1)
-private val AzulClaro        = Color(0xFFE3F2FD)
-private val TextoPrimario    = Color(0xFF1A1C1E)
-private val TextoGris        = Color(0xFF292C31)
-private val TextoPlaceholder = Color(0xB26B6C70)
-private val CampoFondo       = Color(0xFFF1F4F9)
-private val CampoBorde       = Color(0xFFC4C6D0)
-private val ErrorColor       = Color(0xFFBA1A1A)
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel,
-    onLoginSuccess: () -> Unit,
-    onNavigateToRegister: () -> Unit
+    onLoginSuccess: (rol: String, email: String) -> Unit
 ) {
-    LaunchedEffect(Unit) { viewModel.resetState() }
+    // se crea una instancia unica del repositorio y token fuera del ViewModel
+    val context = LocalContext.current
+    val authRepository = remember { AuthRepository(RetrofitClient.usuarioApi) }
+    val token = remember { Token(context) }
 
-    var email           by remember { mutableStateOf("") }
-    var password        by remember { mutableStateOf("") }
+    // Crear el ViewModel con una factory que no se recrea
+    val viewModel: LoginViewModel = viewModel(
+        factory = object : ViewModelProvider.Factory {
+            override fun <T : ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return LoginViewModel(authRepository, token) as T
+            }
+        }
+    )
+
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var showForgot      by remember { mutableStateOf(false) }
-    
-    val focusManager = LocalFocusManager.current
-    val uiState = viewModel.uiState
-    val scrollState = rememberScrollState()
+    val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState) {
-        if (uiState is LoginState.Success) onLoginSuccess()
-    }
-
-    if (showForgot) {
-        ForgotPasswordDialog(viewModel = viewModel, onDismiss = { showForgot = false })
+        if (uiState is LoginUiState.Success) {
+            val success = uiState as LoginUiState.Success
+            Log.d("LoginScreen", "Login exitoso: ${success.rol}, ${success.email}")
+            onLoginSuccess(success.rol, success.email)
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(AzulOscuro, AzulPrimario, Color.White),
-                    startY = 0f,
-                    endY = 1600f
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.primaryContainer,
+                        MaterialTheme.colorScheme.surface
+                    )
                 )
             ),
         contentAlignment = Alignment.Center
     ) {
-        Column(
+        Card(
             modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
+                .fillMaxWidth()
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            shape = RoundedCornerShape(28.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         ) {
-            // Logo
-            Box(
+            Column(
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White.copy(alpha = 0.2f))
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(24.dp)),
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = 24.dp, vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(Icons.Default.School, null, tint = Color.White, modifier = Modifier.size(40.dp))
-            }
+                Icon(
+                    imageVector = Icons.Default.Lock,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .padding(12.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-            Text("Portal de Empleo", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-            Text("Tu futuro profesional comienza aquí", fontSize = 16.sp, color = Color.White.copy(alpha = 0.8f))
-
-            Spacer(modifier = Modifier.height(40.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(28.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
-            ) {
-                Column(modifier = Modifier.padding(28.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Accede a tu cuenta", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextoPrimario)
-                    
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    CampoTextoLogin(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = "Correo Electrónico",
-                        placeholder = "ejemplo@correo.com/.edu.co",
-                        leadingIcon = Icons.Default.AlternateEmail,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
-                        keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    CampoTextoLogin(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = "Contraseña",
-                        placeholder = "Ingresa tu contraseña",
-                        leadingIcon = Icons.Default.Lock,
-                        isPassword = true,
-                        passwordVisible = passwordVisible,
-                        onTogglePassword = { passwordVisible = !passwordVisible },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { viewModel.login(email, password) })
-                    )
-
-                    Text(
-                        "¿Olvidaste tu contraseña?",
-                        fontSize = 13.sp,
-                        color = AzulPrimario,
+                Text(
+                    text = "Bolsa de Empleo",
+                    style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier.align(Alignment.End).padding(top = 12.dp).clickable { showForgot = true }
+                        letterSpacing = 1.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+
+                Text(
+                    text = "Ingresa tus credenciales para continuar",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Correo electrónico") },
+                    placeholder = { Text("ejemplo@correo.com") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Email, contentDescription = null)
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    isError = uiState is LoginUiState.Error
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Contraseña") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Lock, contentDescription = null)
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (passwordVisible) "Ocultar" else "Mostrar"
+                            )
+                        }
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    isError = uiState is LoginUiState.Error
+                )
+
+                if (uiState is LoginUiState.Error) {
+                    Text(
+                        text = (uiState as LoginUiState.Error).message,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp, start = 4.dp).align(Alignment.Start)
                     )
+                }
 
-                    AnimatedVisibility(visible = uiState is LoginState.Error) {
-                        Surface(
-                            modifier = Modifier.padding(top = 20.dp).fillMaxWidth(),
-                            color = Color(0xFFFFEBEE),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Error, null, tint = ErrorColor, modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text((uiState as? LoginState.Error)?.mensaje ?: "Error", color = ErrorColor, fontSize = 13.sp)
-                            }
-                        }
-                    }
+                Spacer(modifier = Modifier.height(32.dp))
 
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = { viewModel.login(email, password) },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
-                        enabled = uiState !is LoginState.Loading && email.isNotBlank() && password.isNotBlank()
-                    ) {
-                        if (uiState is LoginState.Loading) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                        } else {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Entrar al Portal", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Icon(Icons.AutoMirrored.Filled.ArrowForward, null, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-                        Text("¿No tienes cuenta? ", color = TextoGris, fontSize = 14.sp)
+                Button(
+                    onClick = { viewModel.login(email, password) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = uiState !is LoginUiState.Loading,
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+                ) {
+                    if (uiState is LoginUiState.Loading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
                         Text(
-                            "Regístrate aquí",
-                            color = AzulPrimario,
-                            fontWeight = FontWeight.ExtraBold,
-                            modifier = Modifier.clickable { onNavigateToRegister() }
+                            "INGRESAR",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.25.sp
+                            )
                         )
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun CampoTextoLogin(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    placeholder: String,
-    leadingIcon: androidx.compose.ui.graphics.vector.ImageVector,
-    isPassword: Boolean = false,
-    passwordVisible: Boolean = false,
-    onTogglePassword: () -> Unit = {},
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    keyboardActions: KeyboardActions = KeyboardActions.Default
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextoGris, modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = TextoPlaceholder, fontSize = 14.sp) },
-            leadingIcon = { Icon(leadingIcon, null, tint = AzulPrimario, modifier = Modifier.size(20.dp)) },
-            trailingIcon = if (isPassword) {
-                {
-                    IconButton(onClick = onTogglePassword) {
-                        Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null, tint = TextoGris, modifier = Modifier.size(20.dp))
-                    }
-                }
-            } else null,
-            visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
-            keyboardOptions = keyboardOptions,
-            keyboardActions = keyboardActions,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AzulPrimario,
-                unfocusedBorderColor = CampoBorde,
-                focusedContainerColor = AzulClaro.copy(alpha = 0.2f),
-                unfocusedContainerColor = CampoFondo
-            )
-        )
-    }
-}
-
-@Composable
-fun ForgotPasswordDialog(viewModel: LoginViewModel, onDismiss: () -> Unit) {
-    var email by remember { mutableStateOf("") }
-    var nuevaPass by remember { mutableStateOf("") }
-    var passVisible by remember { mutableStateOf(false) }
-    var step by remember { mutableIntStateOf(1) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = Color.White,
-        shape = RoundedCornerShape(24.dp),
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                Icon(if (step == 1) Icons.Default.MailOutline else Icons.Default.LockReset, null, tint = AzulPrimario, modifier = Modifier.size(40.dp))
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(if (step == 1) "Recuperar Acceso" else "Nueva Contraseña", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            }
-        },
-        text = {
-            Column {
-                Text(if (step == 1) "Ingresa tu correo institucional." else "Escribe tu nueva contraseña.", color = TextoGris, fontSize = 14.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(20.dp))
-                CampoTextoLogin(
-                    value = if (step == 1) email else nuevaPass,
-                    onValueChange = { if (step == 1) email = it else nuevaPass = it },
-                    label = if (step == 1) "Correo" else "Contraseña",
-                    placeholder = if (step == 1) "usuario@universidad.edu.co" else "Mínimo 6 caracteres",
-                    leadingIcon = if (step == 1) Icons.Default.AlternateEmail else Icons.Default.Lock,
-                    isPassword = step == 2,
-                    passwordVisible = passVisible,
-                    onTogglePassword = { passVisible = !passVisible },
-                    keyboardOptions = KeyboardOptions(keyboardType = if (step == 1) KeyboardType.Email else KeyboardType.Password)
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (step == 1) { if(email.isNotBlank()) step = 2 }
-                    else { if(nuevaPass.isNotBlank()) { viewModel.actualizarPassword(email, nuevaPass); onDismiss() } }
-                },
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AzulPrimario),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(if (step == 1) "Continuar" else "Guardar", fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("Cancelar", color = TextoGris) }
-        }
-    )
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun LoginScreenPreview() {
-    Frontend_Bolsa_Empleo_UniversitariaTheme {
-        val repository = UsuarioRepository()
-        val viewModel  = LoginViewModel(repository)
-        LoginScreen(viewModel = viewModel, onLoginSuccess = {}, onNavigateToRegister = {})
     }
 }

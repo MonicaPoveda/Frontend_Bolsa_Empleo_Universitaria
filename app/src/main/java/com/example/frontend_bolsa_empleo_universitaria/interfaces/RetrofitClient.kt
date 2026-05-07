@@ -9,21 +9,19 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://192.168.20.36:8080/"
+    private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
 
     private val retrofit: Retrofit by lazy {
 
-        // 🔥 LOGGING INTERCEPTOR
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        // 🔥 CLIENTE OKHTTP CON LOGGING + TUS CONFIGURACIONES
         val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(logging) // 👈 AQUÍ VA
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(20, TimeUnit.SECONDS)
-            .writeTimeout(20, TimeUnit.SECONDS)
+            .addInterceptor(logging)
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
 
@@ -34,7 +32,7 @@ object RetrofitClient {
 
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(okHttpClient) // 👈 IMPORTANTE (ya lo tenías bien)
+            .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }

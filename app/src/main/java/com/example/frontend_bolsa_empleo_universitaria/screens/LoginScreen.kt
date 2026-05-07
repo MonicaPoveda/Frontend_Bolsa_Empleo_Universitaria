@@ -34,6 +34,7 @@ import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
 
 @Composable
 fun LoginScreen(
+    onRegisterClick: () -> Unit,
     onLoginSuccess: (rol: String, email: String) -> Unit
 ) {
     // se crea una instancia unica del repositorio y token fuera del ViewModel
@@ -197,6 +198,17 @@ fun LoginScreen(
                             )
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextButton(onClick = onRegisterClick) {
+                    Text(
+                        text = "¿No tienes cuenta? Regístrate aquí",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             }
         }

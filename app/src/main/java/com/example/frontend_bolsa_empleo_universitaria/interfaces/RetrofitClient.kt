@@ -19,9 +19,9 @@ object RetrofitClient {
 
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(logging)
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)  // Reducido de 60 a 30
+            .readTimeout(15, TimeUnit.SECONDS)     // Reducido de 60 a 30
+            .writeTimeout(15, TimeUnit.SECONDS)    // Reducido de 60 a 30
             .retryOnConnectionFailure(true)
             .build()
 
@@ -38,4 +38,5 @@ object RetrofitClient {
     }
 
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
+    val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
 }

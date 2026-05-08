@@ -1,6 +1,7 @@
 package com.example.frontend_bolsa_empleo_universitaria.utils
 
 import android.content.Context
+import android.content.SharedPreferences
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
@@ -13,38 +14,33 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 
 class Token(private val context: Context) {
 
-    companion object {
-        private val TOKEN_KEY = stringPreferencesKey("jwt_token")
-        private val USUARIO_EMAIL_KEY = stringPreferencesKey("usuario_email")
-        private val USUARIO_ROL_KEY = stringPreferencesKey("usuario_rol")
+        private val prefs: SharedPreferences =
+            context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+
+        fun saveToken(token: String, email: String, rol: String) {
+            prefs.edit().apply {
+                putString("auth_token", token)
+                putString("user_email", email)
+                putString("user_role", rol)
+                apply()
+            }
+        }
+
+        fun getToken(): String? = prefs.getString("auth_token", null)
+
+        fun getUserEmail(): String? = prefs.getString("user_email", null)
+
+        fun getUserRole(): String? = prefs.getString("user_role", null)
+
+        fun isEstudiante(): Boolean = getUserRole() == "ESTUDIANTE"
+
+        fun isEmpresa(): Boolean = getUserRole() == "EMPRESA"
+
+        fun isAdmin(): Boolean = getUserRole() == "ADMIN"
+
+        fun clearSession() {
+            prefs.edit().clear().apply()
+        }
+
+        fun isLoggedIn(): Boolean = !getToken().isNullOrEmpty()
     }
-
-    suspend fun saveToken(token: String, email: String, rol: String) {
-        context.dataStore.edit { preferences ->
-            preferences[TOKEN_KEY] = token
-            preferences[USUARIO_EMAIL_KEY] = email
-            preferences[USUARIO_ROL_KEY] = rol
-        }
-    }
-
-    fun getTokenFlow(): Flow<String?> =
-        context.dataStore.data.map { preferences ->
-            preferences[TOKEN_KEY]
-        }
-
-    fun getRolFlow(): Flow<String?> =
-        context.dataStore.data.map { preferences ->
-            preferences[USUARIO_ROL_KEY]
-        }
-
-    fun getEmailFlow(): Flow<String?> =
-        context.dataStore.data.map { preferences ->
-            preferences[USUARIO_EMAIL_KEY]
-        }
-
-    suspend fun clear() {
-        context.dataStore.edit {
-            it.clear()
-        }
-    }
-}

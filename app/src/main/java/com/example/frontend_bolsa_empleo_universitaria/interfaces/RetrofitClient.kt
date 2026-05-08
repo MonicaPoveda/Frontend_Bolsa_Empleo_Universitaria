@@ -9,7 +9,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
+    //private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
+    private const val BASE_URL = "http://192.168.10.43:8080/"
 
     private val retrofit: Retrofit by lazy {
 
@@ -19,9 +20,9 @@ object RetrofitClient {
 
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(logging)
-            .connectTimeout(15, TimeUnit.SECONDS)  // Reducido de 60 a 30
-            .readTimeout(15, TimeUnit.SECONDS)     // Reducido de 60 a 30
-            .writeTimeout(15, TimeUnit.SECONDS)    // Reducido de 60 a 30
+            .connectTimeout(15, TimeUnit.SECONDS)  // Reducido de 60 a 15
+            .readTimeout(15, TimeUnit.SECONDS)     // Reducido de 60 a 15
+            .writeTimeout(15, TimeUnit.SECONDS)    // Reducido de 60 a 15
             .retryOnConnectionFailure(true)
             .build()
 

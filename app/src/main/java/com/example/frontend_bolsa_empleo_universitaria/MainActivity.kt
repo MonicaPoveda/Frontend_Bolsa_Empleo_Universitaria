@@ -3,6 +3,7 @@ package com.example.frontend_bolsa_empleo_universitaria
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -13,12 +14,15 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.frontend_bolsa_empleo_universitaria.screens.Administrador.AdministradorHomeScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.EmpresaHomeScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.RegistroEmpresaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.EstudianteHomeScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.login.LoginScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.RegistroEstudianteScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Login.LoginScreen
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        enableEdgeToEdge()
         setContent {
             Frontend_Bolsa_Empleo_UniversitariaTheme {
                 Surface(
@@ -51,6 +55,12 @@ fun AppNavigation() {
         }
         composable("admin_home") {
             AdministradorHomeScreen(navController = navController)
+        }
+        composable("registro_estudiante") {
+            RegistroEstudianteScreen(navController = navController)
+        }
+        composable("registro_empresa") {
+            RegistroEmpresaScreen(navController = navController)
         }
     }
 }

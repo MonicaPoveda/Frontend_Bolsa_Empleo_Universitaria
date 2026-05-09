@@ -72,6 +72,7 @@ dependencies {
     // Coil (carga de imágenes)
     implementation("io.coil-kt:coil-compose:2.6.0")
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.ui.text)
 
     // Tests
     testImplementation(libs.junit)

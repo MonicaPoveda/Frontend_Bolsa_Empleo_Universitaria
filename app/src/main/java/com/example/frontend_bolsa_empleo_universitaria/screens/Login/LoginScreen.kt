@@ -45,6 +45,8 @@ fun LoginScreen(navController: NavController) {
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
     var showRecoverDialog by remember { mutableStateOf(false) }
+    var showEmpresaPendienteDialog by remember { mutableStateOf(false) }
+    var empresaPendienteInfo by remember { mutableStateOf<EmpresaPendienteInfo?>(null) }
 
     val uiState by viewModel.uiState.collectAsState()
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -56,13 +58,30 @@ fun LoginScreen(navController: NavController) {
                 val successState = uiState as LoginUiState.Success
                 delay(500)
                 when (successState.rol) {
-                    "ESTUDIANTE" -> navController.navigate("estudiante_home") { popUpTo("login") { inclusive = true } }
-                    "EMPRESA" -> navController.navigate("empresa_home") { popUpTo("login") { inclusive = true } }
-                    "ADMIN" -> navController.navigate("admin_home") { popUpTo("login") { inclusive = true } }
+                    "ESTUDIANTE" -> navController.navigate("estudiante_home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                    "EMPRESA" -> navController.navigate("empresa_home") {
+                        popUpTo("login") { inclusive = true }
+                    }
+                    "ADMIN" -> navController.navigate("admin_home") {
+                        popUpTo("login") { inclusive = true }
+                    }
                 }
             }
             is LoginUiState.Error -> {
-                errorMessage = (uiState as LoginUiState.Error).message
+                val error = (uiState as LoginUiState.Error).message
+                errorMessage = error
+
+                // Verificar si el error es por empresa pendiente
+                if (error.contains("PENDIENTE")) {
+                    // Extraer información de la empresa pendiente del error
+                    empresaPendienteInfo = EmpresaPendienteInfo(
+                        email = email,
+                        mensaje = error
+                    )
+                    showEmpresaPendienteDialog = true
+                }
             }
             else -> {}
         }
@@ -72,6 +91,20 @@ fun LoginScreen(navController: NavController) {
         RecoverPasswordDialog(
             onDismiss = { showRecoverDialog = false },
             snackbarHostState = snackbarHostState
+        )
+    }
+
+    if (showEmpresaPendienteDialog && empresaPendienteInfo != null) {
+        EmpresaPendienteDialog(
+            info = empresaPendienteInfo!!,
+            onDismiss = {
+                showEmpresaPendienteDialog = false
+                empresaPendienteInfo = null
+            },
+            onNavigateToRegistro = {
+                showEmpresaPendienteDialog = false
+                navController.navigate("registro_empresa")
+            }
         )
     }
 
@@ -111,13 +144,20 @@ fun LoginScreen(navController: NavController) {
                     }
 
                     errorMessage?.let {
-                        Text(
-                            text = it,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = TextAlign.Center,
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.errorContainer
+                            ),
                             modifier = Modifier.padding(bottom = 16.dp)
-                        )
+                        ) {
+                            Text(
+                                text = it,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
                     }
 
                     OutlinedTextField(
@@ -193,6 +233,174 @@ fun LoginScreen(navController: NavController) {
     }
 }
 
+// Data class para información de empresa pendiente
+data class EmpresaPendienteInfo(
+    val email: String,
+    val mensaje: String
+)
+
+// Diálogo para empresas pendientes de aprobación
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EmpresaPendienteDialog(
+    info: EmpresaPendienteInfo,
+    onDismiss: () -> Unit,
+    onNavigateToRegistro: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = "Información",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(48.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "⏳ Solicitud Pendiente",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "Tu solicitud de registro está siendo revisada por el administrador.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Tarjeta con información de la solicitud
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "📋 Detalles de tu solicitud:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("📧 Correo:", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                info.email,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("📊 Estado:", style = MaterialTheme.typography.bodySmall)
+                            Surface(
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    "PENDIENTE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Instrucciones importantes
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = "Info",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "📝 ¿Qué puedes hacer mientras tanto?",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "• ✅ Espera a que un administrador revise tu solicitud\n" +
+                                    "• 📧 Recibirás un correo cuando sea aprobada\n" +
+                                    "• 🔐 Una vez aprobada, podrás iniciar sesión\n" +
+                                    "• 📞 Si tienes dudas, contacta al administrador",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Mensaje adicional
+                Text(
+                    text = "⚠️ Nota: Mientras tu solicitud esté PENDIENTE no podrás iniciar sesión. El administrador te notificará cuando sea APROBADA o RECHAZADA.",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Entendido", fontSize = 16.sp)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onNavigateToRegistro,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Intentar otro registro", fontSize = 14.sp)
+            }
+        }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RecoverPasswordDialog(
@@ -203,12 +411,11 @@ fun RecoverPasswordDialog(
     var tipoUsuario by remember { mutableStateOf("ESTUDIANTE") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    
+
     var showSuccessDialog by remember { mutableStateOf(false) }
     var temporaryPassword by remember { mutableStateOf("") }
-    
+
     val authRepository = remember { AuthRepository(RetrofitClient.usuarioApi) }
-    val empresaRepository = remember { EmpresaRepository(RetrofitClient.empresaApi) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -264,7 +471,7 @@ fun RecoverPasswordDialog(
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(12.dp))
-                            
+
                             // Contenedor para la contraseña
                             Surface(
                                 color = MaterialTheme.colorScheme.surface,
@@ -285,7 +492,7 @@ fun RecoverPasswordDialog(
                                         fontFamily = FontFamily.Monospace,
                                         letterSpacing = 2.sp
                                     )
-                                    
+
                                     IconButton(
                                         onClick = {
                                             val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -300,7 +507,7 @@ fun RecoverPasswordDialog(
                                         )
                                     ) {
                                         Icon(
-                                            Icons.Default.ContentCopy, 
+                                            Icons.Default.ContentCopy,
                                             contentDescription = "Copiar",
                                             tint = MaterialTheme.colorScheme.primary
                                         )
@@ -339,9 +546,9 @@ fun RecoverPasswordDialog(
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
                                 text = "• Usa esta contraseña para iniciar sesión\n" +
-                                       "• Después de iniciar sesión, cámbiala en tu perfil\n" +
-                                       "• No compartas esta contraseña con nadie\n" +
-                                       "• Puedes copiarla haciendo clic en el ícono 📋",
+                                        "• Después de iniciar sesión, cámbiala en tu perfil\n" +
+                                        "• No compartas esta contraseña con nadie\n" +
+                                        "• Puedes copiarla haciendo clic en el ícono 📋",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontSize = 12.sp
                             )
@@ -382,15 +589,24 @@ fun RecoverPasswordDialog(
                 Column {
                     Text("Ingresa tu correo para recibir una contraseña temporal.")
                     Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Row(modifier = Modifier.fillMaxWidth()) {
+
+                    // Selector de tipo de usuario
+                    Text(
+                        text = "Tipo de usuario:",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         FilterChip(
                             selected = tipoUsuario == "ESTUDIANTE",
                             onClick = { tipoUsuario = "ESTUDIANTE" },
                             label = { Text("Estudiante") },
                             modifier = Modifier.weight(1f)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
                         FilterChip(
                             selected = tipoUsuario == "EMPRESA",
                             onClick = { tipoUsuario = "EMPRESA" },
@@ -398,7 +614,9 @@ fun RecoverPasswordDialog(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it; errorMessage = null },
@@ -406,7 +624,7 @@ fun RecoverPasswordDialog(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
                     )
-                    
+
                     if (isLoading) {
                         Box(modifier = Modifier.fillMaxWidth().padding(top = 16.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(modifier = Modifier.size(32.dp))
@@ -431,15 +649,22 @@ fun RecoverPasswordDialog(
                             val result = if (tipoUsuario == "ESTUDIANTE") {
                                 authRepository.recuperarPassword(email)
                             } else {
-                                empresaRepository.recuperarPassword(email)
+                                // Las empresas no tienen recuperación de contraseña en el backend actual
+                                Result.failure(Exception("❌ La recuperación de contraseña para empresas no está disponible. Contacta al administrador."))
                             }
-                            
+
                             result.onSuccess { response ->
                                 temporaryPassword = response.passwordTemporal
                                 showSuccessDialog = true
                                 isLoading = false
                             }.onFailure { error ->
-                                errorMessage = error.message ?: "Error al recuperar contraseña"
+                                errorMessage = when {
+                                    error.message?.contains("PENDIENTE") == true ->
+                                        "❌ Tu solicitud de registro está pendiente. Espera la aprobación del administrador."
+                                    error.message?.contains("no encontrada") == true ->
+                                        "❌ No se encontró una cuenta con este correo electrónico"
+                                    else -> error.message ?: "Error al recuperar contraseña"
+                                }
                                 isLoading = false
                             }
                         }

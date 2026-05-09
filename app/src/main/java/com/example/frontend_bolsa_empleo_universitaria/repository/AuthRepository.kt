@@ -1,4 +1,3 @@
-
 package com.example.frontend_bolsa_empleo_universitaria.repository
 
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.UsuarioApi

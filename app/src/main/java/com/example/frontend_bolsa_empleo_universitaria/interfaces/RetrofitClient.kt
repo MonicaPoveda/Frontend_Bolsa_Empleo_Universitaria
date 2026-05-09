@@ -9,8 +9,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    //private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
-    private const val BASE_URL = "http://192.168.10.43:8080/"
+    private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
+    //private const val BASE_URL = "http://192.168.10.43:8080/"
 
     private val retrofit: Retrofit by lazy {
 

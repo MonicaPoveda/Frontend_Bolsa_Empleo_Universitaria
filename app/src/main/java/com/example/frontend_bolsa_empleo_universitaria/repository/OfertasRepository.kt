@@ -1,13 +1,15 @@
 package com.example.frontend_bolsa_empleo_universitaria.repository
 
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.OfertaLaboralApi
-import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralRequest
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 
 class OfertasRepository(
     private val api: OfertaLaboralApi
 ) {
 
-    suspend fun listarActivas(): List<OfertaLaboral> {
+    // ✅ Para LISTAR - OfertaLaboralResponse (con id)
+    suspend fun listarActivas(): List<OfertaLaboralResponse> {
         return try {
             val response = api.listarActivas()
             if (response.isSuccessful) {
@@ -22,7 +24,8 @@ class OfertasRepository(
         }
     }
 
-    suspend fun listarTodas(): List<OfertaLaboral> {
+    // ✅ Para LISTAR - OfertaLaboralResponse (con id)
+    suspend fun listarTodas(): List<OfertaLaboralResponse> {
         return try {
             val response = api.listar()
             if (response.isSuccessful) {
@@ -37,12 +40,13 @@ class OfertasRepository(
         }
     }
 
-    suspend fun guardarOferta(oferta: OfertaLaboral): OfertaLaboral? {
+    // ✅ Para GUARDAR - Envía Request, Recibe Response
+    suspend fun guardarOferta(oferta: OfertaLaboralRequest): OfertaLaboralResponse? {
         return try {
             val response = api.guardar(oferta)
             if (response.isSuccessful) {
                 println("✅ Oferta guardada: ${response.body()}")
-                response.body()
+                response.body()  // ← Retorna OfertaLaboralResponse
             } else {
                 println("❌ Error al guardar: ${response.code()} - ${response.message()}")
                 null
@@ -53,13 +57,13 @@ class OfertasRepository(
         }
     }
 
-    // ✅ NUEVO
-    suspend fun actualizarOferta(id: Long, oferta: OfertaLaboral): OfertaLaboral? {
+    // ✅ Para ACTUALIZAR - Envía Request, Recibe Response
+    suspend fun actualizarOferta(id: Long, oferta: OfertaLaboralRequest): OfertaLaboralResponse? {
         return try {
             val response = api.actualizar(id, oferta)
             if (response.isSuccessful) {
                 println("✅ Oferta actualizada: ${response.body()}")
-                response.body()
+                response.body()  // ← Retorna OfertaLaboralResponse
             } else {
                 println("❌ Error al actualizar: ${response.code()} - ${response.message()}")
                 null

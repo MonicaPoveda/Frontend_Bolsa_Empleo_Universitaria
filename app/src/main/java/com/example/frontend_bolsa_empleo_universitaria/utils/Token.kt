@@ -18,12 +18,11 @@ class Token(private val context: Context) {
         context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
     // MODIFICADO: Agregar parámetro idEmpresa
-    fun saveToken(token: String, email: String, rol: String, idEmpresa: Long = 0, nombre: String = "") {
+    fun saveToken(token: String, email: String, rol: String, idEmpresa: Long = 0) {
         prefs.edit().apply {
             putString("auth_token", token)
             putString("user_email", email)
             putString("user_role", rol)
-            putString("user_nombre", nombre)
             putLong("empresa_id", idEmpresa)  // ← NUEVO: Guardar ID de empresa
             apply()
         }
@@ -34,8 +33,6 @@ class Token(private val context: Context) {
     fun getUserEmail(): String? = prefs.getString("user_email", null)
 
     fun getUserRole(): String? = prefs.getString("user_role", null)
-
-    fun getNombre(): String? = prefs.getString("user_nombre", null)
 
     // NUEVO: Obtener ID de la empresa
     fun getEmpresaId(): Long = prefs.getLong("empresa_id", 0)

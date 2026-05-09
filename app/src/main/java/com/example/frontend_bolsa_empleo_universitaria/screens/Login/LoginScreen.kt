@@ -71,20 +71,21 @@ fun LoginScreen(navController: NavController) {
 
                         if (userId != null && jwtToken != null) {
                             // Intentar obtener el perfil del usuario
-                            // Como no hay endpoint específico, obtenemos todos los perfiles y buscamos por userId
                             val perfil = perfilRepo.obtenerPerfilPorUsuario(userId)
 
-                            if (perfil == null) {
-                                // No tiene perfil - redirigir a la pantalla de alerta
-                                delay(500)
-                                navController.navigate("mensaje_alerta_crear_perfil") {
-                                    popUpTo("login") { inclusive = true }
-                                }
-                            } else {
-                                // Tiene perfil - guardar en cache y ir al home
+                            if (perfil != null) {
+                                // SI TIENE PERFIL: Guardar estado e ir al Home
                                 token.setProfileCreated(true)
                                 delay(500)
                                 navController.navigate("estudiante_home") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            } else {
+                                // NO TIENE PERFIL (o error de búsqueda): 
+                                // Obligado a ver la alerta y crear perfil
+                                token.setProfileCreated(false)
+                                delay(500)
+                                navController.navigate("mensaje_alerta_crear_perfil") {
                                     popUpTo("login") { inclusive = true }
                                 }
                             }

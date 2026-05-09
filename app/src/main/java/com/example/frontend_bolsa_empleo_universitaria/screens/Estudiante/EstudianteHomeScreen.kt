@@ -68,7 +68,8 @@ fun EstudianteHomeScreen(
     val scope = rememberCoroutineScope()
     var selectedDrawerItem by remember { mutableStateOf("inicio") }
 
-    val nombreUsuario = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Estudiante"
+    // ✅ CORREGIDO: Obtener el nombre real del token (se actualiza al volver de configuración)
+    val nombreUsuario = token.getUserNombre() ?: "Estudiante"
 
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val viewModel: OfertasViewModel = viewModel(
@@ -281,7 +282,7 @@ fun EstudianteHomeScreen(
                                 selectedTab = index
                                 when (item.route) {
                                     "postulaciones" -> navController.navigate("mis_postulaciones")
-                                    "perfil" -> navController.navigate("configuracion_cuenta")
+                                    "perfil" -> navController.navigate("mi_perfil")
                                 }
                             },
                             icon = { Icon(item.icon, contentDescription = item.label) },

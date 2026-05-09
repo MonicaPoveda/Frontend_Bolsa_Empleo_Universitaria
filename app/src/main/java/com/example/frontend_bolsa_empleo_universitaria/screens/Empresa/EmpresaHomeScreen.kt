@@ -81,11 +81,17 @@ fun EmpresaHomeScreen(
     var busqueda by remember { mutableStateOf("") }
     var filtroSeleccionado by remember { mutableStateOf("Todas") }
 
-    val ofertas = viewModel.ofertas.value
+    val idEmpresa = token.getEmpresaId()
+    val ofertas = viewModel.ofertasEmpresa.value  // ← Muestra solo ofertas de la empresa
     val loading = viewModel.loading.value
 
     LaunchedEffect(Unit) {
-        viewModel.cargarActivas()
+        if (idEmpresa > 0) {
+            println("Cargando ofertas para empresa ID: $idEmpresa")
+            viewModel.cargarOfertasPorEmpresa(idEmpresa)
+        } else {
+            println("⚠️ No hay ID de empresa guardado")
+        }
     }
 
     if (viewModel.error.value != null) {
@@ -320,7 +326,16 @@ fun EmpresaHomeScreen(
                         navController.navigate("detalle_oferta/$ofertaId")
                     }
                 )
-                1 -> AgregarOfertaScreen(padding)
+                1 -> AgregarOfertaScreen(
+                    padding = padding,
+                    idEmpresa = idEmpresa,  // ← Pasar ID de la empresa
+                    onOfertaAgregada = {
+                        // Recargar ofertas después de agregar
+                        viewModel.cargarOfertasPorEmpresa(idEmpresa)
+                        // Opcional: mostrar mensaje o cambiar a pestaña de inicio
+                        selectedTab = 0
+                    }
+                )
                 2 -> EmpresaPerfilScreen(padding)
             }
         }
@@ -643,188 +658,6 @@ fun EmpresaJobCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
-            }
-        }
-    }
-}
-
-@Composable
-fun AgregarOfertaScreen(padding: PaddingValues) {
-    var titulo by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
-    var area by remember { mutableStateOf("") }
-    var salario by remember { mutableStateOf("") }
-    var modalidad by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .padding(24.dp)
-    ) {
-        Text(
-            text = "Publicar Nueva Oferta",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        OutlinedTextField(
-            value = titulo,
-            onValueChange = { titulo = it },
-            label = { Text("Título de la oferta") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = area,
-            onValueChange = { area = it },
-            label = { Text("Área / Cargo") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            OutlinedTextField(
-                value = salario,
-                onValueChange = { salario = it },
-                label = { Text("Salario (USD)") },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-
-            OutlinedTextField(
-                value = modalidad,
-                onValueChange = { modalidad = it },
-                label = { Text("Modalidad") },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = descripcion,
-            onValueChange = { descripcion = it },
-            label = { Text("Descripción del puesto") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(12.dp),
-            minLines = 4
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = { /* Publicar oferta */ },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = BlueGradientStart)
-        ) {
-            Icon(
-                Icons.Default.Add,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Publicar Oferta", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-@Composable
-fun EmpresaPerfilScreen(padding: PaddingValues) {
-    val context = LocalContext.current
-    val token = remember { Token(context) }
-    val nombreEmpresa = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Empresa"
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .padding(24.dp)
-    ) {
-        Text(
-            text = "Mi Perfil",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE3F2FD)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Business,
-                        contentDescription = "Avatar",
-                        tint = BlueGradientStart,
-                        modifier = Modifier.size(44.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = nombreEmpresa,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-
-                Text(
-                    text = token.getUserEmail() ?: "empresa@email.com",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = { /* Editar perfil */ },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = BlueGradientStart)
-                ) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Editar Perfil")
-                }
             }
         }
     }

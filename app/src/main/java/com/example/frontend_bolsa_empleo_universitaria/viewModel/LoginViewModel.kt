@@ -2,13 +2,12 @@ package com.example.frontend_bolsa_empleo_universitaria.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.TimeoutCancellationException
 
 sealed class LoginUiState {
@@ -25,7 +24,7 @@ class LoginViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
-    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+    val uiState: StateFlow<LoginUiState> = _uiState
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
@@ -44,7 +43,8 @@ class LoginViewModel(
                         val rol = response.usuario.tipoUsuario.uppercase()
                         println("🎭 Rol obtenido: $rol")
 
-                        token.saveToken(response.token, response.usuario.email, rol)
+                        // Para estudiantes/admins no hay idEmpresa
+                        token.saveToken(response.token, response.usuario.email, rol, idEmpresa = 0)
                         println("💾 Token guardado")
 
                         _uiState.value = LoginUiState.Success(
@@ -52,13 +52,12 @@ class LoginViewModel(
                             email = response.usuario.email,
                             token = response.token
                         )
-                        println("📤 State actualizado a Success")
                     },
                     onFailure = { error ->
                         println("❌ Falló login usuario: ${error.message}")
-                        
-                        // Si el error es de red, no intentamos con empresa porque fallará igual
-                        if (error.message?.contains("red") == true || error.message?.contains("conexión") == true) {
+
+                        if (error.message?.contains("red") == true ||
+                            error.message?.contains("conexión") == true) {
                             _uiState.value = LoginUiState.Error("Error de red: Verifica tu conexión a internet.")
                             return@fold
                         }
@@ -71,26 +70,36 @@ class LoginViewModel(
                             empresaResult.fold(
                                 onSuccess = { response ->
                                     println("✅ Login exitoso como empresa")
-                                    token.saveToken(response.token, response.empresa.email, "EMPRESA")
+
+                                    // IMPORTANTE: Guardar el ID de la empresa
+                                    val idEmpresa = response.empresa.idEmpresa
+                                    println("🏢 ID de empresa: $idEmpresa")
+
+                                    token.saveToken(
+                                        token = response.token,
+                                        email = response.empresa.email,
+                                        rol = "EMPRESA",
+                                        idEmpresa = idEmpresa  // ← AGREGAR ESTO
+                                    )
+
                                     _uiState.value = LoginUiState.Success(
                                         rol = "EMPRESA",
                                         email = response.empresa.email,
                                         token = response.token
                                     )
-                                    println("📤 State actualizado a Success (Empresa)")
                                 },
                                 onFailure = { empresaError ->
                                     println("❌ Falló también como empresa: ${empresaError.message}")
-                                    
+
                                     val finalErrorMessage = when {
-                                        empresaError.message?.contains("401") == true || 
-                                        empresaError.message?.contains("403") == true -> 
+                                        empresaError.message?.contains("401") == true ||
+                                                empresaError.message?.contains("403") == true ->
                                             "Email o contraseña incorrectos."
                                         empresaError.message?.contains("500") == true ->
                                             "Error interno del servidor. Intenta más tarde."
                                         else -> "Credenciales incorrectas o usuario no encontrado."
                                     }
-                                    
+
                                     _uiState.value = LoginUiState.Error(finalErrorMessage)
                                 }
                             )
@@ -102,14 +111,10 @@ class LoginViewModel(
                 )
             } catch (e: TimeoutCancellationException) {
                 println("⏰ Timeout - El servidor tardó demasiado en responder")
-                _uiState.value = LoginUiState.Error(
-                    "Tiempo de espera agotado. Intenta nuevamente."
-                )
+                _uiState.value = LoginUiState.Error("Tiempo de espera agotado. Intenta nuevamente.")
             } catch (e: Exception) {
                 println("💥 Error general: ${e.message}")
-                _uiState.value = LoginUiState.Error(
-                    "Error de conexión: ${e.message}"
-                )
+                _uiState.value = LoginUiState.Error("Error de conexión: ${e.message}")
             }
         }
     }

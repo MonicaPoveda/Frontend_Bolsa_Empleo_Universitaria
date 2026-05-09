@@ -38,4 +38,19 @@ class OfertasRepository(
             emptyList()
         }
     }
+    suspend fun guardarOferta(oferta: OfertaLaboral): OfertaLaboral? {
+        return try {
+            val response = api.guardar(oferta)
+            if (response.isSuccessful) {
+                println("✅ Oferta guardada: ${response.body()}")
+                response.body()
+            } else {
+                println("❌ Error al guardar: ${response.code()} - ${response.message()}")
+                null
+            }
+        } catch (e: Exception) {
+            println("❌ Excepción: ${e.message}")
+            null
+        }
+    }
 }

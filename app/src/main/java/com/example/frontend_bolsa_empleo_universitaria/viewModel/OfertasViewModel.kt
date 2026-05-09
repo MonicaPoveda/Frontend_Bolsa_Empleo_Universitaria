@@ -154,4 +154,37 @@ class OfertasViewModel(
         println("Resultados búsqueda: ${resultado.size}")
         _ofertas.value = resultado
     }
+    // Buscar una oferta específica por ID de la lista ya cargada
+    fun obtenerOfertaPorId(idOferta: Long): OfertaLaboral? {
+        return _ofertasEmpresa.value.find { it.idOferta == idOferta }
+    }
+
+    // Actualizar estado de una oferta (activar/cerrar)
+    fun actualizarEstadoOferta(idOferta: Long, nuevoEstado: Boolean) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val ofertaActual = _ofertasEmpresa.value.find { it.idOferta == idOferta }
+                    ?: return@launch
+
+                val ofertaActualizada = ofertaActual.copy(estado = nuevoEstado)
+                val resultado = repository.actualizarOferta(idOferta, ofertaActualizada)
+
+                if (resultado != null) {
+                    // Actualizar la lista local sin recargar todo
+                    _ofertasEmpresa.value = _ofertasEmpresa.value.map {
+                        if (it.idOferta == idOferta) resultado else it
+                    }
+                    println("✅ Oferta $idOferta actualizada a estado: $nuevoEstado")
+                } else {
+                    _error.value = "Error al actualizar la oferta"
+                }
+            } catch (e: Exception) {
+                _error.value = "Error: ${e.message}"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
 }

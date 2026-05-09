@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,10 +50,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.util.Calendar
 import java.util.Date
 import kotlin.text.ifEmpty
 
@@ -73,7 +71,6 @@ fun AgregarOfertaScreen(
     var salario by remember { mutableStateOf("") }
     var modalidad by remember { mutableStateOf("") }
 
-    // Estados para la fecha de cierre
     var selectedYear by remember { mutableStateOf(2026) }
     var selectedMonth by remember { mutableStateOf(5) }
     var selectedDay by remember { mutableStateOf(30) }
@@ -85,20 +82,16 @@ fun AgregarOfertaScreen(
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val scope = rememberCoroutineScope()
 
-    // Fecha actual para fechaPublicacion
     val fechaActual = remember {
         DateFormat.format("yyyy-MM-dd", Date()).toString()
     }
 
-    // Listas para los selectores
     val years = (2024..2030).toList()
-    val months = (1..12).toList()
     val monthNames = listOf(
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     )
 
-    // Calcular días máximos según mes y año seleccionado
     val maxDays = remember(selectedYear, selectedMonth) {
         when (selectedMonth) {
             1, 3, 5, 7, 8, 10, 12 -> 31
@@ -110,9 +103,19 @@ fun AgregarOfertaScreen(
 
     val days = (1..maxDays).toList()
 
-    // Formatear fecha seleccionada
     val fechaCierreSeleccionada = remember(selectedYear, selectedMonth, selectedDay) {
         String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
+    }
+
+    // ✅ DIAGNÓSTICO AL ABRIR LA PANTALLA
+    LaunchedEffect(Unit) {
+        println("=== DIAGNÓSTICO AL ABRIR PANTALLA ===")
+        println("Token: ${token.getToken()?.take(60) ?: "NULL ❌"}")
+        println("Rol: '${token.getUserRole()}'")
+        println("EmpresaId: ${token.getEmpresaId()}")
+        println("isEmpresa(): ${token.isEmpresa()}")
+        println("idEmpresa param: $idEmpresa")
+        println("======================================")
     }
 
     Column(
@@ -252,8 +255,6 @@ fun AgregarOfertaScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Botón Publicar con petición manual
         Button(
             onClick = {
                 when {
@@ -264,14 +265,6 @@ fun AgregarOfertaScreen(
                     else -> {
                         isLoading = true
                         errorMessage = null
-
-                        println("=== VERIFICACIÓN PRE-GUARDADO ===")
-                        val tokenActual = token.getToken()
-                        println("Token actual: ${tokenActual?.take(50)}...")
-                        println("Token completo: $tokenActual")
-                        println("Rol: ${token.getUserRole()}")
-                        println("EmpresaID: $idEmpresa")
-                        println("=================================")
 
                         val nuevaOferta = OfertaLaboral(
                             idOferta = 0,
@@ -286,20 +279,11 @@ fun AgregarOfertaScreen(
                             idEmpresa = idEmpresa
                         )
 
-                        println("📝 Creando nueva oferta:")
-                        println("   Título: ${nuevaOferta.titulo}")
-                        println("   EmpresaID: ${nuevaOferta.idEmpresa}")
-                        println("   Fecha Publicación: ${nuevaOferta.fechaPublicacion}")
-                        println("   Fecha Cierre: ${nuevaOferta.fechaCierre}")
-
-                        // ========== PETICIÓN MANUAL CON OKHTTP ==========
                         scope.launch {
                             try {
-                                // Retrofit ya maneja la ejecución en hilo background
                                 val response = withContext(Dispatchers.IO) {
                                     repository.guardarOferta(nuevaOferta)
                                 }
-
                                 withContext(Dispatchers.Main) {
                                     isLoading = false
                                     if (response != null) {
@@ -316,7 +300,6 @@ fun AgregarOfertaScreen(
                                 }
                             }
                         }
-                        // ========== FIN PETICIÓN MANUAL ==========
                     }
                 }
             },
@@ -337,7 +320,6 @@ fun AgregarOfertaScreen(
         }
     }
 
-    // Diálogo de éxito
     if (showSuccess) {
         AlertDialog(
             onDismissRequest = { showSuccess = false },

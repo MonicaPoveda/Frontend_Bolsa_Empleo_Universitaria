@@ -24,7 +24,6 @@ object RetrofitClient {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
-        // Interceptor para agregar el token automáticamente
         val authInterceptor = okhttp3.Interceptor { chain ->
             var request = chain.request()
 
@@ -32,7 +31,6 @@ object RetrofitClient {
             println("📡 URL: ${request.url}")
             println("📡 Método: ${request.method}")
 
-            // Agregar token si existe
             tokenManager?.getToken()?.let { token ->
                 println("✅ Token encontrado: ${token.take(50)}...")
                 request = request.newBuilder()
@@ -47,18 +45,29 @@ object RetrofitClient {
             println("📡 Código respuesta: ${response.code}")
 
             if (response.code == 403) {
-                println("❌ ERROR 403 - Posibles causas:")
-                println("   1. Token inválido o expirado")
-                println("   2. Usuario no tiene rol EMPRESA")
-                println("   3. Empresa no aprobada por administrador")
-                println("   4. El token no se envió correctamente")
+                println("❌ ERROR 403 - Content-Type o token rechazado por el backend")
             }
 
             response
         }
 
+        // ✅ SOLUCIÓN: interceptor que sobreescribe el Content-Type que pone Gson
+        val contentTypeInterceptor = okhttp3.Interceptor { chain ->
+            val original = chain.request()
+            // Solo modificar requests que tienen body (POST, PUT)
+            val request = if (original.body != null) {
+                original.newBuilder()
+                    .header("Content-Type", "application/json")
+                    .build()
+            } else {
+                original
+            }
+            chain.proceed(request)
+        }
+
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
+            .addInterceptor(contentTypeInterceptor) // ✅ NUEVO: fuerza Content-Type sin charset
             .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -84,6 +93,6 @@ object RetrofitClient {
 
     fun init(context: Context) {
         appContext = context.applicationContext
-        println("✅ RetrofitClient inicializado")
+        println("✅ RetrofitClient inicializado con BASE_URL: $BASE_URL")
     }
 }

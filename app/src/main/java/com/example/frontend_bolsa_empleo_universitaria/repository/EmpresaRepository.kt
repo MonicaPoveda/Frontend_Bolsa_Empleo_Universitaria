@@ -1,3 +1,4 @@
+// repository/EmpresaRepository.kt (actualizado)
 package com.example.frontend_bolsa_empleo_universitaria.repository
 
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.EmpresaApi
@@ -8,7 +9,7 @@ import retrofit2.HttpException
 import java.io.IOException
 
 class EmpresaRepository(
-    private val empresaApi: EmpresaApi
+    private val api: EmpresaApi
 ) {
 
     suspend fun login(email: String, password: String): Result<LoginResponseEmpresa> {
@@ -18,7 +19,7 @@ class EmpresaRepository(
     suspend fun login(loginRequest: LoginRequest): Result<LoginResponseEmpresa> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = empresaApi.login(loginRequest)
+                val response = api.login(loginRequest)
                 Result.success(response)
             } catch (e: IOException) {
                 Result.failure(Exception("Error de red: ${e.message}"))
@@ -38,16 +39,49 @@ class EmpresaRepository(
     suspend fun registrarEmpresa(request: RegEmpRequest): Result<EmpresaDto> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = empresaApi.registrar(request)
-                if (response.isSuccessful && response.body() != null) {
-                    Result.success(response.body()!!)
+                val response = api.registrar(request)
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        Result.success(it)
+                    } ?: Result.failure(Exception("Respuesta vacía del servidor"))
                 } else {
-                    Result.failure(Exception("Error ${response.code()}: ${response.message()}"))
+                    Result.failure(Exception("Error al registrar empresa: ${response.code()}"))
                 }
             } catch (e: IOException) {
                 Result.failure(Exception("Error de red: ${e.message}"))
             } catch (e: Exception) {
                 Result.failure(Exception("Error inesperado: ${e.message}"))
+            }
+        }
+    }
+
+    suspend fun recuperarPassword(email: String): Result<RecuperarPassResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = api.recuperarPassword(email)
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        Result.success(it)
+                    } ?: Result.failure(Exception("Respuesta vacía del servidor"))
+                } else {
+                    Result.failure(Exception("Error al recuperar contraseña: ${response.code()}"))
+                }
+            } catch (e: IOException) {
+                Result.failure(Exception("Error de red: ${e.message}"))
+            } catch (e: Exception) {
+                Result.failure(Exception("Error inesperado: ${e.message}"))
+            }
+        }
+    }
+
+    suspend fun getNombreEmpresa(id: Long): String {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Si tienes un endpoint para obtener perfil de empresa, úsalo.
+                // Si no, por ahora devolvemos un genérico o buscamos la lógica adecuada.
+                "Empresa Asociada" 
+            } catch (e: Exception) {
+                "Empresa"
             }
         }
     }

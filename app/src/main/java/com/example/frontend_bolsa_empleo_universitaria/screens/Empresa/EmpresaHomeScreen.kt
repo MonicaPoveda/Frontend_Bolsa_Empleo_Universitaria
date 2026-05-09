@@ -1,258 +1,715 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Empresa
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.AssignmentTurnedIn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavController
-
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+// Colores
+private val BlueGradientStart = Color(0xFF0056D2)
+private val BlueGradientEnd = Color(0xFF007BFF)
+private val BackgroundGray = Color(0xFFF8FAFF)
+private val ChipHybridColor = Color(0xFFE3F2FD)
+private val ChipHybridText = Color(0xFF1976D2)
+private val PriceColor = Color(0xFF2E7D32)
+
+// Nav Items para Empresa
+data class NavItemEmpresa(
+    val label: String,
+    val icon: ImageVector,
+    val route: String
+)
+
+val navItemsEmpresa = listOf(
+    NavItemEmpresa("Inicio", Icons.Default.Home, "inicio"),
+    NavItemEmpresa("Agregar", Icons.Default.Add, "agregar"),
+    NavItemEmpresa("Perfil", Icons.Default.Person, "perfil")
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EmpresaHomeScreen(navController: NavController) {
+fun EmpresaHomeScreen(
+    navController: NavController
+) {
     val context = LocalContext.current
     val token = remember { Token(context) }
     var selectedTab by remember { mutableStateOf(0) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Panel Empresa") },
-                actions = {
-                    IconButton(onClick = { /* Notificaciones */ }) {
-                        Icon(Icons.Default.Notifications, contentDescription = "Notificaciones")
-                    }
-                    IconButton(onClick = {
-                        token.clearSession()
-                        navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
+    // Estado del drawer
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    // Estado para el item seleccionado en el drawer
+    var selectedDrawerItem by remember { mutableStateOf("inicio") }
+
+    val nombreEmpresa = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Empresa"
+
+    val repository = remember { 
+        OfertasRepository(
+            RetrofitClient.ofertaLaboralApi,
+            Token(context)
+        ) 
+    }
+    val viewModel: OfertasViewModel = viewModel(
+        factory = OfertasViewModelFactory(repository)
+    )
+
+    var busqueda by remember { mutableStateOf("") }
+    var filtroSeleccionado by remember { mutableStateOf("Todas") }
+
+    val idEmpresa = token.getEmpresaId()
+    val ofertas by viewModel.ofertasEmpresa.collectAsState()
+    val loading by viewModel.loading.collectAsState()
+    val error by viewModel.error.collectAsState()
+
+    LaunchedEffect(Unit) {
+        if (idEmpresa > 0) {
+            println("Cargando ofertas para empresa ID: $idEmpresa")
+            viewModel.cargarOfertasPorEmpresa(idEmpresa)
+        } else {
+            println("⚠️ No hay ID de empresa guardado")
+        }
+    }
+
+    LaunchedEffect(busqueda, filtroSeleccionado) {
+        delay(300)
+        if (busqueda.isNotBlank()) {
+            viewModel.buscarPorTexto(busqueda, esEmpresa = true)
+        } else {
+            viewModel.filtrarPorArea(filtroSeleccionado, esEmpresa = true)
+        }
+    }
+
+    // ModalDrawer para el menú lateral
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = true,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(280.dp),
+                drawerContainerColor = Color.White
+            ) {
+                // Header con avatar y nombre
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(BlueGradientStart, BlueGradientEnd)
+                            )
+                        )
+                        .padding(vertical = 28.dp, horizontal = 20.dp)
+                ) {
+                    Column {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Business,
+                                contentDescription = "Avatar",
+                                tint = Color.White,
+                                modifier = Modifier.size(36.dp)
+                            )
                         }
-                    }) {
-                        Icon(Icons.Default.ExitToApp, contentDescription = "Salir")
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = nombreEmpresa,
+                            color = Color.White,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = token.getUserEmail() ?: "empresa@email.com",
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontSize = 12.sp
+                        )
                     }
                 }
-            )
-        },
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Business, contentDescription = "Mis Ofertas") },
-                    label = { Text("Mis Ofertas") },
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Sección "MENÚ"
+                Text(
+                    text = "MENÚ",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Gray
                 )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Nueva Oferta") },
-                    label = { Text("Nueva Oferta") },
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 }
+
+                DrawerMenuItemEmpresa(
+                    icon = Icons.Default.Home,
+                    text = "Inicio",
+                    badge = null,
+                    selected = selectedDrawerItem == "inicio"
+                ) {
+                    selectedDrawerItem = "inicio"
+                    scope.launch { drawerState.close() }
+                    selectedTab = 0
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+
+                // Sección "CUENTA"
+                Text(
+                    text = "CUENTA",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Gray
                 )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.People, contentDescription = "Postulantes") },
-                    label = { Text("Postulantes") },
-                    selected = selectedTab == 2,
-                    onClick = { selectedTab = 2 }
+
+                DrawerMenuItemEmpresa(
+                    icon = Icons.Default.Settings,
+                    text = "Configuración de Cuenta",
+                    badge = null,
+                    selected = selectedDrawerItem == "configuracion"
+                ) {
+                    selectedDrawerItem = "configuracion"
+                    scope.launch { drawerState.close() }
+                    try {
+                        navController.navigate("configuracion_cuenta")
+                    } catch (e: Exception) {
+                        println("Error navegando a configuración: ${e.message}")
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+
+                // Sección "SOPORTE"
+                Text(
+                    text = "SOPORTE",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Gray
                 )
-                NavigationBarItem(
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "Configuración") },
-                    label = { Text("Configuración") },
-                    selected = selectedTab == 3,
-                    onClick = { selectedTab = 3 }
-                )
+
+                DrawerMenuItemEmpresa(
+                    icon = Icons.Default.Info,
+                    text = "Acerca de",
+                    badge = null,
+                    selected = selectedDrawerItem == "acerca"
+                ) {
+                    selectedDrawerItem = "acerca"
+                    scope.launch { drawerState.close() }
+                    try {
+                        navController.navigate("acerca_de")
+                    } catch (e: Exception) {
+                        println("Error navegando a acerca de: ${e.message}")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+
+                DrawerMenuItemEmpresa(
+                    icon = Icons.Default.Logout,
+                    text = "Cerrar Sesión",
+                    badge = null,
+                    iconTint = Color(0xFFE53935),
+                    textColor = Color(0xFFE53935),
+                    selected = false
+                ) {
+                    scope.launch { drawerState.close() }
+                    token.clearSession()
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             }
         }
-    ) { paddingValues ->
-        when (selectedTab) {
-            0 -> MisOfertasScreen(paddingValues)
-            1 -> NuevaOfertaScreen(paddingValues)
-            2 -> PostulantesScreen(paddingValues)
-            3 -> ConfiguracionEmpresaScreen(paddingValues)
+    ) {
+        Scaffold(
+            containerColor = BackgroundGray,
+            topBar = {
+                TopAppBar(
+                    title = { },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = { scope.launch { drawerState.open() } },
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = "Menú",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = BlueGradientStart
+                    ),
+                    modifier = Modifier.height(56.dp)
+                )
+            },
+            bottomBar = {
+                NavigationBar(
+                    containerColor = Color.White,
+                    tonalElevation = 8.dp
+                ) {
+                    navItemsEmpresa.forEachIndexed { index, item ->
+                        NavigationBarItem(
+                            selected = index == selectedTab,
+                            onClick = {
+                                selectedTab = index
+                                when (item.route) {
+                                    "agregar" -> {
+                                        // Navegar a pantalla de agregar oferta
+                                    }
+                                    "perfil" -> {
+                                        try {
+                                            navController.navigate("configuracion_cuenta")
+                                        } catch (e: Exception) {
+                                            println("Error: ${e.message}")
+                                        }
+                                    }
+                                }
+                            },
+                            icon = { Icon(item.icon, contentDescription = item.label) },
+                            label = { Text(item.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = BlueGradientStart,
+                                selectedTextColor = BlueGradientStart,
+                                unselectedIconColor = Color.Gray,
+                                unselectedTextColor = Color.Gray,
+                                indicatorColor = ChipHybridColor
+                            )
+                        )
+                    }
+                }
+            }
+        ) { padding ->
+            when (selectedTab) {
+                0 -> EmpresaOfertasScreen(
+                    padding = padding,
+                    ofertas = ofertas,
+                    loading = loading,
+                    onVerDetalle = { ofertaId ->
+                        navController.navigate("detalle_oferta/$ofertaId")
+                    }
+                )
+                1 -> AgregarOfertaScreen(
+                    padding = padding,
+                    idEmpresa = idEmpresa,  // ← Pasar ID de la empresa
+                    onOfertaAgregada = {
+                        // Recargar ofertas después de agregar
+                        viewModel.cargarOfertasPorEmpresa(idEmpresa)
+                        // Opcional: mostrar mensaje o cambiar a pestaña de inicio
+                        selectedTab = 0
+                    }
+                )
+                2 -> EmpresaPerfilScreen(padding)
+            }
         }
     }
 }
 
 @Composable
-fun MisOfertasScreen(paddingValues: PaddingValues) {
-    LazyColumn(
+fun EmpresaOfertasScreen(
+    padding: PaddingValues,
+    ofertas: List<OfertaLaboral>,
+    loading: Boolean,
+    onVerDetalle: (Long) -> Unit
+) {
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp)
+            .padding(padding)
     ) {
-        items(listOf(
-            "Desarrollador Android Senior",
-            "Diseñador UX/UI",
-            "Project Manager"
-        )) { oferta ->
+        // Header con buscador
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+        ) {
+            Column {
+                // Fondo Gradiente con ícono y título
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(160.dp)
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(BlueGradientStart, BlueGradientEnd)
+                            ),
+                            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        // Ícono de empresa
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(Color.White.copy(alpha = 0.2f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Business,
+                                contentDescription = "Empresa",
+                                tint = Color.White,
+                                modifier = Modifier.size(50.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "Panel de Empresa",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            fontSize = 24.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(2.dp))
+
+                        Text(
+                            text = "Gestiona tus ofertas laborales",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            // Card de búsqueda flotante
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp)
+                    .padding(horizontal = 24.dp)
+                    .align(Alignment.BottomCenter),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Text(oferta, style = MaterialTheme.typography.titleMedium)
-                    Text("Publicado: 15/05/2026", style = MaterialTheme.typography.bodySmall)
-                    Row {
-                        Text("5 postulantes", style = MaterialTheme.typography.bodySmall)
-                        Spacer(modifier = Modifier.width(16.dp))
-                        TextButton(onClick = { /* Editar */ }) {
-                            Text("Editar")
+                var busqueda by remember { mutableStateOf("") }
+                TextField(
+                    value = busqueda,
+                    onValueChange = { busqueda = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Buscar por título, área...") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = BlueGradientStart)
+                    },
+                    trailingIcon = if (busqueda.isNotEmpty()) {
+                        {
+                            IconButton(onClick = { busqueda = "" }) {
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = Color.Gray)
+                            }
                         }
-                        TextButton(onClick = { /* Eliminar */ }) {
-                            Text("Eliminar", color = MaterialTheme.colorScheme.error)
-                        }
-                    }
-                }
+                    } else null,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        disabledContainerColor = Color.White,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent
+                    ),
+                    singleLine = true
+                )
             }
         }
-    }
-}
 
-@Composable
-fun NuevaOfertaScreen(paddingValues: PaddingValues) {
-    var titulo by remember { mutableStateOf("") }
-    var descripcion by remember { mutableStateOf("") }
-    var requisitos by remember { mutableStateOf("") }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Publicar Nueva Oferta",
-            style = MaterialTheme.typography.headlineSmall
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = titulo,
-            onValueChange = { titulo = it },
-            label = { Text("Título de la oferta") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = descripcion,
-            onValueChange = { descripcion = it },
-            label = { Text("Descripción") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 4
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = requisitos,
-            onValueChange = { requisitos = it },
-            label = { Text("Requisitos") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = { /* Publicar oferta */ },
-            modifier = Modifier.fillMaxWidth()
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Publicar Oferta")
-        }
-    }
-}
+            // Filtros Rápidos
+            item {
+                FiltrosSectionEmpresa()
+            }
 
-@Composable
-fun PostulantesScreen(paddingValues: PaddingValues) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp)
-    ) {
-        Text(
-            text = "Postulantes Recientes",
-            style = MaterialTheme.typography.titleLarge
-        )
+            item {
+                Text(
+                    text = "Mis Ofertas Publicadas",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black
+                )
+            }
 
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn {
-            items(listOf(
-                Triple("Juan Pérez", "Desarrollador Android", "CV_2026.pdf"),
-                Triple("Maria García", "Diseñadora UX", "Portafolio_2026.pdf"),
-                Triple("Carlos López", "Project Manager", "Experiencia.pdf")
-            )) { (nombre, perfil, archivo) ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+            if (loading) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column {
-                            Text(nombre, style = MaterialTheme.typography.titleMedium)
-                            Text(perfil, style = MaterialTheme.typography.bodySmall)
-                            Text(archivo, style = MaterialTheme.typography.bodySmall)
-                        }
-                        Button(onClick = { /* Ver CV */ }) {
-                            Text("Ver CV")
+                        CircularProgressIndicator(color = BlueGradientStart)
+                    }
+                }
+            }
+
+            items(ofertas) { oferta ->
+                EmpresaJobCard(
+                    oferta = oferta,
+                    onClick = { onVerDetalle(oferta.idOferta) }
+                )
+            }
+
+            if (!loading && ofertas.isEmpty()) {
+                item {
+                    Box(
+                        Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                Icons.Default.Business,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = Color.LightGray
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("No tienes ofertas publicadas", color = Color.Gray)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Toca el botón + para crear una nueva oferta",
+                                color = Color.Gray,
+                                fontSize = 12.sp
+                            )
                         }
                     }
                 }
+            }
+
+            item { Spacer(modifier = Modifier.height(20.dp)) }
+        }
+    }
+}
+
+@Composable
+fun FiltrosSectionEmpresa() {
+    val filtros = listOf("Todas", "Activas", "Próximas", "Finalizadas")
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(end = 16.dp)
+    ) {
+        items(filtros) { filtro ->
+            FilterChip(
+                selected = filtro == "Todas",
+                onClick = { },
+                label = { Text(filtro) },
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = BlueGradientStart,
+                    selectedLabelColor = Color.White,
+                    containerColor = Color.White,
+                    labelColor = Color.Gray
+                ),
+                border = FilterChipDefaults.filterChipBorder(
+                    enabled = true,
+                    selected = filtro == "Todas",
+                    borderColor = Color.LightGray,
+                    selectedBorderColor = BlueGradientStart,
+                    borderWidth = 1.dp
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun EmpresaJobCard(
+    oferta: OfertaLaboral,
+    onClick: () -> Unit
+) {
+    val fechaPublicacionStr = oferta.fechaPublicacion?.let { fecha ->
+        try {
+            val partes = fecha.split("-")
+            if (partes.size == 3) {
+                "${partes[2]}/${partes[1]}/${partes[0]}"
+            } else {
+                fecha
+            }
+        } catch (e: Exception) {
+            fecha
+        }
+    } ?: "Fecha no disponible"
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(54.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(BackgroundGray),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = when (oferta.area.lowercase()) {
+                    "diseño" -> Icons.Default.Palette
+                    "desarrollo", "ti" -> Icons.Default.Code
+                    "ventas" -> Icons.Default.TrendingUp
+                    "marketing" -> Icons.Default.Campaign
+                    else -> Icons.Default.Business
+                },
+                    contentDescription = null,
+                    tint = BlueGradientStart,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = oferta.titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Black,
+                    maxLines = 1
+                )
+                Text(
+                    text = oferta.area,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = ChipHybridColor,
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = if (oferta.modalidad.isNotBlank()) oferta.modalidad else "Presencial",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = ChipHybridText,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "• $fechaPublicacionStr",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    text = "$${oferta.salario.toInt()}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = PriceColor
+                )
+                Text(
+                    text = "/mes",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray
+                )
             }
         }
     }
 }
 
 @Composable
-fun ConfiguracionEmpresaScreen(paddingValues: PaddingValues) {
-    Column(
+fun DrawerMenuItemEmpresa(
+    icon: ImageVector,
+    text: String,
+    badge: String? = null,
+    badgeColor: Color = Color(0xFF1976D2),
+    iconTint: Color = Color(0xFF444444),
+    textColor: Color = Color(0xFF222222),
+    selected: Boolean = false,
+    onClick: () -> Unit
+) {
+    val bgColor = if (selected) Color(0xFFE3F2FD) else Color.Transparent
+
+    Row(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(16.dp)
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(50.dp))
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "Configuración de la Empresa",
-            style = MaterialTheme.typography.headlineSmall
+        Icon(
+            icon,
+            contentDescription = text,
+            tint = if (selected) BlueGradientStart else iconTint,
+            modifier = Modifier.size(22.dp)
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(
-                modifier = Modifier.padding(16.dp)
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = text,
+            color = if (selected) BlueGradientStart else textColor,
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
+        )
+        if (badge != null) {
+            Surface(
+                color = badgeColor,
+                shape = RoundedCornerShape(50.dp)
             ) {
-                Text("Datos de la empresa", style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                Text("Nombre: Tech Solutions S.A.")
-                Text("Email: contacto@techsolutions.com")
-                Text("Teléfono: +123 456 7890")
-                Text("Sitio web: www.techsolutions.com")
-
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = { /* Editar perfil */ }) {
-                    Text("Editar Perfil")
-                }
+                Text(
+                    text = badge,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    fontSize = 10.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

@@ -23,7 +23,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
-
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import kotlinx.coroutines.delay
@@ -62,19 +61,19 @@ fun BusquedaScreen(
     var selectedTab by remember { mutableStateOf(0) }
     var filtroSeleccionado by remember { mutableStateOf("Todas") }
 
-    val ofertas = viewModel.ofertas.value
-    val loading = viewModel.loading.value
+    val ofertas by viewModel.ofertas.collectAsState()
+    val loading by viewModel.loading.collectAsState()
 
     // Carga inicial
     LaunchedEffect(Unit) {
         viewModel.cargarActivas()
     }
 
-    // Debounce para la búsqueda
+    // ✅ CORREGIDO: Debounce para la búsqueda usando buscarPorTexto (método correcto)
     LaunchedEffect(busqueda) {
         if (busqueda.isNotBlank()) {
             delay(500) // Esperar 500ms después de que el usuario deje de escribir
-            viewModel.buscarPorCargo(busqueda)
+            viewModel.buscarPorTexto(busqueda)  // ✅ Método corregido
         } else if (filtroSeleccionado == "Todas") {
             viewModel.cargarActivas()
         }
@@ -90,7 +89,7 @@ fun BusquedaScreen(
                 navItems.forEachIndexed { index, item ->
                     NavigationBarItem(
                         selected = selectedTab == index,
-                        onClick = { 
+                        onClick = {
                             selectedTab = index
                             when(item.route) {
                                 "perfil" -> onNavigateToProfile()
@@ -138,7 +137,7 @@ fun BusquedaScreen(
                             busqueda = "" // Limpiar búsqueda al cambiar filtro
                             when (filtro) {
                                 "Todas" -> viewModel.cargarActivas()
-                                else -> viewModel.buscarPorArea(filtro)
+                                else -> viewModel.filtrarPorArea(filtro)  // ✅ Método corregido
                             }
                         }
                     )
@@ -179,7 +178,7 @@ fun BusquedaScreen(
                         }
                     }
                 }
-                
+
                 item { Spacer(modifier = Modifier.height(20.dp)) }
             }
         }
@@ -238,8 +237,8 @@ fun HeaderSection(
                             .background(Color.White.copy(alpha = 0.2f), CircleShape)
                     ) {
                         Icon(
-                            Icons.Default.Notifications, 
-                            contentDescription = "Notificaciones", 
+                            Icons.Default.Notifications,
+                            contentDescription = "Notificaciones",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
@@ -346,11 +345,12 @@ fun JobCard(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = when(oferta.area.lowercase()) {
-                        "diseño" -> Icons.Default.Palette
-                        "desarrollo", "ti" -> Icons.Default.Code
-                        "ventas" -> Icons.Default.TrendingUp
-                        "marketing" -> Icons.Default.Campaign
+                    imageVector = when {
+                        oferta.area == null -> Icons.Default.Business
+                        oferta.area.lowercase().contains("diseño") -> Icons.Default.Palette
+                        oferta.area.lowercase().contains("desarrollo") || oferta.area.lowercase().contains("ti") -> Icons.Default.Code
+                        oferta.area.lowercase().contains("venta") -> Icons.Default.TrendingUp
+                        oferta.area.lowercase().contains("marketing") -> Icons.Default.Campaign
                         else -> Icons.Default.Business
                     },
                     contentDescription = null,
@@ -370,13 +370,13 @@ fun JobCard(
                     maxLines = 1
                 )
                 Text(
-                    text = oferta.area,
+                    text = oferta.area ?: "General",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     // Chip Modalidad
                     Surface(
@@ -384,7 +384,7 @@ fun JobCard(
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = if (oferta.modalidad.isNotBlank()) oferta.modalidad else "Presencial",
+                            text = oferta.modalidad ?: "Presencial",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = ChipHybridText,
@@ -393,7 +393,7 @@ fun JobCard(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "• ${oferta.fechaPublicacion}",
+                        text = "• ${oferta.fechaPublicacion ?: "Reciente"}",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
@@ -402,7 +402,7 @@ fun JobCard(
 
             Column(horizontalAlignment = Alignment.End) {
                 Text(
-                    text = "$${oferta.salario.toInt()}",
+                    text = "${oferta.salario ?: "0"}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.ExtraBold,
                     color = PriceColor
@@ -416,4 +416,3 @@ fun JobCard(
         }
     }
 }
-

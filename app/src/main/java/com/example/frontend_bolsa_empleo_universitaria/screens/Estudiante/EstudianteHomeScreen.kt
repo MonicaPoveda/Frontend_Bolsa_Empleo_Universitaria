@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
-import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
@@ -64,11 +64,8 @@ fun EstudianteHomeScreen(
     val token = remember { Token(context) }
     var selectedTab by remember { mutableStateOf(0) }
 
-    // Estado del drawer
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
-    // Estado para el item seleccionado en el drawer
     var selectedDrawerItem by remember { mutableStateOf("inicio") }
 
     val nombreUsuario = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Estudiante"
@@ -81,6 +78,7 @@ fun EstudianteHomeScreen(
     var busqueda by remember { mutableStateOf("") }
     var filtroSeleccionado by remember { mutableStateOf("Todas") }
 
+    // ✅ CORREGIDO: Usar OfertaLaboralResponse
     val ofertas = viewModel.ofertas.value
     val loading = viewModel.loading.value
 
@@ -105,7 +103,6 @@ fun EstudianteHomeScreen(
         }
     }
 
-    // ModalDrawer para el menú lateral
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
@@ -114,7 +111,6 @@ fun EstudianteHomeScreen(
                 modifier = Modifier.width(280.dp),
                 drawerContainerColor = Color.White
             ) {
-                // Header con avatar y nombre
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -157,7 +153,6 @@ fun EstudianteHomeScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Sección "MENÚ"
                 Text(
                     text = "MENÚ",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -185,16 +180,11 @@ fun EstudianteHomeScreen(
                 ) {
                     selectedDrawerItem = "notificaciones"
                     scope.launch { drawerState.close() }
-                    try {
-                        navController.navigate("notificaciones")
-                    } catch (e: Exception) {
-                        println("Error navegando a notificaciones: ${e.message}")
-                    }
+                    navController.navigate("notificaciones")
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
-                // Sección "CUENTA"
                 Text(
                     text = "CUENTA",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -211,16 +201,11 @@ fun EstudianteHomeScreen(
                 ) {
                     selectedDrawerItem = "configuracion"
                     scope.launch { drawerState.close() }
-                    try {
-                        navController.navigate("configuracion_cuenta")
-                    } catch (e: Exception) {
-                        println("Error navegando a configuración: ${e.message}")
-                    }
+                    navController.navigate("configuracion_cuenta")
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
-                // Sección "SOPORTE"
                 Text(
                     text = "SOPORTE",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -237,15 +222,10 @@ fun EstudianteHomeScreen(
                 ) {
                     selectedDrawerItem = "acerca"
                     scope.launch { drawerState.close() }
-                    try {
-                        navController.navigate("acerca_de")
-                    } catch (e: Exception) {
-                        println("Error navegando a acerca de: ${e.message}")
-                    }
+                    navController.navigate("acerca_de")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 DrawerMenuItemGmail(
@@ -273,13 +253,13 @@ fun EstudianteHomeScreen(
                     navigationIcon = {
                         IconButton(
                             onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.size(48.dp)  // Icono más grande
+                            modifier = Modifier.size(48.dp)
                         ) {
                             Icon(
                                 Icons.Default.Menu,
                                 contentDescription = "Menú",
                                 tint = Color.White,
-                                modifier = Modifier.size(28.dp)  // Ícono más grande
+                                modifier = Modifier.size(28.dp)
                             )
                         }
                     },
@@ -300,20 +280,8 @@ fun EstudianteHomeScreen(
                             onClick = {
                                 selectedTab = index
                                 when (item.route) {
-                                    "postulaciones" -> {
-                                        try {
-                                            navController.navigate("mis_postulaciones")
-                                        } catch (e: Exception) {
-                                            println("Error: ${e.message}")
-                                        }
-                                    }
-                                    "perfil" -> {
-                                        try {
-                                            navController.navigate("configuracion_cuenta")
-                                        } catch (e: Exception) {
-                                            println("Error: ${e.message}")
-                                        }
-                                    }
+                                    "postulaciones" -> navController.navigate("mis_postulaciones")
+                                    "perfil" -> navController.navigate("configuracion_cuenta")
                                 }
                             },
                             icon = { Icon(item.icon, contentDescription = item.label) },
@@ -335,18 +303,16 @@ fun EstudianteHomeScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
-                // Header con buscador
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .wrapContentHeight()
                 ) {
                     Column {
-                        // Fondo Gradiente con ícono y título - altura reducida y contenido más arriba
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(160.dp)  // Altura reducida de 200 a 160
+                                .height(160.dp)
                                 .background(
                                     brush = Brush.verticalGradient(
                                         colors = listOf(BlueGradientStart, BlueGradientEnd)
@@ -359,10 +325,9 @@ fun EstudianteHomeScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ) {
-                                // Ícono del graduado más grande
                                 Box(
                                     modifier = Modifier
-                                        .size(80.dp)  // Más grande (antes 72)
+                                        .size(80.dp)
                                         .clip(RoundedCornerShape(20.dp))
                                         .background(Color.White.copy(alpha = 0.2f)),
                                     contentAlignment = Alignment.Center
@@ -371,18 +336,18 @@ fun EstudianteHomeScreen(
                                         imageVector = Icons.Default.School,
                                         contentDescription = "Graduado",
                                         tint = Color.White,
-                                        modifier = Modifier.size(50.dp)  // Ícono más grande
+                                        modifier = Modifier.size(50.dp)
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))  // Espacio reducido
+                                Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
                                     text = "Bolsa de Empleo",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color.White,
-                                    fontSize = 24.sp  // Texto más grande
+                                    fontSize = 24.sp
                                 )
 
                                 Spacer(modifier = Modifier.height(2.dp))
@@ -396,10 +361,9 @@ fun EstudianteHomeScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(20.dp))  // Espacio reducido (antes 30)
+                        Spacer(modifier = Modifier.height(20.dp))
                     }
 
-                    // Card de búsqueda flotante
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -440,7 +404,6 @@ fun EstudianteHomeScreen(
                     contentPadding = PaddingValues(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    // Filtros Rápidos
                     item {
                         FiltrosSection(
                             seleccionado = filtroSeleccionado,
@@ -471,15 +434,12 @@ fun EstudianteHomeScreen(
                         }
                     }
 
+                    // ✅ Ahora oferta es OfertaLaboralResponse y tiene idOferta
                     items(ofertas) { oferta ->
                         JobCard(
                             oferta = oferta,
                             onClick = {
-                                try {
-                                    navController.navigate("detalle_oferta/${oferta.idOferta}")
-                                } catch (e: Exception) {
-                                    println("Error: ${e.message}")
-                                }
+                                navController.navigate("detalle_oferta/${oferta.idOferta}")
                             }
                         )
                     }
@@ -544,9 +504,10 @@ fun FiltrosSection(
     }
 }
 
+// ✅ CORREGIDO: Usar OfertaLaboralResponse
 @Composable
 fun JobCard(
-    oferta: OfertaLaboral,
+    oferta: OfertaLaboralResponse,
     onClick: () -> Unit
 ) {
     val fechaPublicacionStr = oferta.fechaPublicacion?.let { fecha ->

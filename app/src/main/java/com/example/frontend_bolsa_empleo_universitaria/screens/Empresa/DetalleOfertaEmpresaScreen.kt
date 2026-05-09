@@ -18,9 +18,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
+import kotlinx.coroutines.delay
 
 private val BlueStart = Color(0xFF0056D2)
 private val BlueEnd = Color(0xFF007BFF)
@@ -34,15 +36,51 @@ private val RedInactiveBg = Color(0xFFFFEBEE)
 fun DetalleOfertaEmpresaScreen(
     ofertaId: Long,
     navController: NavController,
-    viewModel: OfertasViewModel  // ← recibe el viewModel que ya tiene las ofertas
+    viewModel: OfertasViewModel = viewModel()
 ) {
-    // Buscar la oferta directamente de la lista ya cargada en el ViewModel
-    val oferta by remember {
-        derivedStateOf { viewModel.ofertasEmpresa.value.find { it.idOferta == ofertaId } }
+    // ✅ Cambiar a OfertaLaboralResponse (tiene idOferta)
+    var oferta by remember { mutableStateOf<OfertaLaboralResponse?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    // Cargar la oferta específica
+    LaunchedEffect(ofertaId) {
+        isLoading = true
+        delay(500)
+
+        // ✅ Buscar en viewModel.ofertas (ahora es OfertaLaboralResponse)
+        val encontrada = viewModel.ofertas.value.find { it.idOferta == ofertaId }
+        if (encontrada != null) {
+            oferta = encontrada
+            println("✅ Oferta encontrada en ViewModel: ${encontrada.titulo} - ID: ${encontrada.idOferta}")
+        } else {
+            // Buscar en el repositorio directamente
+            try {
+                val repo = com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository(
+                    com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient.ofertaLaboralApi
+                )
+                val todas = repo.listarTodas()
+                val encontradaEnRepo = todas.find { it.idOferta == ofertaId }
+                if (encontradaEnRepo != null) {
+                    oferta = encontradaEnRepo
+                    println("✅ Oferta encontrada en Repo: ${encontradaEnRepo.titulo} - ID: ${encontradaEnRepo.idOferta}")
+                } else {
+                    println("❌ Oferta con ID $ofertaId no encontrada")
+                }
+            } catch (e: Exception) {
+                println("❌ Error cargando oferta: ${e.message}")
+            }
+        }
+        isLoading = false
     }
 
-    val isLoading = viewModel.loading.value
-    var showConfirmDialog by remember { mutableStateOf(false) }
+    // Escuchar cambios en viewModel.ofertas
+    LaunchedEffect(viewModel.ofertas.value) {
+        val encontrada = viewModel.ofertas.value.find { it.idOferta == ofertaId }
+        if (encontrada != null) {
+            oferta = encontrada
+        }
+    }
 
     // Diálogo de confirmación
     if (showConfirmDialog && oferta != null) {
@@ -75,6 +113,7 @@ fun DetalleOfertaEmpresaScreen(
                 Button(
                     onClick = {
                         showConfirmDialog = false
+                        // Ahora sí funciona porque viewModel tiene el método
                         viewModel.actualizarEstadoOferta(ofertaId, !esActiva)
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -133,6 +172,11 @@ fun DetalleOfertaEmpresaScreen(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("No se encontró la oferta", color = Color.Gray)
+                        Text(
+                            text = "ID de oferta: $ofertaId",
+                            color = Color.Gray,
+                            fontSize = 12.sp
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Button(onClick = { navController.popBackStack() }) {
                             Text("Volver")
@@ -150,7 +194,6 @@ fun DetalleOfertaEmpresaScreen(
                         .fillMaxSize()
                         .padding(padding)
                 ) {
-                    // Contenido scrolleable
                     Column(
                         modifier = Modifier
                             .weight(1f)
@@ -167,7 +210,6 @@ fun DetalleOfertaEmpresaScreen(
                                 .padding(24.dp)
                         ) {
                             Column {
-                                // Badge estado
                                 Surface(
                                     color = if (esActiva) GreenActiveBg else RedInactiveBg,
                                     shape = RoundedCornerShape(50.dp)
@@ -198,14 +240,14 @@ fun DetalleOfertaEmpresaScreen(
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 Text(
-                                    text = o.titulo,
+                                    text = o.titulo.ifBlank { "Sin título" },
                                     color = Color.White,
                                     fontSize = 22.sp,
                                     fontWeight = FontWeight.ExtraBold
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = o.area,
+                                    text = o.area.ifBlank { "Área no especificada" },
                                     color = Color.White.copy(alpha = 0.85f),
                                     fontSize = 14.sp
                                 )
@@ -214,7 +256,6 @@ fun DetalleOfertaEmpresaScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // Info rápida fila 1
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -225,21 +266,20 @@ fun DetalleOfertaEmpresaScreen(
                                 modifier = Modifier.weight(1f),
                                 icon = Icons.Default.AttachMoney,
                                 label = "Salario",
-                                value = "$${o.salario.toInt()}/mes",
+                                value = if (o.salario > 0) "$${o.salario.toInt()}/mes" else "No especificado",
                                 color = GreenActive
                             )
                             DetalleInfoChip(
                                 modifier = Modifier.weight(1f),
                                 icon = Icons.Default.WorkOutline,
                                 label = "Modalidad",
-                                value = o.modalidad.ifBlank { "Presencial" },
+                                value = o.modalidad.ifBlank { "No especificada" },
                                 color = BlueStart
                             )
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        // Info rápida fila 2
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -264,7 +304,6 @@ fun DetalleOfertaEmpresaScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // Descripción
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -291,7 +330,7 @@ fun DetalleOfertaEmpresaScreen(
                                 }
                                 Spacer(modifier = Modifier.height(12.dp))
                                 Text(
-                                    text = o.descripcion,
+                                    text = o.descripcion.ifBlank { "Sin descripción" },
                                     color = Color(0xFF444444),
                                     fontSize = 14.sp,
                                     lineHeight = 22.sp
@@ -302,7 +341,6 @@ fun DetalleOfertaEmpresaScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                     }
 
-                    // Botón fijo abajo
                     Surface(
                         shadowElevation = 8.dp,
                         color = Color.White
@@ -312,35 +350,28 @@ fun DetalleOfertaEmpresaScreen(
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.align(Alignment.Center),
-                                    color = BlueStart
+                            Button(
+                                onClick = { showConfirmDialog = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (esActiva) RedInactive else GreenActive
                                 )
-                            } else {
-                                Button(
-                                    onClick = { showConfirmDialog = true },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(56.dp),
-                                    shape = RoundedCornerShape(16.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (esActiva) RedInactive else GreenActive
-                                    )
-                                ) {
-                                    Icon(
-                                        imageVector = if (esActiva) Icons.Default.Lock
-                                        else Icons.Default.LockOpen,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Text(
-                                        text = if (esActiva) "Cerrar Oferta" else "Activar Oferta",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (esActiva) Icons.Default.Lock
+                                    else Icons.Default.LockOpen,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = if (esActiva) "Cerrar Oferta" else "Activar Oferta",
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -380,8 +411,11 @@ private fun DetalleInfoChip(
 
 private fun formatFecha(fecha: String): String {
     return try {
-        val partes = fecha.split("-")
-        if (partes.size == 3) "${partes[2]}/${partes[1]}/${partes[0]}" else fecha
+        if (fecha.isBlank()) "No especificada"
+        else {
+            val partes = fecha.split("-")
+            if (partes.size == 3) "${partes[2]}/${partes[1]}/${partes[0]}" else fecha
+        }
     } catch (e: Exception) {
         fecha
     }

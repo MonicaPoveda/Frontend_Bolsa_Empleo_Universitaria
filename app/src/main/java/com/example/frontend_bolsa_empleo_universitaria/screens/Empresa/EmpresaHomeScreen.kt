@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.AssignmentTurnedIn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,7 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
-import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
@@ -64,11 +63,8 @@ fun EmpresaHomeScreen(
     val token = remember { Token(context) }
     var selectedTab by remember { mutableStateOf(0) }
 
-    // Estado del drawer
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-
-    // Estado para el item seleccionado en el drawer
     var selectedDrawerItem by remember { mutableStateOf("inicio") }
 
     val nombreEmpresa = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Empresa"
@@ -78,11 +74,9 @@ fun EmpresaHomeScreen(
         factory = OfertasViewModelFactory(repository)
     )
 
-    var busqueda by remember { mutableStateOf("") }
-    var filtroSeleccionado by remember { mutableStateOf("Todas") }
-
     val idEmpresa = token.getEmpresaId()
-    val ofertas = viewModel.ofertasEmpresa.value  // ← Muestra solo ofertas de la empresa
+    // ✅ CORREGIDO: Usar OfertaLaboralResponse
+    val ofertas = viewModel.ofertasEmpresa.value
     val loading = viewModel.loading.value
 
     LaunchedEffect(Unit) {
@@ -102,16 +96,6 @@ fun EmpresaHomeScreen(
         )
     }
 
-    LaunchedEffect(busqueda, filtroSeleccionado) {
-        delay(300)
-        if (busqueda.isNotBlank()) {
-            viewModel.buscarGeneral(busqueda)
-        } else {
-            viewModel.filtrarPorCategoria(filtroSeleccionado)
-        }
-    }
-
-    // ModalDrawer para el menú lateral
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
@@ -120,7 +104,6 @@ fun EmpresaHomeScreen(
                 modifier = Modifier.width(280.dp),
                 drawerContainerColor = Color.White
             ) {
-                // Header con avatar y nombre
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -163,7 +146,6 @@ fun EmpresaHomeScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Sección "MENÚ"
                 Text(
                     text = "MENÚ",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -185,7 +167,6 @@ fun EmpresaHomeScreen(
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
-                // Sección "CUENTA"
                 Text(
                     text = "CUENTA",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -202,16 +183,11 @@ fun EmpresaHomeScreen(
                 ) {
                     selectedDrawerItem = "configuracion"
                     scope.launch { drawerState.close() }
-                    try {
-                        navController.navigate("configuracion_cuenta")
-                    } catch (e: Exception) {
-                        println("Error navegando a configuración: ${e.message}")
-                    }
+                    navController.navigate("configuracion_cuenta")
                 }
 
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
-                // Sección "SOPORTE"
                 Text(
                     text = "SOPORTE",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
@@ -228,15 +204,10 @@ fun EmpresaHomeScreen(
                 ) {
                     selectedDrawerItem = "acerca"
                     scope.launch { drawerState.close() }
-                    try {
-                        navController.navigate("acerca_de")
-                    } catch (e: Exception) {
-                        println("Error navegando a acerca de: ${e.message}")
-                    }
+                    navController.navigate("acerca_de")
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 DrawerMenuItemEmpresa(
@@ -288,21 +259,7 @@ fun EmpresaHomeScreen(
                     navItemsEmpresa.forEachIndexed { index, item ->
                         NavigationBarItem(
                             selected = index == selectedTab,
-                            onClick = {
-                                selectedTab = index
-                                when (item.route) {
-                                    "agregar" -> {
-                                        // Navegar a pantalla de agregar oferta
-                                    }
-                                    "perfil" -> {
-                                        try {
-                                            navController.navigate("configuracion_cuenta")
-                                        } catch (e: Exception) {
-                                            println("Error: ${e.message}")
-                                        }
-                                    }
-                                }
-                            },
+                            onClick = { selectedTab = index },
                             icon = { Icon(item.icon, contentDescription = item.label) },
                             label = { Text(item.label) },
                             colors = NavigationBarItemDefaults.colors(
@@ -328,11 +285,9 @@ fun EmpresaHomeScreen(
                 )
                 1 -> AgregarOfertaScreen(
                     padding = padding,
-                    idEmpresa = idEmpresa,  // ← Pasar ID de la empresa
+                    idEmpresa = idEmpresa,
                     onOfertaAgregada = {
-                        // Recargar ofertas después de agregar
                         viewModel.cargarOfertasPorEmpresa(idEmpresa)
-                        // Opcional: mostrar mensaje o cambiar a pestaña de inicio
                         selectedTab = 0
                     }
                 )
@@ -342,10 +297,11 @@ fun EmpresaHomeScreen(
     }
 }
 
+// ✅ CORREGIDO: Usar OfertaLaboralResponse
 @Composable
 fun EmpresaOfertasScreen(
     padding: PaddingValues,
-    ofertas: List<OfertaLaboral>,
+    ofertas: List<OfertaLaboralResponse>,
     loading: Boolean,
     onVerDetalle: (Long) -> Unit
 ) {
@@ -354,14 +310,12 @@ fun EmpresaOfertasScreen(
             .fillMaxSize()
             .padding(padding)
     ) {
-        // Header con buscador
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
         ) {
             Column {
-                // Fondo Gradiente con ícono y título
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -378,7 +332,6 @@ fun EmpresaOfertasScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        // Ícono de empresa
                         Box(
                             modifier = Modifier
                                 .size(80.dp)
@@ -418,7 +371,6 @@ fun EmpresaOfertasScreen(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
-            // Card de búsqueda flotante
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -460,7 +412,6 @@ fun EmpresaOfertasScreen(
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Filtros Rápidos
             item {
                 FiltrosSectionEmpresa()
             }
@@ -486,6 +437,7 @@ fun EmpresaOfertasScreen(
             }
 
             items(ofertas) { oferta ->
+                // ✅ Ahora oferta tiene idOferta
                 EmpresaJobCard(
                     oferta = oferta,
                     onClick = { onVerDetalle(oferta.idOferta) }
@@ -553,9 +505,10 @@ fun FiltrosSectionEmpresa() {
     }
 }
 
+// ✅ CORREGIDO: Usar OfertaLaboralResponse
 @Composable
 fun EmpresaJobCard(
-    oferta: OfertaLaboral,
+    oferta: OfertaLaboralResponse,
     onClick: () -> Unit
 ) {
     val fechaPublicacionStr = oferta.fechaPublicacion?.let { fecha ->

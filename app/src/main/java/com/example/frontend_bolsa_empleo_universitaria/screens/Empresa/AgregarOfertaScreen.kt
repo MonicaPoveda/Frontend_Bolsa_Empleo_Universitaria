@@ -13,7 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -26,6 +28,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,14 +46,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
-import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralRequest
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.util.Date
 import kotlin.text.ifEmpty
 
@@ -102,12 +103,8 @@ fun AgregarOfertaScreen(
     }
 
     val days = (1..maxDays).toList()
+    val fechaCierreSeleccionada = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
 
-    val fechaCierreSeleccionada = remember(selectedYear, selectedMonth, selectedDay) {
-        String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
-    }
-
-    // ✅ DIAGNÓSTICO AL ABRIR LA PANTALLA
     LaunchedEffect(Unit) {
         println("=== DIAGNÓSTICO AL ABRIR PANTALLA ===")
         println("Token: ${token.getToken()?.take(60) ?: "NULL ❌"}")
@@ -122,6 +119,7 @@ fun AgregarOfertaScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
+            .verticalScroll(rememberScrollState())  // ✅ Agregado scroll
             .padding(24.dp)
     ) {
         Text(
@@ -133,28 +131,43 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        // Título - ✅ texto más oscuro
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
-            label = { Text("Título de la oferta *") },
+            label = { Text("Título de la oferta *", color = Color.DarkGray) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            singleLine = true
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                focusedBorderColor = BlueGradientStart,
+                unfocusedBorderColor = Color.Gray
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Área
         OutlinedTextField(
             value = area,
             onValueChange = { area = it },
-            label = { Text("Área / Cargo *") },
+            label = { Text("Área / Cargo *", color = Color.DarkGray) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            singleLine = true
+            singleLine = true,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                focusedBorderColor = BlueGradientStart,
+                unfocusedBorderColor = Color.Gray
+            )
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Salario y Modalidad
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -162,24 +175,37 @@ fun AgregarOfertaScreen(
             OutlinedTextField(
                 value = salario,
                 onValueChange = { salario = it },
-                label = { Text("Salario (USD) *") },
+                label = { Text("Salario (USD) *", color = Color.DarkGray) },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    focusedBorderColor = BlueGradientStart,
+                    unfocusedBorderColor = Color.Gray
+                )
             )
 
             OutlinedTextField(
                 value = modalidad,
                 onValueChange = { modalidad = it },
-                label = { Text("Modalidad *") },
+                label = { Text("Modalidad *", color = Color.DarkGray) },
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(12.dp),
-                singleLine = true
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.Black,
+                    unfocusedTextColor = Color.Black,
+                    focusedBorderColor = BlueGradientStart,
+                    unfocusedBorderColor = Color.Gray
+                )
             )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Fecha de cierre
         Text(
             text = "Fecha de cierre *",
             style = MaterialTheme.typography.bodyMedium,
@@ -228,13 +254,20 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Descripción
         OutlinedTextField(
             value = descripcion,
             onValueChange = { descripcion = it },
-            label = { Text("Descripción del puesto *") },
+            label = { Text("Descripción del puesto *", color = Color.DarkGray) },
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
-            minLines = 4
+            minLines = 4,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black,
+                focusedBorderColor = BlueGradientStart,
+                unfocusedBorderColor = Color.Gray
+            )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -254,7 +287,9 @@ fun AgregarOfertaScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // ✅ Botón más grande y visible
         Button(
             onClick = {
                 when {
@@ -266,8 +301,7 @@ fun AgregarOfertaScreen(
                         isLoading = true
                         errorMessage = null
 
-                        val nuevaOferta = OfertaLaboral(
-                            idOferta = 0,
+                        val nuevaOferta = OfertaLaboralRequest(
                             titulo = titulo,
                             descripcion = descripcion,
                             area = area,
@@ -305,32 +339,52 @@ fun AgregarOfertaScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isLoading,
-            colors = ButtonDefaults.buttonColors(containerColor = BlueGradientStart)
+                .height(60.dp),  // ✅ Altura aumentada
+            shape = RoundedCornerShape(16.dp),  // ✅ Esquinas más redondeadas
+            colors = ButtonDefaults.buttonColors(
+                containerColor = BlueGradientStart,
+                contentColor = Color.White
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 4.dp,
+                pressedElevation = 8.dp
+            )
         ) {
             if (isLoading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
+                CircularProgressIndicator(
+                    modifier = Modifier.size(28.dp),
+                    color = Color.White,
+                    strokeWidth = 3.dp
+                )
             } else {
-                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Publicar Oferta", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    "Publicar Oferta",
+                    fontSize = 18.sp,  // ✅ Texto más grande
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))  // ✅ Espacio final
     }
 
     if (showSuccess) {
         AlertDialog(
             onDismissRequest = { showSuccess = false },
-            title = { Text("¡Oferta Publicada!") },
-            text = { Text("La oferta ha sido publicada exitosamente.") },
+            title = { Text("¡Oferta Publicada!", fontWeight = FontWeight.Bold) },
+            text = { Text("La oferta ha sido publicada exitosamente.", fontSize = 14.sp) },
             confirmButton = {
                 TextButton(onClick = {
                     showSuccess = false
                     onOfertaAgregada()
                 }) {
-                    Text("Aceptar")
+                    Text("Aceptar", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         )
@@ -351,18 +405,24 @@ fun DateSelector(
         value = value,
         onValueChange = {},
         readOnly = true,
-        label = { Text(label, fontSize = 12.sp) },
+        label = { Text(label, fontSize = 12.sp, color = Color.DarkGray) },
         modifier = modifier,
         shape = RoundedCornerShape(12.dp),
         trailingIcon = {
             Icon(
                 Icons.Default.ArrowDropDown,
                 contentDescription = "Seleccionar",
+                tint = BlueGradientStart,
                 modifier = Modifier.clickable { expanded = true }
             )
         },
         textStyle = MaterialTheme.typography.bodyMedium.copy(
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            color = Color.Black
+        ),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = BlueGradientStart,
+            unfocusedBorderColor = Color.Gray
         )
     )
 
@@ -373,7 +433,7 @@ fun DateSelector(
     ) {
         items.forEach { item ->
             DropdownMenuItem(
-                text = { Text(item, fontSize = 14.sp) },
+                text = { Text(item, fontSize = 14.sp, color = Color.Black) },
                 onClick = {
                     onItemSelected(item)
                     expanded = false

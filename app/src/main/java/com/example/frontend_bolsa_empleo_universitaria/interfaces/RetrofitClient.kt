@@ -9,20 +9,21 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
-    //private const val BASE_URL = "http://192.168.10.43:8080/"
+    private const val BASE_URL = "http://192.168.20.36:8080/"
 
     private val retrofit: Retrofit by lazy {
 
+        // 🔥 LOGGING INTERCEPTOR
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
 
+        // 🔥 CLIENTE OKHTTP CON LOGGING + TUS CONFIGURACIONES
         val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            .connectTimeout(15, TimeUnit.SECONDS)  // Reducido de 60 a 15
-            .readTimeout(15, TimeUnit.SECONDS)     // Reducido de 60 a 15
-            .writeTimeout(15, TimeUnit.SECONDS)    // Reducido de 60 a 15
+            .addInterceptor(logging) // 👈 AQUÍ VA
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(20, TimeUnit.SECONDS)
+            .writeTimeout(20, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
 
@@ -33,11 +34,15 @@ object RetrofitClient {
 
         Retrofit.Builder()
             .baseUrl(BASE_URL)
-            .client(okHttpClient)
+            .client(okHttpClient) // 👈 IMPORTANTE (ya lo tenías bien)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
+    val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
+    val perfilApi: PerfilApi by lazy { retrofit.create(PerfilApi::class.java) }
     val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
+    val postulacionApi: PostulacionApi by lazy { retrofit.create(PostulacionApi::class.java) }
+    val seguimientoPostulacionApi: SeguimientoPostulacionApi by lazy { retrofit.create(SeguimientoPostulacionApi::class.java) }
 }

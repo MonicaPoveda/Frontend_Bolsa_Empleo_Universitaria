@@ -4,6 +4,7 @@ package com.example.frontend_bolsa_empleo_universitaria.interfaces
 
 import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaDto
 import com.example.frontend_bolsa_empleo_universitaria.model.LoginRequest
+import com.example.frontend_bolsa_empleo_universitaria.model.LoginResponse
 import com.example.frontend_bolsa_empleo_universitaria.model.LoginResponseEmpresa
 import com.example.frontend_bolsa_empleo_universitaria.model.RecuperarPassResponse
 import com.example.frontend_bolsa_empleo_universitaria.model.RegEmpRequest

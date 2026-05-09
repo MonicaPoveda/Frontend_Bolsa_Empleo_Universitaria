@@ -25,44 +25,30 @@ object RetrofitClient {
         }
 
         val authInterceptor = okhttp3.Interceptor { chain ->
-            var request = chain.request()
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
 
-            println("🔐 ===== INTERCEPTOR ===== 🔐")
-            println("📡 URL: ${request.url}")
-            println("📡 Método: ${request.method}")
-
+            // Usamos .header() en lugar de .addHeader() para evitar duplicados
             tokenManager?.getToken()?.let { token ->
-                println("✅ Token encontrado: ${token.take(50)}...")
-                request = request.newBuilder()
-                    .addHeader("Authorization", "Bearer $token")
-                    .build()
-                println("✅ Header Authorization agregado")
-            } ?: run {
-                println("❌ No hay token disponible")
+                requestBuilder.header("Authorization", "Bearer $token")
             }
 
-            val response = chain.proceed(request)
-            println("📡 Código respuesta: ${response.code}")
-
-            if (response.code == 403) {
-                println("❌ ERROR 403 - Content-Type o token rechazado por el backend")
-            }
-
-            response
+            val request = requestBuilder.build()
+            chain.proceed(request)
         }
 
-        // ✅ SOLUCIÓN: interceptor que sobreescribe el Content-Type que pone Gson
+        // Interceptor para forzar Content-Type limpio sin charset
         val contentTypeInterceptor = okhttp3.Interceptor { chain ->
             val original = chain.request()
-            // Solo modificar requests que tienen body (POST, PUT)
-            val request = if (original.body != null) {
-                original.newBuilder()
+            if (original.body != null) {
+                val newRequest = original.newBuilder()
                     .header("Content-Type", "application/json")
+                    .header("Accept", "application/json")
                     .build()
+                chain.proceed(newRequest)
             } else {
-                original
+                chain.proceed(original)
             }
-            chain.proceed(request)
         }
 
         val okHttpClient = OkHttpClient.Builder()
@@ -77,7 +63,6 @@ object RetrofitClient {
 
         val gson = GsonBuilder()
             .setDateFormat("yyyy-MM-dd")
-            .serializeNulls()
             .create()
 
         Retrofit.Builder()
@@ -89,6 +74,8 @@ object RetrofitClient {
 
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
     val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
+    val perfilApi: PerfilApi by lazy { retrofit.create(PerfilApi::class.java) }
+
     val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
 
     fun init(context: Context) {

@@ -8,20 +8,35 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.screens.Administrador.AdministradorHomeScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.DetalleOfertaEmpresaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.EmpresaHomeScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.RegistroEmpresaScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.CrearPerfilEgresadoScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.CrearPerfilEstudianteScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.EstudianteHomeScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.MensajeAlertaCrearPerfilScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.RegistroEstudianteScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Login.LoginScreen
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Inicializar Retrofit con el contexto de la aplicación
+        RetrofitClient.init(this)
+
         enableEdgeToEdge()
         setContent {
             Frontend_Bolsa_Empleo_UniversitariaTheme {
@@ -61,6 +76,39 @@ fun AppNavigation() {
         }
         composable("registro_empresa") {
             RegistroEmpresaScreen(navController = navController)
+        }
+        composable("mensaje_alerta_crear_perfil") {
+            MensajeAlertaCrearPerfilScreen(navController)
+        }
+        composable("crear_perfil_estudiante") {
+            CrearPerfilEstudianteScreen(navController)
+        }
+        composable("crear_perfil_egresado") {
+            CrearPerfilEgresadoScreen(navController)
+        }
+
+        // ✅ NUEVA RUTA: detalle de oferta para empresa
+        composable("detalle_oferta/{ofertaId}") { backStackEntry ->
+            val ofertaId = backStackEntry.arguments
+                ?.getString("ofertaId")
+                ?.toLongOrNull() ?: 0L
+
+            // Compartir el mismo ViewModel que usa EmpresaHomeScreen
+            val empresaEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("empresa_home")
+            }
+            val viewModel: OfertasViewModel = viewModel(
+                viewModelStoreOwner = empresaEntry,
+                factory = OfertasViewModelFactory(
+                    OfertasRepository(RetrofitClient.ofertaLaboralApi)
+                )
+            )
+
+            DetalleOfertaEmpresaScreen(
+                ofertaId = ofertaId,
+                navController = navController,
+                viewModel = viewModel
+            )
         }
     }
 }

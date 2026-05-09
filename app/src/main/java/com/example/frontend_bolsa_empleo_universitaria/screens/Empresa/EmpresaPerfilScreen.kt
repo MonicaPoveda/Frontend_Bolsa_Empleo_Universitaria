@@ -48,7 +48,7 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
             .padding(24.dp)
     ) {
         Text(
-            text = "Mi Perfil",
+            text = "Mi PerfilRequest",
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = Color.Black
@@ -110,7 +110,7 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Editar Perfil")
+                    Text("Editar PerfilRequest")
                 }
             }
         }

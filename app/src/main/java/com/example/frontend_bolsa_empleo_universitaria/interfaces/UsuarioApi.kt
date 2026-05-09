@@ -4,10 +4,12 @@ import com.example.frontend_bolsa_empleo_universitaria.model.LoginResponse
 import com.example.frontend_bolsa_empleo_universitaria.model.RecuperarPassResponse
 import com.example.frontend_bolsa_empleo_universitaria.model.RegUsuRequest
 import com.example.frontend_bolsa_empleo_universitaria.model.UsuarioDTO
+import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -26,28 +28,9 @@ interface UsuarioApi {
 
     @POST("api/usuarios/guardar")
     suspend fun registrar(@Body request: RegUsuRequest): Response<UsuarioDTO>
-
-
+    // ✅ Nuevo endpoint: Obtener perfil del usuario autenticado
 
 
 
     }
 
-
-//    @GET("api/usuarios/listar")
-//    suspend fun listar(): Response<List<Usuario>>
-//
-//    @POST("api/usuarios/guardar")
-//    suspend fun guardar(@Body usuario: Usuario): Response<Usuario>
-//
-//    @PATCH("api/usuarios/actualizar/{id}")
-//    suspend fun actualizar(@Path("id") id: Long, @Body usuario: Usuario): Response<Usuario>
-//
-//    @DELETE("api/usuarios/eliminar/{id}")
-//    suspend fun eliminar(@Path("id") id: Long): Response<Void>
-//
-//    @GET("api/usuarios/buscar-email")
-//    suspend fun buscarPorEmail(@Query("email") email: String): Response<Usuario>
-//
-//    @POST("api/usuarios/recuperar-password")
-//    suspend fun recuperarPassword(@Query("email") email: String): Response<Void>

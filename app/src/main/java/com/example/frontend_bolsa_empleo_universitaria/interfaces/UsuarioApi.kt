@@ -27,15 +27,9 @@ interface UsuarioApi {
     @POST("api/usuarios/guardar")
     suspend fun registrar(@Body request: RegUsuRequest): Response<UsuarioDTO>
 
-
-
-
-
-    }
-
-
-//    @GET("api/usuarios/listar")
-//    suspend fun listar(): Response<List<Usuario>>
+    @GET("api/usuarios/listar")
+    suspend fun listar(): Response<List<UsuarioDTO>>
+}
 //
 //    @POST("api/usuarios/guardar")
 //    suspend fun guardar(@Body usuario: Usuario): Response<Usuario>

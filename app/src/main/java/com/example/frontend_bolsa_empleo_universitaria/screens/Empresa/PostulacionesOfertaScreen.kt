@@ -34,7 +34,6 @@ import kotlinx.coroutines.launch
 private val BlueGradientStart = Color(0xFF0056D2)
 private val BackgroundGray = Color(0xFFF8FAFF)
 
-// ✅ Función formateadora de fechas al nivel superior (sin private)
 fun formatFecha(fecha: String): String {
     return try {
         if (fecha.isBlank()) "No especificada"
@@ -54,8 +53,12 @@ fun PostulantesOfertaScreen(
     ofertaTitulo: String,
     navController: NavController
 ) {
-    // Inicializar ViewModel
-    val postulacionRepository = remember { PostulacionRepository(RetrofitClient.postulacionApi) }
+    val postulacionRepository = remember {
+        PostulacionRepository(
+            RetrofitClient.postulacionApi,
+            RetrofitClient.usuarioApi
+        )
+    }
     val seguimientoRepository = remember { SeguimientoPostulacionRepository(RetrofitClient.seguimientoPostulacionApi) }
     val viewModel: PostulacionViewModel = viewModel(
         factory = PostulacionViewModelFactory(postulacionRepository, seguimientoRepository)
@@ -65,51 +68,53 @@ fun PostulantesOfertaScreen(
     val isLoading by viewModel.loading
     val errorMessage by viewModel.error
     val isUpdating by viewModel.updating
-    val historial by viewModel.historial
 
-    var selectedPostulacion by remember { mutableStateOf<PostulacionDto?>(null) }
-    var showHistorialDialog by remember { mutableStateOf(false) }
+    // Estado para el filtro de estado
+    var filtroEstado by remember { mutableStateOf("TODAS") }
 
-    // Cargar postulaciones
     LaunchedEffect(ofertaId) {
         viewModel.cargarPostulacionesPorOferta(ofertaId)
     }
 
-    // Función para cargar historial
-    fun cargarHistorial(postulacion: PostulacionDto) {
-        selectedPostulacion = postulacion
-        viewModel.cargarHistorial(postulacion.idPostulacion)
-        showHistorialDialog = true
-    }
-
-    // Función para actualizar estado
     fun actualizarEstado(postulacion: PostulacionDto, nuevoEstado: String) {
         viewModel.actualizarEstado(postulacion, nuevoEstado)
     }
 
-    // Función para obtener color según estado
     fun getEstadoColor(estado: String): Color {
         return when (estado.uppercase()) {
             "PENDIENTE" -> Color(0xFFFF9800)
-            "APROBADA", "ACEPTADA" -> Color(0xFF4CAF50)
-            "RECHAZADA" -> Color(0xFFF44336)
             "EN_REVISION" -> Color(0xFF2196F3)
-            "FINALIZADA" -> Color(0xFF9C27B0)
+            "ACEPTADA" -> Color(0xFF4CAF50)
+            "RECHAZADA" -> Color(0xFFF44336)
             else -> Color.Gray
         }
     }
 
-    // Función para obtener badge según estado
     fun getEstadoBadge(estado: String): String {
         return when (estado.uppercase()) {
             "PENDIENTE" -> "Pendiente"
-            "APROBADA", "ACEPTADA" -> "Aprobada"
-            "RECHAZADA" -> "Rechazada"
             "EN_REVISION" -> "En revisión"
-            "FINALIZADA" -> "Finalizada"
+            "ACEPTADA" -> "Aceptada"
+            "RECHAZADA" -> "Rechazada"
             else -> estado
         }
     }
+
+    // Filtrar postulaciones según el estado seleccionado
+    val postulacionesFiltradas = when (filtroEstado) {
+        "PENDIENTE" -> postulaciones.filter { it.estado.uppercase() == "PENDIENTE" }
+        "EN_REVISION" -> postulaciones.filter { it.estado.uppercase() == "EN_REVISION" }
+        "ACEPTADA" -> postulaciones.filter { it.estado.uppercase() == "ACEPTADA" }
+        "RECHAZADA" -> postulaciones.filter { it.estado.uppercase() == "RECHAZADA" }
+        else -> postulaciones
+    }
+
+    // Calcular estadísticas
+    val total = postulaciones.size
+    val pendientes = postulaciones.count { it.estado.uppercase() == "PENDIENTE" }
+    val enRevision = postulaciones.count { it.estado.uppercase() == "EN_REVISION" }
+    val aceptadas = postulaciones.count { it.estado.uppercase() == "ACEPTADA" }
+    val rechazadas = postulaciones.count { it.estado.uppercase() == "RECHAZADA" }
 
     Scaffold(
         topBar = {
@@ -176,12 +181,10 @@ fun PostulantesOfertaScreen(
                                 tint = Color.Red
                             )
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(errorMessage!!, color = Color.Red, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Text(errorMessage!!, color = Color.Red)
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
-                                onClick = {
-                                    navController.popBackStack()
-                                },
+                                onClick = { navController.popBackStack() },
                                 colors = ButtonDefaults.buttonColors(containerColor = BlueGradientStart)
                             ) {
                                 Text("Volver")
@@ -190,100 +193,131 @@ fun PostulantesOfertaScreen(
                     }
                 }
 
-                postulaciones.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.People,
-                                contentDescription = "Sin postulaciones",
-                                modifier = Modifier.size(80.dp),
-                                tint = Color.LightGray
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                "No hay postulaciones aún",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color.Gray
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "Los estudiantes aún no se han postulado a esta oferta",
-                                fontSize = 14.sp,
-                                color = Color.Gray,
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                    }
-                }
-
                 else -> {
-                    // Resumen de postulaciones
-                    Card(
+                    // Tarjetas de filtros (Todas, Pendientes, En revisión, Aceptadas, Rechazadas)
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp)
                             .padding(top = 8.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "${postulaciones.size}",
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = BlueGradientStart
-                                )
-                                Text("Total", fontSize = 12.sp, color = Color.Gray)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "${postulaciones.count { it.estado.uppercase() == "PENDIENTE" }}",
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFF9800)
-                                )
-                                Text("Pendientes", fontSize = 12.sp, color = Color.Gray)
-                            }
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(
-                                    text = "${postulaciones.count { it.estado.uppercase() == "APROBADA" || it.estado.uppercase() == "ACEPTADA" }}",
-                                    fontSize = 24.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF4CAF50)
-                                )
-                                Text("Aprobadas", fontSize = 12.sp, color = Color.Gray)
-                            }
-                        }
+                        FiltroEstadoCard(
+                            modifier = Modifier.weight(1f),
+                            titulo = "Todas",
+                            numero = total,
+                            color = BlueGradientStart,
+                            isSelected = filtroEstado == "TODAS",
+                            onClick = { filtroEstado = "TODAS" }
+                        )
+                        FiltroEstadoCard(
+                            modifier = Modifier.weight(1f),
+                            titulo = "Pendientes",
+                            numero = pendientes,
+                            color = Color(0xFFFF9800),
+                            isSelected = filtroEstado == "PENDIENTE",
+                            onClick = { filtroEstado = "PENDIENTE" }
+                        )
                     }
 
-                    // Lista de postulantes
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FiltroEstadoCard(
+                            modifier = Modifier.weight(1f),
+                            titulo = "En revisión",
+                            numero = enRevision,
+                            color = Color(0xFF2196F3),
+                            isSelected = filtroEstado == "EN_REVISION",
+                            onClick = { filtroEstado = "EN_REVISION" }
+                        )
+                        FiltroEstadoCard(
+                            modifier = Modifier.weight(1f),
+                            titulo = "Aceptadas",
+                            numero = aceptadas,
+                            color = Color(0xFF4CAF50),
+                            isSelected = filtroEstado == "ACEPTADA",
+                            onClick = { filtroEstado = "ACEPTADA" }
+                        )
+                        FiltroEstadoCard(
+                            modifier = Modifier.weight(1f),
+                            titulo = "Rechazadas",
+                            numero = rechazadas,
+                            color = Color(0xFFF44336),
+                            isSelected = filtroEstado == "RECHAZADA",
+                            onClick = { filtroEstado = "RECHAZADA" }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Título de la lista filtrada
+                    Text(
+                        text = when (filtroEstado) {
+                            "PENDIENTE" -> "Postulaciones Pendientes"
+                            "EN_REVISION" -> "Postulaciones en Revisión"
+                            "ACEPTADA" -> "Postulaciones Aceptadas"
+                            "RECHAZADA" -> "Postulaciones Rechazadas"
+                            else -> "Todas las Postulaciones"
+                        },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
+                    // Lista de postulantes filtrada
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(postulaciones) { postulacion ->
-                            PostulanteCard(
-                                postulacion = postulacion,
-                                onVerHistorial = { cargarHistorial(postulacion) },
-                                onEstadoChange = { nuevoEstado ->
-                                    actualizarEstado(postulacion, nuevoEstado)
-                                },
-                                getEstadoColor = { getEstadoColor(it) },
-                                getEstadoBadge = { getEstadoBadge(it) },
-                                isUpdating = isUpdating
-                            )
+                        if (postulacionesFiltradas.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Icon(
+                                            Icons.Default.People,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(64.dp),
+                                            tint = Color.LightGray
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = when (filtroEstado) {
+                                                "PENDIENTE" -> "No hay postulaciones pendientes"
+                                                "EN_REVISION" -> "No hay postulaciones en revisión"
+                                                "ACEPTADA" -> "No hay postulaciones aceptadas"
+                                                "RECHAZADA" -> "No hay postulaciones rechazadas"
+                                                else -> "No hay postulaciones"
+                                            },
+                                            color = Color.Gray
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            items(postulacionesFiltradas) { postulacion ->
+                                PostulanteCardSimple(
+                                    postulacion = postulacion,
+                                    onEstadoChange = { nuevoEstado ->
+                                        actualizarEstado(postulacion, nuevoEstado)
+                                    },
+                                    getEstadoColor = { getEstadoColor(it) },
+                                    getEstadoBadge = { getEstadoBadge(it) },
+                                    isUpdating = isUpdating
+                                )
+                            }
                         }
 
                         item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -292,99 +326,69 @@ fun PostulantesOfertaScreen(
             }
         }
     }
+}
 
-    // Diálogo de historial
-    if (showHistorialDialog && selectedPostulacion != null && historial.isNotEmpty()) {
-        AlertDialog(
-            onDismissRequest = {
-                showHistorialDialog = false
-                viewModel.limpiarHistorial()
-            },
-            title = {
-                Text(
-                    "Historial de cambios",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .heightIn(max = 350.dp)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    historial.forEach { seguimiento ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
-                        ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.History,
-                                        contentDescription = "Historial",
-                                        modifier = Modifier.size(14.dp),
-                                        tint = Color.Gray
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        formatFecha(seguimiento.fechaCambio),
-                                        fontSize = 11.sp,
-                                        color = Color.Gray
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "${seguimiento.estadoAnterior} → ${seguimiento.estadoNuevo}",
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color.Black
-                                )
-                                if (seguimiento.observacion.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "📝 ${seguimiento.observacion}",
-                                        fontSize = 12.sp,
-                                        color = Color.DarkGray
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    showHistorialDialog = false
-                    viewModel.limpiarHistorial()
-                }) {
-                    Text("Cerrar", color = BlueGradientStart)
-                }
-            },
-            containerColor = Color.White
+@Composable
+fun FiltroEstadoCard(
+    modifier: Modifier = Modifier,
+    titulo: String,
+    numero: Int,
+    color: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) color else Color.White,
+            contentColor = if (isSelected) Color.White else color
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 3.dp else 1.dp
         )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = titulo,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) Color.White else Color.DarkGray,
+                maxLines = 1
+            )
+            Text(
+                text = numero.toString(),
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) Color.White else color
+            )
+        }
     }
 }
 
 @Composable
-fun PostulanteCard(
+fun PostulanteCardSimple(
     postulacion: PostulacionDto,
-    onVerHistorial: () -> Unit,
     onEstadoChange: (String) -> Unit,
     getEstadoColor: (String) -> Color,
     getEstadoBadge: (String) -> String,
     isUpdating: Boolean
 ) {
     var showEstadoMenu by remember { mutableStateOf(false) }
-    val estados = listOf("PENDIENTE", "EN_REVISION", "APROBADA", "RECHAZADA", "FINALIZADA")
+    val estados = listOf("PENDIENTE", "EN_REVISION", "ACEPTADA", "RECHAZADA")
     val estadoBadge = getEstadoBadge(postulacion.estado)
     val estadoColor = getEstadoColor(postulacion.estado)
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp)
@@ -394,166 +398,164 @@ fun PostulanteCard(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            // Header con nombre y estado
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFE3F2FD)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = "Estudiante",
-                            tint = BlueGradientStart,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = postulacion.nombreEstudiante.ifBlank { "Estudiante #${postulacion.idUsuario}" },
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                        Text(
-                            text = postulacion.emailEstudiante.ifBlank { "Email no disponible" },
-                            fontSize = 12.sp,
-                            color = Color.Gray
-                        )
-                    }
-                }
-
-                // Badge de estado clickeable
-                Box {
-                    Surface(
-                        color = estadoColor.copy(alpha = 0.15f),
-                        shape = RoundedCornerShape(20.dp),
-                        modifier = Modifier.clickable { showEstadoMenu = true }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(estadoColor)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = estadoBadge,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = estadoColor
-                            )
-                            Icon(
-                                Icons.Default.ArrowDropDown,
-                                contentDescription = "Cambiar estado",
-                                modifier = Modifier.size(16.dp),
-                                tint = estadoColor
-                            )
-
-                        }
-
-                        DropdownMenu(
-                            expanded = showEstadoMenu,
-                            onDismissRequest = { showEstadoMenu = false },
-                            modifier = Modifier.background(Color.White)
-                        ) {
-                            estados.forEach { estado ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(8.dp)
-                                                    .clip(CircleShape)
-                                                    .background(getEstadoColor(estado))
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(getEstadoBadge(estado), fontSize = 13.sp)
-                                        }
-                                    },
-                                    onClick = {
-                                        if (!isUpdating) {
-                                            onEstadoChange(estado)
-                                        }
-                                        showEstadoMenu = false
-                                    },
-                                    enabled = !isUpdating
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Fecha de postulación
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFE3F2FD)),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = "Fecha",
-                        modifier = Modifier.size(14.dp),
-                        tint = Color.Gray
+                        Icons.Default.Person,
+                        contentDescription = "Estudiante",
+                        tint = BlueGradientStart,
+                        modifier = Modifier.size(28.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
                     Text(
-                        text = "Postulado: ${formatFecha(postulacion.fechaPostulacion)}",
-                        fontSize = 12.sp,
+                        text = postulacion.nombreEstudiante.ifBlank { "Estudiante #${postulacion.idUsuario}" },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = postulacion.emailEstudiante.ifBlank { "Email no disponible" },
+                        fontSize = 13.sp,
                         color = Color.Gray
                     )
                 }
+            }
 
-                Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-                // Botones de acción
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    Icons.Default.CalendarToday,
+                    contentDescription = "Fecha",
+                    modifier = Modifier.size(14.dp),
+                    tint = Color.Gray
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Postulado: ${formatFecha(postulacion.fechaPostulacion)}",
+                    fontSize = 13.sp,
+                    color = Color.Gray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Contenedor para el selector de estado con menú interno
+            Column {
+                Surface(
+                    color = estadoColor.copy(alpha = 0.15f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showEstadoMenu = !showEstadoMenu }
                 ) {
-                    // Botón ver historial
-                    OutlinedButton(
-                        onClick = onVerHistorial,
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = BlueGradientStart
-                        )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .clip(CircleShape)
+                                    .background(estadoColor)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Estado: $estadoBadge",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = estadoColor
+                            )
+                        }
                         Icon(
-                            Icons.Default.History,
-                            contentDescription = "Historial",
-                            modifier = Modifier.size(16.dp)
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = "Cambiar estado",
+                            modifier = Modifier.size(20.dp),
+                            tint = estadoColor
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Historial", fontSize = 12.sp)
                     }
+                }
 
-                    // Botón ver CV (placeholder)
-                    Button(
-                        onClick = { /* Aquí iría la navegación al CV */ },
-                        modifier = Modifier.weight(1f),
+                // Menú desplegable dentro de la tarjeta
+                if (showEstadoMenu) {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BlueGradientStart)
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(4.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Description,
-                            contentDescription = "Ver CV",
-                            modifier = Modifier.size(16.dp),
-                            tint = Color.White
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Ver CV", fontSize = 12.sp, color = Color.White)
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            estados.forEach { estado ->
+                                val isSelected = postulacion.estado.uppercase() == estado
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            if (!isUpdating && !isSelected) {
+                                                onEstadoChange(estado)
+                                            }
+                                            showEstadoMenu = false
+                                        },
+                                    color = if (isSelected) getEstadoColor(estado).copy(alpha = 0.1f) else Color.Transparent
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .clip(CircleShape)
+                                                .background(getEstadoColor(estado))
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = getEstadoBadge(estado),
+                                            fontSize = 14.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                            color = if (isSelected) getEstadoColor(estado) else Color.Black
+                                        )
+                                        if (isSelected) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = "Seleccionado",
+                                                modifier = Modifier.size(16.dp),
+                                                tint = getEstadoColor(estado)
+                                            )
+                                        }
+                                    }
+                                }
+                                if (estado != estados.last()) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        color = Color.LightGray.copy(alpha = 0.3f),
+                                        thickness = 0.5.dp
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }

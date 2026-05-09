@@ -90,12 +90,24 @@ class PostulacionViewModel(
             _updating.value = true
             _error.value = null
             try {
-                val updatedPostulacion = postulacion.copy(estado = nuevoEstado)
-                val result = postulacionRepository.actualizar(postulacion.idPostulacion, updatedPostulacion)
+                // Enviar SOLO los campos necesarios para la actualización
+                val postulacionActualizada = PostulacionDto(
+                    idPostulacion = postulacion.idPostulacion,
+                    fechaPostulacion = postulacion.fechaPostulacion,
+                    estado = nuevoEstado,
+                    idUsuario = postulacion.idUsuario,
+                    idOferta = postulacion.idOferta,
+                    nombreEstudiante = "",  // Vacío para no causar errores
+                    emailEstudiante = ""    // Vacío para no causar errores
+                )
+
+                val result = postulacionRepository.actualizar(postulacion.idPostulacion, postulacionActualizada)
                 if (result != null) {
-                    // Actualizar la lista local
+                    // ✅ IMPORTANTE: Preservar los datos del estudiante originales
                     _postulaciones.value = _postulaciones.value.map {
-                        if (it.idPostulacion == postulacion.idPostulacion) result else it
+                        if (it.idPostulacion == postulacion.idPostulacion) {
+                            it.copy(estado = nuevoEstado)  // Solo actualizar el estado, mantener el resto
+                        } else it
                     }
                     println("✅ Estado actualizado a: $nuevoEstado")
                     onComplete(true)

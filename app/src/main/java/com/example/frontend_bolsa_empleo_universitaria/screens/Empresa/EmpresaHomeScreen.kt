@@ -645,7 +645,7 @@ fun EmpresaJobCard(
         }
     }
 
-    // Diálogo de confirmación con colores claros
+    // Diálogo de confirmación para eliminar
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
@@ -696,9 +696,7 @@ fun EmpresaJobCard(
                 }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { showDeleteDialog = false }
-                ) {
+                TextButton(onClick = { showDeleteDialog = false }) {
                     Text("Cancelar", fontWeight = FontWeight.Medium, color = Color.Gray)
                 }
             },
@@ -714,139 +712,106 @@ fun EmpresaJobCard(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
+                .fillMaxWidth()
                 .padding(16.dp)
-                .fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(54.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(BackgroundGray),
-                contentAlignment = Alignment.Center
+            // Fila con icono, contenido y botón eliminar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Icon(
-                    imageVector = when (oferta.area.lowercase()) {
-                        "diseño" -> Icons.Default.Palette
-                        "desarrollo", "ti" -> Icons.Default.Code
-                        "ventas" -> Icons.Default.TrendingUp
-                        "marketing" -> Icons.Default.Campaign
-                        else -> Icons.Default.Business
-                    },
-                    contentDescription = null,
-                    tint = BlueGradientStart,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = oferta.titulo,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black,
-                    maxLines = 1
-                )
-                Text(
-                    text = oferta.area,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Surface(
-                        color = ChipHybridColor,
-                        shape = RoundedCornerShape(8.dp)
+                // Icono y contenido principal
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(54.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(BackgroundGray),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = if (oferta.modalidad.isNotBlank()) oferta.modalidad else "Presencial",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = ChipHybridText,
-                            fontWeight = FontWeight.Bold
+                        Icon(
+                            imageVector = when (oferta.area.lowercase()) {
+                                "diseño" -> Icons.Default.Palette
+                                "desarrollo", "ti" -> Icons.Default.Code
+                                "ventas" -> Icons.Default.TrendingUp
+                                "marketing" -> Icons.Default.Campaign
+                                else -> Icons.Default.Business
+                            },
+                            contentDescription = null,
+                            tint = BlueGradientStart,
+                            modifier = Modifier.size(28.dp)
                         )
                     }
 
-                    Surface(
-                        color = Color(0xFFE8F5E9),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.clickable { onVerPostulantes() }
-                    ) {
+                    Spacer(modifier = Modifier.width(16.dp))
+
+                    Column {
+                        Text(
+                            text = oferta.titulo,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = oferta.area,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            if (isLoadingCount) {
-                                Box(modifier = Modifier.size(16.dp)) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(12.dp),
-                                        strokeWidth = 1.5.dp,
-                                        color = BlueGradientStart
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(4.dp))
+                            Surface(
+                                color = ChipHybridColor,
+                                shape = RoundedCornerShape(8.dp)
+                            ) {
                                 Text(
-                                    text = "...",
+                                    text = if (oferta.modalidad.isNotBlank()) oferta.modalidad else "Presencial",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = BlueGradientStart,
+                                    color = ChipHybridText,
                                     fontWeight = FontWeight.Bold
                                 )
-                            } else {
-                                Icon(
-                                    Icons.Default.People,
-                                    contentDescription = "Postulantes",
-                                    modifier = Modifier.size(14.dp),
-                                    tint = BlueGradientStart
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "$postulantesCount",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = BlueGradientStart,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                if (postulantesCount > 0) {
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = "postulante${if (postulantesCount != 1) "s" else ""}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = BlueGradientStart
-                                    )
-                                }
                             }
+                            Text(
+                                text = "• $fechaPublicacionStr",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.Gray
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Salario debajo de modalidad y fecha
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.AttachMoney,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = PriceColor
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "$${oferta.salario.toInt()} / mes",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = PriceColor
+                            )
                         }
                     }
-
-                    Text(
-                        text = "• $fechaPublicacionStr",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
-                    )
                 }
-            }
 
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = "$${oferta.salario.toInt()}",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = PriceColor
-                )
-                Text(
-                    text = "/mes",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.Gray
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Botón de eliminar
+                // Botón de eliminar (solo ícono)
                 IconButton(
                     onClick = { showDeleteDialog = true },
                     modifier = Modifier.size(32.dp)
@@ -856,6 +821,63 @@ fun EmpresaJobCard(
                         contentDescription = "Eliminar",
                         tint = Color(0xFFE53935),
                         modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Botón de postulantes (ocupa todo el ancho)
+            Surface(
+                color = if (postulantesCount > 0) Color(0xFFE8F5E9) else Color(0xFFF5F5F5),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onVerPostulantes() }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (isLoadingCount) {
+                            Box(modifier = Modifier.size(16.dp)) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(14.dp),
+                                    strokeWidth = 1.5.dp,
+                                    color = BlueGradientStart
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Cargando postulantes...",
+                                fontSize = 13.sp,
+                                color = Color.Gray
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.People,
+                                contentDescription = "Postulantes",
+                                modifier = Modifier.size(20.dp),
+                                tint = BlueGradientStart
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "$postulantesCount postulante${if (postulantesCount != 1) "s" else ""}",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = BlueGradientStart
+                            )
+                        }
+                    }
+                    Icon(
+                        Icons.Default.ChevronRight,
+                        contentDescription = "Ver postulantes",
+                        modifier = Modifier.size(20.dp),
+                        tint = BlueGradientStart
                     )
                 }
             }

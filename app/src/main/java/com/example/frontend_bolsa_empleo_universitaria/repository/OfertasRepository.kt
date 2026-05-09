@@ -4,11 +4,8 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.OfertaLaboralA
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
 
 class OfertasRepository(
-    private val api: OfertaLaboralApi,
-    private val token: com.example.frontend_bolsa_empleo_universitaria.utils.Token? = null
+    private val api: OfertaLaboralApi
 ) {
-
-    fun getCurrentEmpresaId(): Long = token?.getEmpresaId() ?: 0
 
     suspend fun listarActivas(): List<OfertaLaboral> {
         return try {
@@ -21,7 +18,6 @@ class OfertasRepository(
             }
         } catch (e: Exception) {
             println("Excepción en listarActivas: ${e.message}")
-            e.printStackTrace()
             emptyList()
         }
     }
@@ -37,10 +33,10 @@ class OfertasRepository(
             }
         } catch (e: Exception) {
             println("Excepción en listarTodas: ${e.message}")
-            e.printStackTrace()
             emptyList()
         }
     }
+
     suspend fun guardarOferta(oferta: OfertaLaboral): OfertaLaboral? {
         return try {
             val response = api.guardar(oferta)
@@ -52,7 +48,24 @@ class OfertasRepository(
                 null
             }
         } catch (e: Exception) {
-            println("❌ Excepción: ${e.message}")
+            println("❌ Excepción guardar: ${e.message}")
+            null
+        }
+    }
+
+    // ✅ NUEVO
+    suspend fun actualizarOferta(id: Long, oferta: OfertaLaboral): OfertaLaboral? {
+        return try {
+            val response = api.actualizar(id, oferta)
+            if (response.isSuccessful) {
+                println("✅ Oferta actualizada: ${response.body()}")
+                response.body()
+            } else {
+                println("❌ Error al actualizar: ${response.code()} - ${response.message()}")
+                null
+            }
+        } catch (e: Exception) {
+            println("❌ Excepción actualizar: ${e.message}")
             null
         }
     }

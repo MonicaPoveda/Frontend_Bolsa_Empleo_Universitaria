@@ -1,5 +1,6 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Empresa
 
+import android.text.format.DateFormat
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -28,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,12 +45,13 @@ import androidx.compose.ui.unit.sp
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.util.Date
 import kotlin.text.ifEmpty
 
 private val BlueGradientStart = Color(0xFF0056D2)
@@ -59,13 +62,15 @@ fun AgregarOfertaScreen(
     idEmpresa: Long,
     onOfertaAgregada: () -> Unit
 ) {
+    val context = LocalContext.current
+    val token = remember { Token(context) }
+
     var titulo by remember { mutableStateOf("") }
     var descripcion by remember { mutableStateOf("") }
     var area by remember { mutableStateOf("") }
     var salario by remember { mutableStateOf("") }
     var modalidad by remember { mutableStateOf("") }
 
-    // Estados para la fecha de cierre
     var selectedYear by remember { mutableStateOf(2026) }
     var selectedMonth by remember { mutableStateOf(5) }
     var selectedDay by remember { mutableStateOf(30) }
@@ -77,31 +82,41 @@ fun AgregarOfertaScreen(
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val scope = rememberCoroutineScope()
 
-    // Fecha actual para fechaPublicacion (fija)
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    val calendar = Calendar.getInstance()
-    val fechaActual = dateFormat.format(calendar.time)
+    val fechaActual = remember {
+        DateFormat.format("yyyy-MM-dd", Date()).toString()
+    }
 
-    // Listas para los selectores
     val years = (2024..2030).toList()
-    val months = (1..12).toList()
     val monthNames = listOf(
         "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
         "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
     )
 
-    // Calcular días máximos según mes y año seleccionado
-    val maxDays = when (selectedMonth) {
-        1, 3, 5, 7, 8, 10, 12 -> 31
-        4, 6, 9, 11 -> 30
-        2 -> if ((selectedYear % 4 == 0 && selectedYear % 100 != 0) || selectedYear % 400 == 0) 29 else 28
-        else -> 31
+    val maxDays = remember(selectedYear, selectedMonth) {
+        when (selectedMonth) {
+            1, 3, 5, 7, 8, 10, 12 -> 31
+            4, 6, 9, 11 -> 30
+            2 -> if ((selectedYear % 4 == 0 && selectedYear % 100 != 0) || selectedYear % 400 == 0) 29 else 28
+            else -> 31
+        }
     }
 
     val days = (1..maxDays).toList()
 
-    // Formatear fecha seleccionada
-    val fechaCierreSeleccionada = String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
+    val fechaCierreSeleccionada = remember(selectedYear, selectedMonth, selectedDay) {
+        String.format("%04d-%02d-%02d", selectedYear, selectedMonth, selectedDay)
+    }
+
+    // ✅ DIAGNÓSTICO AL ABRIR LA PANTALLA
+    LaunchedEffect(Unit) {
+        println("=== DIAGNÓSTICO AL ABRIR PANTALLA ===")
+        println("Token: ${token.getToken()?.take(60) ?: "NULL ❌"}")
+        println("Rol: '${token.getUserRole()}'")
+        println("EmpresaId: ${token.getEmpresaId()}")
+        println("isEmpresa(): ${token.isEmpresa()}")
+        println("idEmpresa param: $idEmpresa")
+        println("======================================")
+    }
 
     Column(
         modifier = Modifier
@@ -118,7 +133,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Título
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
@@ -130,7 +144,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Área / Cargo
         OutlinedTextField(
             value = area,
             onValueChange = { area = it },
@@ -142,7 +155,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Salario y Modalidad
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -168,7 +180,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Fecha de Cierre (con selectores independientes)
         Text(
             text = "Fecha de cierre *",
             style = MaterialTheme.typography.bodyMedium,
@@ -182,52 +193,41 @@ fun AgregarOfertaScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Selector de Año
             DateSelector(
                 value = selectedYear.toString(),
                 label = "Año",
                 items = years.map { it.toString() },
                 modifier = Modifier.weight(1f),
-                onItemSelected = {
-                    selectedYear = it.toInt()
-                }
+                onItemSelected = { selectedYear = it.toInt() }
             )
 
-            // Selector de Mes
             DateSelector(
                 value = monthNames[selectedMonth - 1],
                 label = "Mes",
                 items = monthNames,
                 modifier = Modifier.weight(1f),
-                onItemSelected = {
-                    selectedMonth = monthNames.indexOf(it) + 1
-                }
+                onItemSelected = { selectedMonth = monthNames.indexOf(it) + 1 }
             )
 
-            // Selector de Día
             DateSelector(
                 value = selectedDay.toString(),
                 label = "Día",
                 items = days.map { it.toString() },
                 modifier = Modifier.weight(1f),
-                onItemSelected = {
-                    selectedDay = it.toInt()
-                }
+                onItemSelected = { selectedDay = it.toInt() }
             )
         }
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Mostrar fecha seleccionada
         Text(
-            text = "Fecha seleccionada: $fechaCierreSeleccionada",
+            text = "📅 Fecha de cierre seleccionada: $fechaCierreSeleccionada",
             fontSize = 12.sp,
             color = Color.Gray
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Descripción
         OutlinedTextField(
             value = descripcion,
             onValueChange = { descripcion = it },
@@ -237,8 +237,8 @@ fun AgregarOfertaScreen(
             minLines = 4
         )
 
-        // Mostrar fecha de publicación (solo informativa)
         Spacer(modifier = Modifier.height(8.dp))
+
         Text(
             text = "📅 Fecha de publicación: $fechaActual (automática)",
             fontSize = 11.sp,
@@ -255,8 +255,6 @@ fun AgregarOfertaScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Botón Publicar
         Button(
             onClick = {
                 when {
@@ -281,15 +279,11 @@ fun AgregarOfertaScreen(
                             idEmpresa = idEmpresa
                         )
 
-                        println("📝 Creando nueva oferta:")
-                        println("   Título: ${nuevaOferta.titulo}")
-                        println("   Fecha Publicación: ${nuevaOferta.fechaPublicacion}")
-                        println("   Fecha Cierre: ${nuevaOferta.fechaCierre}")
-
                         scope.launch {
                             try {
-                                val response = repository.guardarOferta(nuevaOferta)
-
+                                val response = withContext(Dispatchers.IO) {
+                                    repository.guardarOferta(nuevaOferta)
+                                }
                                 withContext(Dispatchers.Main) {
                                     isLoading = false
                                     if (response != null) {
@@ -326,7 +320,6 @@ fun AgregarOfertaScreen(
         }
     }
 
-    // Diálogo de éxito
     if (showSuccess) {
         AlertDialog(
             onDismissRequest = { showSuccess = false },

@@ -1,6 +1,6 @@
 package com.example.frontend_bolsa_empleo_universitaria.model
 
-data class OfertaLaboral(
+data class OfertaLaboralResponse(
     val idOferta: Long = 0,
     val titulo: String = "",
     val descripcion: String = "",

@@ -18,21 +18,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboral
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
-import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-// ─── Colores (mismo estilo que BusquedaScreen) ──────────────────
+// Colores
 private val BlueGradientStart = Color(0xFF0056D2)
 private val BlueGradientEnd = Color(0xFF007BFF)
 private val BackgroundGray = Color(0xFFF8FAFF)
@@ -40,327 +42,490 @@ private val ChipHybridColor = Color(0xFFE3F2FD)
 private val ChipHybridText = Color(0xFF1976D2)
 private val PriceColor = Color(0xFF2E7D32)
 
+// Nav Items
+data class NavItem(
+    val label: String,
+    val icon: ImageVector,
+    val route: String
+)
+
+val navItems = listOf(
+    NavItem("Buscar", Icons.Default.Search, "busqueda"),
+    NavItem("Postulaciones", Icons.Outlined.AssignmentTurnedIn, "postulaciones"),
+    NavItem("Perfil", Icons.Default.Person, "perfil")
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EstudianteHomeScreen(
-    navController: NavController,
-    nombreUsuario: String = "Estudiante"
+    navController: NavController
 ) {
     val context = LocalContext.current
     val token = remember { Token(context) }
-    val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi, token) }
+    var selectedTab by remember { mutableStateOf(0) }
+
+    // Estado del drawer
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    // Estado para el item seleccionado en el drawer
+    var selectedDrawerItem by remember { mutableStateOf("inicio") }
+
+    val nombreUsuario = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Estudiante"
+
+    val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val viewModel: OfertasViewModel = viewModel(
         factory = OfertasViewModelFactory(repository)
     )
 
-    val ofertas by viewModel.ofertas.collectAsState()
-    val loading by viewModel.loading.collectAsState()
-
-    var searchQuery by remember { mutableStateOf("") }
+    var busqueda by remember { mutableStateOf("") }
     var filtroSeleccionado by remember { mutableStateOf("Todas") }
-    var selectedTab by remember { mutableStateOf(0) }
 
-    // Carga inicial
+    val ofertas = viewModel.ofertas.value
+    val loading = viewModel.loading.value
+
     LaunchedEffect(Unit) {
         viewModel.cargarActivas()
     }
 
-    // Debounce para la búsqueda
-    LaunchedEffect(searchQuery) {
-        if (searchQuery.isNotBlank()) {
-            delay(500)
-            viewModel.buscarPorTexto(searchQuery)
-        } else if (filtroSeleccionado == "Todas") {
-            viewModel.cargarActivas()
+    if (viewModel.error.value != null) {
+        Text(
+            text = "Error: ${viewModel.error.value}",
+            color = Color.Red,
+            modifier = Modifier.padding(16.dp)
+        )
+    }
+
+    LaunchedEffect(busqueda, filtroSeleccionado) {
+        delay(300)
+        if (busqueda.isNotBlank()) {
+            viewModel.buscarGeneral(busqueda)
+        } else {
+            viewModel.filtrarPorCategoria(filtroSeleccionado)
         }
     }
 
-    // Datos del usuario desde token
-    val nombreEstudiante = remember {
-        token.getNombre() ?: nombreUsuario
-    }
-
-    Scaffold(
-        containerColor = BackgroundGray,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Bolsa de Empleo",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                },
-                actions = {
-                    IconButton(onClick = {
-                        token.clearSession()
-                        navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
-                        }
-                    }) {
-                        Icon(Icons.Default.Logout, contentDescription = "Salir", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BlueGradientStart
-                )
-            )
-        },
-        bottomBar = {
-            NavigationBar(
-                containerColor = Color.White,
-                tonalElevation = 8.dp
+    // ModalDrawer para el menú lateral
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = true,
+        drawerContent = {
+            ModalDrawerSheet(
+                modifier = Modifier.width(280.dp),
+                drawerContainerColor = Color.White
             ) {
-                val navItems = listOf(
-                    "Inicio" to Icons.Default.Home,
-                    "Búsqueda" to Icons.Default.Search,
-                    "Postulaciones" to Icons.Outlined.AssignmentTurnedIn,
-                    "Perfil" to Icons.Default.Person
-                )
-
-                navItems.forEachIndexed { index, (label, icon) ->
-                    NavigationBarItem(
-                        selected = selectedTab == index,
-                        onClick = { selectedTab = index },
-                        icon = { Icon(icon, contentDescription = label) },
-                        label = { Text(label) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = BlueGradientStart,
-                            selectedTextColor = BlueGradientStart,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray,
-                            indicatorColor = ChipHybridColor
+                // Header con avatar y nombre
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(BlueGradientStart, BlueGradientEnd)
+                            )
                         )
-                    )
-                }
-            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Header con Gradiente y saludo
-            HeaderSectionEstudiante(
-                nombreUsuario = nombreEstudiante,
-                onNotificationClick = { /* Mostrar notificaciones */ }
-            )
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Filtros Rápidos
-                item {
-                    FiltrosSectionEstudiante(
-                        seleccionado = filtroSeleccionado,
-                        onFiltroClick = { filtro ->
-                            filtroSeleccionado = filtro
-                            searchQuery = ""
-                            when (filtro) {
-                                "Todas" -> viewModel.cargarActivas()
-                                else -> viewModel.filtrarPorArea(filtro)
-                            }
-                        }
-                    )
-                }
-
-                // Barra de búsqueda
-                item {
-                    SearchBarEstudiante(
-                        searchQuery = searchQuery,
-                        onSearchChange = {
-                            searchQuery = it
-                            filtroSeleccionado = "Todas"
-                        },
-                        onClearSearch = {
-                            searchQuery = ""
-                            viewModel.limpiarFiltros()
-                        }
-                    )
-                }
-
-                // Título de sección
-                item {
-                    Text(
-                        text = if (searchQuery.isBlank()) "📌 Ofertas Recomendadas" else "🔍 Resultados para '$searchQuery'",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black
-                    )
-                }
-
-                // Estado de carga
-                if (loading) {
-                    item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = BlueGradientStart)
-                        }
-                    }
-                }
-
-                // Lista de ofertas
-                items(ofertas) { oferta ->
-                    JobCardEstudiante(
-                        oferta = oferta,
-                        onClick = {
-                            navController.navigate("detalle_oferta/${oferta.idOferta}")
-                        }
-                    )
-                }
-
-                // Mensaje cuando no hay ofertas
-                if (!loading && ofertas.isEmpty()) {
-                    item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    Icons.Default.SearchOff,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = Color.LightGray
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("No se encontraron ofertas", color = Color.Gray)
-                                Text(
-                                    text = "Prueba con otros filtros o palabras clave",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = Color.Gray
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item { Spacer(modifier = Modifier.height(20.dp)) }
-            }
-        }
-    }
-}
-
-@Composable
-fun HeaderSectionEstudiante(
-    nombreUsuario: String,
-    onNotificationClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight()
-    ) {
-        Column {
-            // Fondo Gradiente
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(160.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(BlueGradientStart, BlueGradientEnd)
-                        ),
-                        shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-                    )
-                    .padding(horizontal = 24.dp, vertical = 20.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                        .padding(vertical = 28.dp, horizontal = 20.dp)
                 ) {
                     Column {
+                        Box(
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Avatar",
+                                tint = Color.White,
+                                modifier = Modifier.size(36.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Hola, $nombreUsuario 👋",
+                            text = nombreUsuario,
                             color = Color.White,
-                            style = MaterialTheme.typography.headlineSmall,
+                            fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Encuentra tu próximo empleo",
-                            color = Color.White.copy(alpha = 0.8f),
-                            style = MaterialTheme.typography.bodyMedium
+                            text = token.getUserEmail() ?: "usuario@email.com",
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontSize = 12.sp
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        // Estadísticas rápidas
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Surface(
-                                color = Color.White.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Text(
-                                    text = "📊 150+ ofertas",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White
-                                )
-                            }
-                            Surface(
-                                color = Color.White.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(20.dp)
-                            ) {
-                                Text(
-                                    text = "🏢 50+ empresas",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White
-                                )
-                            }
-                        }
                     }
-                    IconButton(
-                        onClick = onNotificationClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(Color.White.copy(alpha = 0.2f), CircleShape)
-                    ) {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = "Notificaciones",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Sección "MENÚ"
+                Text(
+                    text = "MENÚ",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Gray
+                )
+
+                DrawerMenuItemGmail(
+                    icon = Icons.Default.Home,
+                    text = "Inicio",
+                    badge = null,
+                    selected = selectedDrawerItem == "inicio"
+                ) {
+                    selectedDrawerItem = "inicio"
+                    scope.launch { drawerState.close() }
+                }
+
+                DrawerMenuItemGmail(
+                    icon = Icons.Default.Notifications,
+                    text = "Notificaciones",
+                    badge = "3",
+                    badgeColor = Color(0xFF1976D2),
+                    selected = selectedDrawerItem == "notificaciones"
+                ) {
+                    selectedDrawerItem = "notificaciones"
+                    scope.launch { drawerState.close() }
+                    try {
+                        navController.navigate("notificaciones")
+                    } catch (e: Exception) {
+                        println("Error navegando a notificaciones: ${e.message}")
+                    }
+                }
+
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+
+                // Sección "CUENTA"
+                Text(
+                    text = "CUENTA",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Gray
+                )
+
+                DrawerMenuItemGmail(
+                    icon = Icons.Default.Settings,
+                    text = "Configuración de Cuenta",
+                    badge = null,
+                    selected = selectedDrawerItem == "configuracion"
+                ) {
+                    selectedDrawerItem = "configuracion"
+                    scope.launch { drawerState.close() }
+                    try {
+                        navController.navigate("configuracion_cuenta")
+                    } catch (e: Exception) {
+                        println("Error navegando a configuración: ${e.message}")
+                    }
+                }
+
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+
+                // Sección "SOPORTE"
+                Text(
+                    text = "SOPORTE",
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Gray
+                )
+
+                DrawerMenuItemGmail(
+                    icon = Icons.Default.Info,
+                    text = "Acerca de",
+                    badge = null,
+                    selected = selectedDrawerItem == "acerca"
+                ) {
+                    selectedDrawerItem = "acerca"
+                    scope.launch { drawerState.close() }
+                    try {
+                        navController.navigate("acerca_de")
+                    } catch (e: Exception) {
+                        println("Error navegando a acerca de: ${e.message}")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+
+                DrawerMenuItemGmail(
+                    icon = Icons.Default.Logout,
+                    text = "Cerrar Sesión",
+                    badge = null,
+                    iconTint = Color(0xFFE53935),
+                    textColor = Color(0xFFE53935),
+                    selected = false
+                ) {
+                    scope.launch { drawerState.close() }
+                    token.clearSession()
+                    navController.navigate("login") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+        }
+    ) {
+        Scaffold(
+            containerColor = BackgroundGray,
+            topBar = {
+                TopAppBar(
+                    title = { },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = { scope.launch { drawerState.open() } },
+                            modifier = Modifier.size(48.dp)  // Icono más grande
+                        ) {
+                            Icon(
+                                Icons.Default.Menu,
+                                contentDescription = "Menú",
+                                tint = Color.White,
+                                modifier = Modifier.size(28.dp)  // Ícono más grande
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = BlueGradientStart
+                    ),
+                    modifier = Modifier.height(56.dp)
+                )
+            },
+            bottomBar = {
+                NavigationBar(
+                    containerColor = Color.White,
+                    tonalElevation = 8.dp
+                ) {
+                    navItems.forEachIndexed { index, item ->
+                        NavigationBarItem(
+                            selected = index == selectedTab,
+                            onClick = {
+                                selectedTab = index
+                                when (item.route) {
+                                    "postulaciones" -> {
+                                        try {
+                                            navController.navigate("mis_postulaciones")
+                                        } catch (e: Exception) {
+                                            println("Error: ${e.message}")
+                                        }
+                                    }
+                                    "perfil" -> {
+                                        try {
+                                            navController.navigate("configuracion_cuenta")
+                                        } catch (e: Exception) {
+                                            println("Error: ${e.message}")
+                                        }
+                                    }
+                                }
+                            },
+                            icon = { Icon(item.icon, contentDescription = item.label) },
+                            label = { Text(item.label) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = BlueGradientStart,
+                                selectedTextColor = BlueGradientStart,
+                                unselectedIconColor = Color.Gray,
+                                unselectedTextColor = Color.Gray,
+                                indicatorColor = ChipHybridColor
+                            )
                         )
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
+        ) { padding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                // Header con buscador
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                ) {
+                    Column {
+                        // Fondo Gradiente con ícono y título - altura reducida y contenido más arriba
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(160.dp)  // Altura reducida de 200 a 160
+                                .background(
+                                    brush = Brush.verticalGradient(
+                                        colors = listOf(BlueGradientStart, BlueGradientEnd)
+                                    ),
+                                    shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                // Ícono del graduado más grande
+                                Box(
+                                    modifier = Modifier
+                                        .size(80.dp)  // Más grande (antes 72)
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(Color.White.copy(alpha = 0.2f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.School,
+                                        contentDescription = "Graduado",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(50.dp)  // Ícono más grande
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))  // Espacio reducido
+
+                                Text(
+                                    text = "Bolsa de Empleo",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color.White,
+                                    fontSize = 24.sp  // Texto más grande
+                                )
+
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Text(
+                                    text = "Encuentra tu próximo empleo",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontSize = 14.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))  // Espacio reducido (antes 30)
+                    }
+
+                    // Card de búsqueda flotante
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp)
+                            .align(Alignment.BottomCenter),
+                        shape = RoundedCornerShape(16.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                    ) {
+                        TextField(
+                            value = busqueda,
+                            onValueChange = { busqueda = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Buscar cargo, modalidad, área...") },
+                            leadingIcon = {
+                                Icon(Icons.Default.Search, contentDescription = null, tint = BlueGradientStart)
+                            },
+                            trailingIcon = if (busqueda.isNotEmpty()) {
+                                {
+                                    IconButton(onClick = { busqueda = "" }) {
+                                        Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = Color.Gray)
+                                    }
+                                }
+                            } else null,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                disabledContainerColor = Color.White,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                            singleLine = true
+                        )
+                    }
+                }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Filtros Rápidos
+                    item {
+                        FiltrosSection(
+                            seleccionado = filtroSeleccionado,
+                            onFiltroClick = { filtro ->
+                                filtroSeleccionado = filtro
+                                busqueda = ""
+                            }
+                        )
+                    }
+
+                    item {
+                        Text(
+                            text = if (busqueda.isBlank()) "Ofertas Recientes" else "Resultados para '$busqueda'",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    }
+
+                    if (loading) {
+                        item {
+                            Box(
+                                Modifier.fillMaxWidth().padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(color = BlueGradientStart)
+                            }
+                        }
+                    }
+
+                    items(ofertas) { oferta ->
+                        JobCard(
+                            oferta = oferta,
+                            onClick = {
+                                try {
+                                    navController.navigate("detalle_oferta/${oferta.idOferta}")
+                                } catch (e: Exception) {
+                                    println("Error: ${e.message}")
+                                }
+                            }
+                        )
+                    }
+
+                    if (!loading && ofertas.isEmpty()) {
+                        item {
+                            Box(
+                                Modifier.fillMaxWidth().padding(32.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(
+                                        Icons.Default.SearchOff,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(64.dp),
+                                        tint = Color.LightGray
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("No se encontraron ofertas", color = Color.Gray)
+                                }
+                            }
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(20.dp)) }
+                }
+            }
         }
     }
 }
 
 @Composable
-fun FiltrosSectionEstudiante(
+fun FiltrosSection(
     seleccionado: String,
     onFiltroClick: (String) -> Unit
 ) {
-    val filtros = listOf("Todas", "Tecnología", "Diseño", "Marketing", "Ventas", "Administración")
-
+    val filtros = listOf("Todas", "Diseño", "Desarrollo", "Marketing", "Ventas", "TI")
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 4.dp)
+        contentPadding = PaddingValues(end = 16.dp)
     ) {
         items(filtros) { filtro ->
-            val icono = when (filtro) {
-                "Tecnología" -> "💻"
-                "Diseño" -> "🎨"
-                "Marketing" -> "📢"
-                "Ventas" -> "💰"
-                "Administración" -> "📋"
-                else -> "📌"
-            }
-
             FilterChip(
                 selected = filtro == seleccionado,
                 onClick = { onFiltroClick(filtro) },
-                label = {
-                    Text(
-                        text = if (filtro == "Todas") filtro else "$icono $filtro",
-                        fontSize = MaterialTheme.typography.labelMedium.fontSize
-                    )
-                },
+                label = { Text(filtro) },
                 colors = FilterChipDefaults.filterChipColors(
                     selectedContainerColor = BlueGradientStart,
                     selectedLabelColor = Color.White,
@@ -380,62 +545,23 @@ fun FiltrosSectionEstudiante(
 }
 
 @Composable
-fun SearchBarEstudiante(
-    searchQuery: String,
-    onSearchChange: (String) -> Unit,
-    onClearSearch: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
-    ) {
-        TextField(
-            value = searchQuery,
-            onValueChange = onSearchChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    "🔍 Buscar por cargo, área o título...",
-                    color = Color.Gray
-                )
-            },
-            leadingIcon = {
-                Icon(
-                    Icons.Default.Search,
-                    contentDescription = "Buscar",
-                    tint = BlueGradientStart
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = onClearSearch) {
-                        Icon(
-                            Icons.Default.Clear,
-                            contentDescription = "Limpiar",
-                            tint = Color.Gray
-                        )
-                    }
-                }
-            },
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                disabledContainerColor = Color.White,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            ),
-            singleLine = true
-        )
-    }
-}
-
-@Composable
-fun JobCardEstudiante(
+fun JobCard(
     oferta: OfertaLaboral,
     onClick: () -> Unit
 ) {
+    val fechaPublicacionStr = oferta.fechaPublicacion?.let { fecha ->
+        try {
+            val partes = fecha.split("-")
+            if (partes.size == 3) {
+                "${partes[2]}/${partes[1]}/${partes[0]}"
+            } else {
+                fecha
+            }
+        } catch (e: Exception) {
+            fecha
+        }
+    } ?: "Fecha no disponible"
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -450,7 +576,6 @@ fun JobCardEstudiante(
                 .fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Icono de Empresa
             Box(
                 modifier = Modifier
                     .size(54.dp)
@@ -459,15 +584,11 @@ fun JobCardEstudiante(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = when {
-                        oferta.area == null -> Icons.Default.Business
-                        oferta.area.lowercase().contains("diseño") -> Icons.Default.Palette
-                        oferta.area.lowercase().contains("desarrollo") ||
-                                oferta.area.lowercase().contains("tecnología") ||
-                                oferta.area.lowercase().contains("ti") -> Icons.Default.Code
-                        oferta.area.lowercase().contains("venta") -> Icons.Default.TrendingUp
-                        oferta.area.lowercase().contains("marketing") -> Icons.Default.Campaign
-                        oferta.area.lowercase().contains("administración") -> Icons.Default.Business
+                    imageVector = when (oferta.area.lowercase()) {
+                        "diseño" -> Icons.Default.Palette
+                        "desarrollo", "ti" -> Icons.Default.Code
+                        "ventas" -> Icons.Default.TrendingUp
+                        "marketing" -> Icons.Default.Campaign
                         else -> Icons.Default.Business
                     },
                     contentDescription = null,
@@ -487,7 +608,7 @@ fun JobCardEstudiante(
                     maxLines = 1
                 )
                 Text(
-                    text = oferta.area ?: "General",
+                    text = oferta.area,
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -495,13 +616,12 @@ fun JobCardEstudiante(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Chip Modalidad
                     Surface(
                         color = ChipHybridColor,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
-                            text = oferta.modalidad.ifBlank { "Presencial" },
+                            text = if (oferta.modalidad.isNotBlank()) oferta.modalidad else "Presencial",
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                             style = MaterialTheme.typography.labelSmall,
                             color = ChipHybridText,
@@ -509,16 +629,14 @@ fun JobCardEstudiante(
                         )
                     }
                     Spacer(modifier = Modifier.width(8.dp))
-                    // Fecha
                     Text(
-                        text = "• ${oferta.fechaPublicacion?.take(10) ?: "Reciente"}",
+                        text = "• $fechaPublicacionStr",
                         style = MaterialTheme.typography.labelSmall,
                         color = Color.Gray
                     )
                 }
             }
 
-            // Salario
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = "$${oferta.salario.toInt()}",
@@ -530,6 +648,60 @@ fun JobCardEstudiante(
                     text = "/mes",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun DrawerMenuItemGmail(
+    icon: ImageVector,
+    text: String,
+    badge: String? = null,
+    badgeColor: Color = Color(0xFF1976D2),
+    iconTint: Color = Color(0xFF444444),
+    textColor: Color = Color(0xFF222222),
+    selected: Boolean = false,
+    onClick: () -> Unit
+) {
+    val bgColor = if (selected) Color(0xFFE3F2FD) else Color.Transparent
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 2.dp)
+            .clip(RoundedCornerShape(50.dp))
+            .background(bgColor)
+            .clickable { onClick() }
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = text,
+            tint = if (selected) BlueGradientStart else iconTint,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(16.dp))
+        Text(
+            text = text,
+            color = if (selected) BlueGradientStart else textColor,
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.weight(1f)
+        )
+        if (badge != null) {
+            Surface(
+                color = badgeColor,
+                shape = RoundedCornerShape(50.dp)
+            ) {
+                Text(
+                    text = badge,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    fontSize = 10.sp,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }

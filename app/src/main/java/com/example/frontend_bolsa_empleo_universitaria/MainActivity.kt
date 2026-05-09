@@ -18,7 +18,9 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.screens.Administrador.AdministradorHomeScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.DetalleOfertaEmpresaScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.EditarPerfilEmpresaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.EmpresaHomeScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.PostulantesOfertaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.RegistroEmpresaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.EstudianteHomeScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.RegistroEstudianteScreen
@@ -70,14 +72,16 @@ fun AppNavigation() {
         composable("registro_empresa") {
             RegistroEmpresaScreen(navController = navController)
         }
+        composable("editar_perfil_empresa") {
+            EditarPerfilEmpresaScreen(navController = navController)
+        }
 
-        // ✅ NUEVA RUTA: detalle de oferta para empresa
+        // ✅ Ruta: detalle de oferta para empresa
         composable("detalle_oferta/{ofertaId}") { backStackEntry ->
             val ofertaId = backStackEntry.arguments
                 ?.getString("ofertaId")
                 ?.toLongOrNull() ?: 0L
 
-            // Compartir el mismo ViewModel que usa EmpresaHomeScreen
             val empresaEntry = remember(backStackEntry) {
                 navController.getBackStackEntry("empresa_home")
             }
@@ -92,6 +96,17 @@ fun AppNavigation() {
                 ofertaId = ofertaId,
                 navController = navController,
                 viewModel = viewModel
+            )
+        }
+
+        // ✅ Ruta: postulantes de una oferta (CORREGIDA - fuera del composable anterior)
+        composable("postulantes_oferta/{ofertaId}/{ofertaTitulo}") { backStackEntry ->
+            val ofertaId = backStackEntry.arguments?.getString("ofertaId")?.toLongOrNull() ?: 0
+            val ofertaTitulo = backStackEntry.arguments?.getString("ofertaTitulo") ?: "Oferta"
+            PostulantesOfertaScreen(
+                ofertaId = ofertaId,
+                ofertaTitulo = ofertaTitulo,
+                navController = navController
             )
         }
     }

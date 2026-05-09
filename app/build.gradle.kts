@@ -43,7 +43,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 
-    // Compose BOM (controla versiones de todo Compose)
+    // Compose BOM
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
@@ -69,10 +69,8 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
 
-    // Coil (carga de imágenes)
+    // Coil
     implementation("io.coil-kt:coil-compose:2.6.0")
-    implementation(libs.androidx.material3)
-    implementation(libs.androidx.compose.ui.text)
 
     // Tests
     testImplementation(libs.junit)

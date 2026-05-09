@@ -215,4 +215,32 @@ class OfertasViewModel(
             }
         }
     }
+    // Agrega esta función en OfertasViewModel.kt
+    fun eliminarOferta(idOferta: Long, idEmpresa: Long, onComplete: (Boolean) -> Unit = {}) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val resultado = repository.eliminarOferta(idOferta)
+                if (resultado) {
+                    // Eliminar de la lista local
+                    _ofertasEmpresa.value = _ofertasEmpresa.value.filter { it.idOferta != idOferta }
+                    _ofertas.value = _ofertas.value.filter { it.idOferta != idOferta }
+                    _todasLasOfertas.value = _todasLasOfertas.value.filter { it.idOferta != idOferta }
+                    println("✅ Oferta $idOferta eliminada correctamente")
+                    onComplete(true)
+                } else {
+                    _error.value = "Error al eliminar la oferta"
+                    onComplete(false)
+                }
+            } catch (e: Exception) {
+                println("❌ Error al eliminar oferta: ${e.message}")
+                _error.value = "Error: ${e.message}"
+                onComplete(false)
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
 }

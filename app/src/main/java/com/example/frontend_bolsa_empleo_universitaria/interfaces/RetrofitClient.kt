@@ -90,7 +90,8 @@ object RetrofitClient {
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
     val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
     val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
-
+    val postulacionApi: PostulacionApi by lazy { retrofit.create(PostulacionApi::class.java) }
+    val seguimientoPostulacionApi: SeguimientoPostulacionApi by lazy { retrofit.create(SeguimientoPostulacionApi::class.java) }
     fun init(context: Context) {
         appContext = context.applicationContext
         println("✅ RetrofitClient inicializado con BASE_URL: $BASE_URL")

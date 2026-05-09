@@ -75,7 +75,6 @@ fun EmpresaHomeScreen(
     )
 
     val idEmpresa = token.getEmpresaId()
-    // ✅ CORREGIDO: Usar OfertaLaboralResponse
     val ofertas = viewModel.ofertasEmpresa.value
     val loading = viewModel.loading.value
 
@@ -165,7 +164,7 @@ fun EmpresaHomeScreen(
                     selectedTab = 0
                 }
 
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 Text(
                     text = "CUENTA",
@@ -183,10 +182,10 @@ fun EmpresaHomeScreen(
                 ) {
                     selectedDrawerItem = "configuracion"
                     scope.launch { drawerState.close() }
-                    navController.navigate("configuracion_cuenta")
+                    navController.navigate("editar_perfil_empresa")
                 }
 
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 Text(
                     text = "SOPORTE",
@@ -208,7 +207,7 @@ fun EmpresaHomeScreen(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 DrawerMenuItemEmpresa(
                     icon = Icons.Default.Logout,
@@ -281,7 +280,11 @@ fun EmpresaHomeScreen(
                     loading = loading,
                     onVerDetalle = { ofertaId ->
                         navController.navigate("detalle_oferta/$ofertaId")
-                    }
+                    },
+                    onEliminar = { ofertaId ->
+                        viewModel.eliminarOferta(ofertaId, idEmpresa)
+                    },
+                    navController = navController
                 )
                 1 -> AgregarOfertaScreen(
                     padding = padding,
@@ -297,14 +300,43 @@ fun EmpresaHomeScreen(
     }
 }
 
-// ✅ CORREGIDO: Usar OfertaLaboralResponse
 @Composable
 fun EmpresaOfertasScreen(
     padding: PaddingValues,
     ofertas: List<OfertaLaboralResponse>,
     loading: Boolean,
-    onVerDetalle: (Long) -> Unit
+    onVerDetalle: (Long) -> Unit,
+    onEliminar: (Long) -> Unit,
+    navController: NavController
 ) {
+    // Estado para el filtro seleccionado
+    var filtroSeleccionado by remember { mutableStateOf("Todas") }
+
+    // Estado para la búsqueda
+    var busqueda by remember { mutableStateOf("") }
+
+    // Calcular estadísticas
+    val totalOfertas = ofertas.size
+    val activas = ofertas.count { it.estado }
+    val inactivas = ofertas.count { !it.estado }
+
+    // Filtrar por estado primero
+    val ofertasPorEstado = when (filtroSeleccionado) {
+        "Activas" -> ofertas.filter { it.estado }
+        "Inactivas" -> ofertas.filter { !it.estado }
+        else -> ofertas
+    }
+
+    // Filtrar por búsqueda (título o área)
+    val ofertasFiltradas = if (busqueda.isNotBlank()) {
+        ofertasPorEstado.filter { oferta ->
+            oferta.titulo.contains(busqueda, ignoreCase = true) ||
+                    oferta.area.contains(busqueda, ignoreCase = true)
+        }
+    } else {
+        ofertasPorEstado
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -371,6 +403,8 @@ fun EmpresaOfertasScreen(
                 Spacer(modifier = Modifier.height(20.dp))
             }
 
+            // Card de búsqueda flotante
+            // Card de búsqueda flotante
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -379,7 +413,6 @@ fun EmpresaOfertasScreen(
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
             ) {
-                var busqueda by remember { mutableStateOf("") }
                 TextField(
                     value = busqueda,
                     onValueChange = { busqueda = it },
@@ -400,11 +433,50 @@ fun EmpresaOfertasScreen(
                         unfocusedContainerColor = Color.White,
                         disabledContainerColor = Color.White,
                         focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                        unfocusedIndicatorColor = Color.Transparent,
+                        focusedTextColor = Color.Black,        // ← AGREGAR
+                        unfocusedTextColor = Color.Black,      // ← AGREGAR
+                        focusedPlaceholderColor = Color.Gray,  // ← OPCIONAL
+                        unfocusedPlaceholderColor = Color.Gray // ← OPCIONAL
                     ),
                     singleLine = true
                 )
             }
+        }
+
+        // Filtros en tarjetas
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            FiltroCard(
+                modifier = Modifier.weight(1f),
+                titulo = "Todas",
+                numero = totalOfertas,
+                color = BlueGradientStart,
+                isSelected = filtroSeleccionado == "Todas",
+                onClick = { filtroSeleccionado = "Todas" }
+            )
+
+            FiltroCard(
+                modifier = Modifier.weight(1f),
+                titulo = "Activas",
+                numero = activas,
+                color = Color(0xFF2E7D32),
+                isSelected = filtroSeleccionado == "Activas",
+                onClick = { filtroSeleccionado = "Activas" }
+            )
+
+            FiltroCard(
+                modifier = Modifier.weight(1f),
+                titulo = "Inactivas",
+                numero = inactivas,
+                color = Color(0xFFE53935),
+                isSelected = filtroSeleccionado == "Inactivas",
+                onClick = { filtroSeleccionado = "Inactivas" }
+            )
         }
 
         LazyColumn(
@@ -413,12 +485,13 @@ fun EmpresaOfertasScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             item {
-                FiltrosSectionEmpresa()
-            }
-
-            item {
                 Text(
-                    text = "Mis Ofertas Publicadas",
+                    text = when {
+                        busqueda.isNotBlank() -> "Resultados para '$busqueda'"
+                        filtroSeleccionado == "Activas" -> "Ofertas Activas"
+                        filtroSeleccionado == "Inactivas" -> "Ofertas Inactivas"
+                        else -> "Mis Ofertas Publicadas"
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.Black
@@ -436,15 +509,18 @@ fun EmpresaOfertasScreen(
                 }
             }
 
-            items(ofertas) { oferta ->
-                // ✅ Ahora oferta tiene idOferta
+            items(ofertasFiltradas) { oferta ->
                 EmpresaJobCard(
                     oferta = oferta,
-                    onClick = { onVerDetalle(oferta.idOferta) }
+                    onClick = { onVerDetalle(oferta.idOferta) },
+                    onVerPostulantes = {
+                        navController.navigate("postulantes_oferta/${oferta.idOferta}/${oferta.titulo}")
+                    },
+                    onEliminar = { onEliminar(oferta.idOferta) }
                 )
             }
 
-            if (!loading && ofertas.isEmpty()) {
+            if (!loading && ofertasFiltradas.isEmpty()) {
                 item {
                     Box(
                         Modifier.fillMaxWidth().padding(32.dp),
@@ -452,19 +528,29 @@ fun EmpresaOfertasScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
-                                Icons.Default.Business,
+                                Icons.Default.SearchOff,
                                 contentDescription = null,
                                 modifier = Modifier.size(64.dp),
                                 tint = Color.LightGray
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("No tienes ofertas publicadas", color = Color.Gray)
-                            Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Toca el botón + para crear una nueva oferta",
-                                color = Color.Gray,
-                                fontSize = 12.sp
+                                when {
+                                    busqueda.isNotBlank() -> "No se encontraron ofertas que coincidan con '$busqueda'"
+                                    filtroSeleccionado == "Activas" -> "No tienes ofertas activas"
+                                    filtroSeleccionado == "Inactivas" -> "No tienes ofertas inactivas"
+                                    else -> "No tienes ofertas publicadas"
+                                },
+                                color = Color.Gray
                             )
+                            if (filtroSeleccionado != "Inactivas" && busqueda.isBlank()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Toca el botón + para crear una nueva oferta",
+                                    color = Color.Gray,
+                                    fontSize = 12.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -476,41 +562,60 @@ fun EmpresaOfertasScreen(
 }
 
 @Composable
-fun FiltrosSectionEmpresa() {
-    val filtros = listOf("Todas", "Activas", "Próximas", "Finalizadas")
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(end = 16.dp)
+fun FiltroCard(
+    modifier: Modifier = Modifier,
+    titulo: String,
+    numero: Int,
+    color: Color,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .clickable { onClick() },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) color else Color.White,
+            contentColor = if (isSelected) Color.White else color
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 4.dp else 2.dp
+        )
     ) {
-        items(filtros) { filtro ->
-            FilterChip(
-                selected = filtro == "Todas",
-                onClick = { },
-                label = { Text(filtro) },
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = BlueGradientStart,
-                    selectedLabelColor = Color.White,
-                    containerColor = Color.White,
-                    labelColor = Color.Gray
-                ),
-                border = FilterChipDefaults.filterChipBorder(
-                    enabled = true,
-                    selected = filtro == "Todas",
-                    borderColor = Color.LightGray,
-                    selectedBorderColor = BlueGradientStart,
-                    borderWidth = 1.dp
-                )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = titulo,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected) Color.White else Color.DarkGray
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = numero.toString(),
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) Color.White else color
             )
         }
     }
 }
 
-// ✅ CORREGIDO: Usar OfertaLaboralResponse
 @Composable
 fun EmpresaJobCard(
     oferta: OfertaLaboralResponse,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onVerPostulantes: () -> Unit = {},
+    onEliminar: () -> Unit = {}
 ) {
+    var postulantesCount by remember { mutableStateOf(0) }
+    var isLoadingCount by remember { mutableStateOf(true) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+
     val fechaPublicacionStr = oferta.fechaPublicacion?.let { fecha ->
         try {
             val partes = fecha.split("-")
@@ -523,6 +628,83 @@ fun EmpresaJobCard(
             fecha
         }
     } ?: "Fecha no disponible"
+
+    LaunchedEffect(oferta.idOferta) {
+        isLoadingCount = true
+        try {
+            val api = RetrofitClient.postulacionApi
+            val response = api.listarPorOferta(oferta.idOferta)
+            if (response.isSuccessful) {
+                postulantesCount = response.body()?.size ?: 0
+                println("Postulantes para oferta ${oferta.idOferta}: $postulantesCount")
+            }
+        } catch (e: Exception) {
+            println("Error al contar postulantes: ${e.message}")
+        } finally {
+            isLoadingCount = false
+        }
+    }
+
+    // Diálogo de confirmación con colores claros
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            containerColor = Color.White,
+            title = {
+                Text(
+                    "Eliminar oferta",
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFE53935),
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Column {
+                    Text(
+                        "¿Estás seguro de que deseas eliminar esta oferta?",
+                        color = Color.Black,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Esta acción no se puede deshacer.",
+                        color = Color.Gray,
+                        fontSize = 12.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDeleteDialog = false
+                        onEliminar()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFE53935),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        modifier = Modifier.size(18.dp),
+                        tint = Color.White
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Eliminar", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text("Cancelar", fontWeight = FontWeight.Medium, color = Color.Gray)
+                }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 
     Card(
         modifier = Modifier
@@ -577,7 +759,7 @@ fun EmpresaJobCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Surface(
                         color = ChipHybridColor,
                         shape = RoundedCornerShape(8.dp)
@@ -590,7 +772,57 @@ fun EmpresaJobCard(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Surface(
+                        color = Color(0xFFE8F5E9),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.clickable { onVerPostulantes() }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (isLoadingCount) {
+                                Box(modifier = Modifier.size(16.dp)) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(12.dp),
+                                        strokeWidth = 1.5.dp,
+                                        color = BlueGradientStart
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "...",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = BlueGradientStart,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.People,
+                                    contentDescription = "Postulantes",
+                                    modifier = Modifier.size(14.dp),
+                                    tint = BlueGradientStart
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "$postulantesCount",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = BlueGradientStart,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (postulantesCount > 0) {
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "postulante${if (postulantesCount != 1) "s" else ""}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = BlueGradientStart
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     Text(
                         text = "• $fechaPublicacionStr",
                         style = MaterialTheme.typography.labelSmall,
@@ -611,6 +843,21 @@ fun EmpresaJobCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.Gray
                 )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Botón de eliminar
+                IconButton(
+                    onClick = { showDeleteDialog = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = Color(0xFFE53935),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
     }

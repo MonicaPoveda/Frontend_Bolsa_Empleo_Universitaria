@@ -70,8 +70,9 @@ class LoginViewModel(
                             empresaResult.fold(
                                 onSuccess = { response ->
                                     println("✅ Login exitoso como empresa")
-
-                                    // IMPORTANTE: Guardar el ID de la empresa
+                                    println("📝 Token: ${response.token.take(50)}...")
+                                    println("🏢 ID Empresa: ${response.empresa.idEmpresa}")
+                                    println("📧 Email: ${response.empresa.email}")                                    // IMPORTANTE: Guardar el ID de la empresa
                                     val idEmpresa = response.empresa.idEmpresa
                                     println("🏢 ID de empresa: $idEmpresa")
 
@@ -82,12 +83,17 @@ class LoginViewModel(
                                         idEmpresa = idEmpresa  // ← AGREGAR ESTO
                                     )
 
+
+
                                     _uiState.value = LoginUiState.Success(
                                         rol = "EMPRESA",
                                         email = response.empresa.email,
                                         token = response.token
                                     )
+
+
                                 },
+
                                 onFailure = { empresaError ->
                                     println("❌ Falló también como empresa: ${empresaError.message}")
 

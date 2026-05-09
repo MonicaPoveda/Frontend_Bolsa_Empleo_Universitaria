@@ -11,10 +11,8 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    //private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
     private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
 
-    // Variable para contexto (debes inicializarlo desde Application)
     lateinit var appContext: Context
 
     private val tokenManager: Token?
@@ -30,23 +28,41 @@ object RetrofitClient {
         val authInterceptor = okhttp3.Interceptor { chain ->
             var request = chain.request()
 
+            println("🔐 ===== INTERCEPTOR ===== 🔐")
+            println("📡 URL: ${request.url}")
+            println("📡 Método: ${request.method}")
+
             // Agregar token si existe
             tokenManager?.getToken()?.let { token ->
+                println("✅ Token encontrado: ${token.take(50)}...")
                 request = request.newBuilder()
                     .addHeader("Authorization", "Bearer $token")
                     .build()
+                println("✅ Header Authorization agregado")
+            } ?: run {
+                println("❌ No hay token disponible")
             }
 
             val response = chain.proceed(request)
+            println("📡 Código respuesta: ${response.code}")
+
+            if (response.code == 403) {
+                println("❌ ERROR 403 - Posibles causas:")
+                println("   1. Token inválido o expirado")
+                println("   2. Usuario no tiene rol EMPRESA")
+                println("   3. Empresa no aprobada por administrador")
+                println("   4. El token no se envió correctamente")
+            }
+
             response
         }
 
         val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)  // Primero el auth
-            .addInterceptor(logging)          // Después el logging
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+            .addInterceptor(authInterceptor)
+            .addInterceptor(logging)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
 
@@ -66,8 +82,8 @@ object RetrofitClient {
     val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
     val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
 
-    // Función para inicializar el contexto (llamar desde Application)
     fun init(context: Context) {
         appContext = context.applicationContext
+        println("✅ RetrofitClient inicializado")
     }
 }

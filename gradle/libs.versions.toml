@@ -17,6 +17,8 @@ datastorePreferencesCoreJvm = "1.2.1"
 firebaseAppdistributionGradle = "5.2.1"
 material3 = "1.4.0"
 uiText = "1.11.1"
+runtime = "1.11.1"
+# ✅ Agregar esta versión para compose-material3
 composeMaterial3 = "1.6.1"
 
 [libraries]
@@ -43,9 +45,10 @@ androidx-datastore-preferences-core-jvm = { group = "androidx.datastore", name =
 firebase-appdistribution-gradle = { group = "com.google.firebase", name = "firebase-appdistribution-gradle", version.ref = "firebaseAppdistributionGradle" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 androidx-compose-ui-text = { group = "androidx.compose.ui", name = "ui-text", version.ref = "uiText" }
-compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "composeMaterial3" }
+androidx-compose-runtime = { group = "androidx.compose.runtime", name = "runtime", version.ref = "runtime" }
+# ❌ Si no usas Wear Compose, elimina esta línea
+# compose-material3 = { group = "androidx.wear.compose", name = "compose-material3", version.ref = "composeMaterial3" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-

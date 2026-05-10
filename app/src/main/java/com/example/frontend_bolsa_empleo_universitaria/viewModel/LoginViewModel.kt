@@ -32,14 +32,22 @@ class LoginViewModel(
             println("🔐 Login iniciado para: $email")
 
             try {
-                // Primero intentar login como estudiante
+                // ----- Intento como estudiante -----
                 val estudianteResult = authRepository.login(email, password)
-
                 if (estudianteResult.isSuccess) {
                     val response = estudianteResult.getOrNull()
                     response?.let {
                         println("✅ Login exitoso como ESTUDIANTE")
-                        tokenManager.saveToken(it.token, email, "ESTUDIANTE", idEmpresa = 0)
+                        tokenManager.saveToken(
+                            token = it.token,
+                            email = email,
+                            rol = "ESTUDIANTE",
+                            idEmpresa = 0,
+                            idUsuario = it.usuario.idUsuario,
+                            nombre = it.usuario.nombre,
+                            apellido = it.usuario.apellido,
+                            telefono = it.usuario.telefono ?: ""   // ✅ guardar teléfono
+                        )
                         _uiState.value = LoginUiState.Success(it.token, "ESTUDIANTE", email)
                         return@launch
                     }
@@ -47,19 +55,29 @@ class LoginViewModel(
                     println("❌ Falló login como estudiante: ${estudianteResult.exceptionOrNull()?.message}")
                 }
 
-                // Si falla como estudiante, intentar como empresa
+                // ----- Intento como empresa -----
                 val empresaResult = empresaRepository.login(email, password)
-
                 if (empresaResult.isSuccess) {
                     val response = empresaResult.getOrNull()
                     response?.let {
                         println("✅ Login exitoso como EMPRESA")
                         println("   ID Empresa: ${it.empresa.idEmpresa}")
+
+                        // Datos del usuario asociado (puede ser null, por eso usamos safe call)
+                        val idUsuario = it.usuario?.idUsuario ?: 0
+                        val nombre = it.usuario?.nombre ?: ""
+                        val apellido = it.usuario?.apellido ?: ""
+                        val telefono = it.usuario?.telefono ?: ""
+
                         tokenManager.saveToken(
                             token = it.token,
                             email = email,
-                            rol = "EMPRESA",
-                            idEmpresa = it.empresa.idEmpresa
+                            rol = "EMPRESA",                       // ✅ rol correcto
+                            idEmpresa = it.empresa.idEmpresa,      // ✅ ID real de la empresa
+                            idUsuario = idUsuario,
+                            nombre = nombre,
+                            apellido = apellido,
+                            telefono = telefono
                         )
                         _uiState.value = LoginUiState.Success(it.token, "EMPRESA", email)
                         return@launch
@@ -68,7 +86,7 @@ class LoginViewModel(
                     println("❌ Falló login como empresa: ${empresaResult.exceptionOrNull()?.message}")
                 }
 
-                // Si ambos fallan, mostrar error
+                // ----- Ambos fallaron -----
                 val error = when {
                     empresaResult.exceptionOrNull()?.message?.contains("PENDIENTE") == true ->
                         "❌ Tu solicitud está PENDIENTE. Espera la aprobación del administrador."
@@ -88,5 +106,4 @@ class LoginViewModel(
             }
         }
     }
-
 }

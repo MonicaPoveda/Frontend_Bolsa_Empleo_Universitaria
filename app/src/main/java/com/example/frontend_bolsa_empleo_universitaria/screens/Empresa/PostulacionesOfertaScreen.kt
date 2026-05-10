@@ -61,7 +61,7 @@ fun PostulantesOfertaScreen(
     }
     val seguimientoRepository = remember { SeguimientoPostulacionRepository(RetrofitClient.seguimientoPostulacionApi) }
     val viewModel: PostulacionViewModel = viewModel(
-        factory = PostulacionViewModelFactory(postulacionRepository, seguimientoRepository)
+        factory = PostulacionViewModelFactory(postulacionRepository, seguimientoRepository,RetrofitClient.postulacionApi )
     )
 
     val postulaciones by viewModel.postulaciones

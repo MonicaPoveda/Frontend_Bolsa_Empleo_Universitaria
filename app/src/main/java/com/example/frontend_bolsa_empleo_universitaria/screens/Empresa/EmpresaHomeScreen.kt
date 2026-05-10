@@ -51,7 +51,7 @@ data class NavItemEmpresa(
 val navItemsEmpresa = listOf(
     NavItemEmpresa("Inicio", Icons.Default.Home, "inicio"),
     NavItemEmpresa("Agregar", Icons.Default.Add, "agregar"),
-    NavItemEmpresa("Perfil", Icons.Default.Person, "perfil")
+    NavItemEmpresa("PerfilRequest", Icons.Default.Person, "perfil")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

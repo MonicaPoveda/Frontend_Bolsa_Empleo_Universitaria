@@ -4,16 +4,25 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.PostulacionApi
 import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionDto
+import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionRequest
+import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionResponse
 import com.example.frontend_bolsa_empleo_universitaria.model.SeguimientoPostulacionDto
 import com.example.frontend_bolsa_empleo_universitaria.repository.PostulacionRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.SeguimientoPostulacionRepository
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class PostulacionViewModel(
     private val postulacionRepository: PostulacionRepository,
-    private val seguimientoRepository: SeguimientoPostulacionRepository
+    private val seguimientoRepository: SeguimientoPostulacionRepository,
+    private val api: PostulacionApi
 ) : ViewModel() {
+
+    // ==================== PARA EMPRESA (Compose State) ====================
 
     private val _postulaciones = mutableStateOf<List<PostulacionDto>>(emptyList())
     val postulaciones: State<List<PostulacionDto>> = _postulaciones
@@ -30,7 +39,22 @@ class PostulacionViewModel(
     private val _updating = mutableStateOf(false)
     val updating: State<Boolean> = _updating
 
-    // Cargar postulaciones por oferta
+
+    // ==================== PARA ESTUDIANTE (StateFlow) ====================
+
+    private val _postulacionesEstudiante = MutableStateFlow<List<PostulacionResponse>>(emptyList())
+    val postulacionesEstudiante: StateFlow<List<PostulacionResponse>> = _postulacionesEstudiante
+
+    private val _loadingEstudiante = MutableStateFlow(false)
+    val loadingEstudiante: StateFlow<Boolean> = _loadingEstudiante
+
+    private val _errorEstudiante = MutableStateFlow<String?>(null)
+    val errorEstudiante: StateFlow<String?> = _errorEstudiante
+
+
+    // ==================== FUNCIONES PARA EMPRESA ====================
+
+    // Cargar postulaciones por oferta (para empresa)
     fun cargarPostulacionesPorOferta(idOferta: Long) {
         viewModelScope.launch {
             _loading.value = true
@@ -48,7 +72,7 @@ class PostulacionViewModel(
         }
     }
 
-    // Cargar postulaciones por candidato (estudiante)
+    // Cargar postulaciones por candidato (estudiante) - para empresa
     fun cargarPostulacionesPorCandidato(idUsuario: Long) {
         viewModelScope.launch {
             _loading.value = true
@@ -84,29 +108,27 @@ class PostulacionViewModel(
         }
     }
 
-    // Actualizar estado de una postulación
+    // Actualizar estado de una postulación (para empresa)
     fun actualizarEstado(postulacion: PostulacionDto, nuevoEstado: String, onComplete: (Boolean) -> Unit = {}) {
         viewModelScope.launch {
             _updating.value = true
             _error.value = null
             try {
-                // Enviar SOLO los campos necesarios para la actualización
                 val postulacionActualizada = PostulacionDto(
                     idPostulacion = postulacion.idPostulacion,
                     fechaPostulacion = postulacion.fechaPostulacion,
                     estado = nuevoEstado,
                     idUsuario = postulacion.idUsuario,
                     idOferta = postulacion.idOferta,
-                    nombreEstudiante = "",  // Vacío para no causar errores
-                    emailEstudiante = ""    // Vacío para no causar errores
+                    nombreEstudiante = "",
+                    emailEstudiante = ""
                 )
 
                 val result = postulacionRepository.actualizar(postulacion.idPostulacion, postulacionActualizada)
                 if (result != null) {
-                    // ✅ IMPORTANTE: Preservar los datos del estudiante originales
                     _postulaciones.value = _postulaciones.value.map {
                         if (it.idPostulacion == postulacion.idPostulacion) {
-                            it.copy(estado = nuevoEstado)  // Solo actualizar el estado, mantener el resto
+                            it.copy(estado = nuevoEstado)
                         } else it
                     }
                     println("✅ Estado actualizado a: $nuevoEstado")
@@ -125,51 +147,85 @@ class PostulacionViewModel(
         }
     }
 
-    // Crear nueva postulación (estudiante se postula)
-    fun crearPostulacion(idOferta: Long, idUsuario: Long, onComplete: (Boolean) -> Unit = {}) {
+
+    // ==================== FUNCIONES PARA ESTUDIANTE ====================
+
+    // Cargar postulaciones del estudiante
+    fun cargarPostulacionesEstudiante(idUsuario: Long) {
         viewModelScope.launch {
-            _loading.value = true
-            _error.value = null
+            _loadingEstudiante.value = true
             try {
-                val nuevaPostulacion = PostulacionDto(
-                    idPostulacion = 0,
-                    fechaPostulacion = obtenerFechaActual(),
-                    estado = "PENDIENTE",
-                    idUsuario = idUsuario,
-                    idOferta = idOferta
-                )
-                val result = postulacionRepository.guardar(nuevaPostulacion)
-                if (result != null) {
-                    println("✅ Postulación creada exitosamente")
-                    onComplete(true)
+                val response = api.listarPorEstudiante(idUsuario)
+                if (response.isSuccessful) {
+                    _postulacionesEstudiante.value = response.body() ?: emptyList()
                 } else {
-                    _error.value = "Error al crear postulación"
-                    onComplete(false)
+                    _errorEstudiante.value = "Error ${response.code()}"
                 }
             } catch (e: Exception) {
-                _error.value = "Error: ${e.message}"
-                println("❌ Error creando postulación: ${e.message}")
-                onComplete(false)
+                _errorEstudiante.value = e.message
             } finally {
-                _loading.value = false
+                _loadingEstudiante.value = false
             }
         }
     }
 
-    // Limpiar error
+    // Postularse a una oferta (estudiante)
+    fun postularse(idUsuario: Long, idOferta: Long, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val request = PostulacionRequest(idUsuario, idOferta)
+                val response = api.postularse(request)
+                if (response.isSuccessful) {
+                    onSuccess()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMsg = try {
+                        JSONObject(errorBody).optString("message", "")
+                    } catch (e: Exception) {
+                        errorBody ?: ""
+                    }
+
+                    val finalMessage = when {
+                        response.code() == 403 || response.code() == 409 || response.code() == 400 ||
+                                errorMsg.contains("ya existe", ignoreCase = true) ||
+                                errorMsg.contains("duplicate", ignoreCase = true) ||
+                                errorMsg.contains("postulado", ignoreCase = true) ||
+                                errorMsg.contains("403") -> {
+                            "Ya estás postulado a esta oferta, no puedes volver a postularte."
+                        }
+                        errorMsg.isBlank() -> "Error ${response.code()}: No se pudo completar la postulación"
+                        else -> errorMsg
+                    }
+
+                    onError(finalMessage)
+                }
+            } catch (e: Exception) {
+                onError("Error de conexión: No se pudo procesar la postulación")
+            }
+        }
+    }
+
+
+    // ==================== FUNCIONES DE LIMPIEZA ====================
+
     fun limpiarError() {
         _error.value = null
     }
 
-    // Limpiar postulaciones
     fun limpiarPostulaciones() {
         _postulaciones.value = emptyList()
     }
 
-    // Limpiar historial
     fun limpiarHistorial() {
         _historial.value = emptyList()
     }
+
+    fun limpiarErrorEstudiante() {
+        _errorEstudiante.value = null
+    }
+
+
+    // ==================== UTILIDADES ====================
 
     private fun obtenerFechaActual(): String {
         val dateFormat = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())

@@ -19,10 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginUiState
@@ -36,6 +36,7 @@ fun LoginScreen(navController: NavController) {
     val token = remember { Token(context) }
     val authRepo = remember { AuthRepository(RetrofitClient.usuarioApi) }
     val empresaRepo = remember { EmpresaRepository(RetrofitClient.empresaApi) }
+    val perfilRepo = remember { PerfilRepository(RetrofitClient.perfilApi) }
 
     val viewModel: LoginViewModel = viewModel(
         factory = LoginViewModelFactory(authRepo, token, empresaRepo)
@@ -52,20 +53,69 @@ fun LoginScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Estado para verificar perfil después del login
+    var verificandoPerfil by remember { mutableStateOf(false) }
+
     LaunchedEffect(uiState) {
         when (uiState) {
             is LoginUiState.Success -> {
                 val successState = uiState as LoginUiState.Success
-                delay(500)
-                when (successState.rol) {
-                    "ESTUDIANTE" -> navController.navigate("estudiante_home") {
-                        popUpTo("login") { inclusive = true }
+
+                // Si es estudiante, verificar si tiene perfil creado
+                if (successState.rol == "ESTUDIANTE") {
+                    verificandoPerfil = true
+
+                    try {
+                        val userId = token.getUserId()
+                        val jwtToken = token.getToken()
+
+                        if (userId != null && jwtToken != null) {
+                            // Intentar obtener el perfil del usuario
+                            val perfil = perfilRepo.obtenerPerfilPorUsuario(userId)
+
+                            if (perfil != null) {
+                                // SI TIENE PERFIL: Guardar estado e ir al Home
+                                token.setProfileCreated(true)
+                                delay(500)
+                                navController.navigate("estudiante_home") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            } else {
+                                // NO TIENE PERFIL (o error de búsqueda): 
+                                // Obligado a ver la alerta y crear perfil
+                                token.setProfileCreated(false)
+                                delay(500)
+                                navController.navigate("mensaje_alerta_crear_perfil") {
+                                    popUpTo("login") { inclusive = true }
+                                }
+                            }
+                        } else {
+                            // Fallback: ir al home de todas formas
+                            delay(500)
+                            navController.navigate("estudiante_home") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Error al verificar, igual dejar entrar (fallback seguro)
+                        delay(500)
+                        navController.navigate("estudiante_home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    } finally {
+                        verificandoPerfil = false
                     }
-                    "EMPRESA" -> navController.navigate("empresa_home") {
-                        popUpTo("login") { inclusive = true }
-                    }
-                    "ADMIN" -> navController.navigate("admin_home") {
-                        popUpTo("login") { inclusive = true }
+                } else {
+                    // Para EMPRESA o ADMIN, redirigir normalmente
+                    delay(500)
+                    when (successState.rol) {
+                        "EMPRESA" -> navController.navigate("empresa_home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                        "ADMIN" -> navController.navigate("admin_home") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                        else -> {}
                     }
                 }
             }
@@ -75,7 +125,6 @@ fun LoginScreen(navController: NavController) {
 
                 // Verificar si el error es por empresa pendiente
                 if (error.contains("PENDIENTE")) {
-                    // Extraer información de la empresa pendiente del error
                     empresaPendienteInfo = EmpresaPendienteInfo(
                         email = email,
                         mensaje = error
@@ -117,114 +166,138 @@ fun LoginScreen(navController: NavController) {
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                elevation = CardDefaults.cardElevation(8.dp)
-            ) {
-                Column(
+            // Si está verificando perfil, mostrar loading
+            if (verificandoPerfil) {
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(horizontal = 24.dp),
+                    elevation = CardDefaults.cardElevation(8.dp)
                 ) {
-                    Text(
-                        text = "Bolsa de Empleo",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    if (uiState is LoginUiState.Loading) {
-                        CircularProgressIndicator(modifier = Modifier.size(30.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(40.dp))
                         Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Verificando tu información...",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
+                }
+            } else {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    elevation = CardDefaults.cardElevation(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Bolsa de Empleo",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
 
-                    errorMessage?.let {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
-                            ),
-                            modifier = Modifier.padding(bottom = 16.dp)
-                        ) {
-                            Text(
-                                text = it,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodySmall,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.padding(12.dp)
-                            )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        if (uiState is LoginUiState.Loading) {
+                            CircularProgressIndicator(modifier = Modifier.size(30.dp))
+                            Spacer(modifier = Modifier.height(16.dp))
                         }
-                    }
 
-                    OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it; errorMessage = null },
-                        label = { Text("Email") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = password,
-                        onValueChange = { password = it; errorMessage = null },
-                        label = { Text("Contraseña") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
-                        trailingIcon = {
-                            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                                Icon(
-                                    imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = null
+                        errorMessage?.let {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                ),
+                                modifier = Modifier.padding(bottom = 16.dp)
+                            ) {
+                                Text(
+                                    text = it,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.padding(12.dp)
                                 )
                             }
                         }
-                    )
 
-                    TextButton(
-                        onClick = { showRecoverDialog = true },
-                        modifier = Modifier.align(Alignment.End)
-                    ) {
-                        Text("¿Olvidaste tu contraseña?")
-                    }
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = { email = it; errorMessage = null },
+                            label = { Text("Email") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
+                        )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { viewModel.login(email, password) },
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = uiState !is LoginUiState.Loading && email.isNotBlank() && password.isNotBlank()
-                    ) {
-                        Text("Ingresar")
-                    }
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it; errorMessage = null },
+                            label = { Text("Contraseña") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                            trailingIcon = {
+                                IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                    Icon(
+                                        imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                        contentDescription = null
+                                    )
+                                }
+                            }
+                        )
 
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
-
-                    Text(
-                        text = "¿No tienes una cuenta?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        TextButton(onClick = { navController.navigate("registro_estudiante") }) {
-                            Text("Soy Estudiante")
+                        TextButton(
+                            onClick = { showRecoverDialog = true },
+                            modifier = Modifier.align(Alignment.End)
+                        ) {
+                            Text("¿Olvidaste tu contraseña?")
                         }
-                        TextButton(onClick = { navController.navigate("registro_empresa") }) {
-                            Text("Soy Empresa")
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Button(
+                            onClick = { viewModel.login(email, password) },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = uiState !is LoginUiState.Loading && email.isNotBlank() && password.isNotBlank()
+                        ) {
+                            Text("Ingresar")
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                        Text(
+                            text = "¿No tienes una cuenta?",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            TextButton(onClick = { navController.navigate("registro_estudiante") }) {
+                                Text("Soy Estudiante")
+                            }
+                            TextButton(onClick = { navController.navigate("registro_empresa") }) {
+                                Text("Soy Empresa")
+                            }
                         }
                     }
                 }
@@ -277,7 +350,6 @@ fun EmpresaPendienteDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Tarjeta con información de la solicitud
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -332,7 +404,6 @@ fun EmpresaPendienteDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Instrucciones importantes
                 Card(
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -370,7 +441,6 @@ fun EmpresaPendienteDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Mensaje adicional
                 Text(
                     text = "⚠️ Nota: Mientras tu solicitud esté PENDIENTE no podrás iniciar sesión. El administrador te notificará cuando sea APROBADA o RECHAZADA.",
                     style = MaterialTheme.typography.bodySmall,
@@ -453,7 +523,6 @@ fun RecoverPasswordDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Tarjeta con la contraseña temporal
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -472,7 +541,6 @@ fun RecoverPasswordDialog(
                             )
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            // Contenedor para la contraseña
                             Surface(
                                 color = MaterialTheme.colorScheme.surface,
                                 shape = MaterialTheme.shapes.medium,
@@ -519,7 +587,6 @@ fun RecoverPasswordDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Instrucciones importantes
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -557,7 +624,6 @@ fun RecoverPasswordDialog(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Mensaje adicional
                     Text(
                         text = "⚠️ Recomendación: Cambia esta contraseña temporal después de iniciar sesión por seguridad.",
                         style = MaterialTheme.typography.bodySmall,
@@ -590,7 +656,6 @@ fun RecoverPasswordDialog(
                     Text("Ingresa tu correo para recibir una contraseña temporal.")
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Selector de tipo de usuario
                     Text(
                         text = "Tipo de usuario:",
                         style = MaterialTheme.typography.labelMedium,
@@ -649,7 +714,6 @@ fun RecoverPasswordDialog(
                             val result = if (tipoUsuario == "ESTUDIANTE") {
                                 authRepository.recuperarPassword(email)
                             } else {
-                                // Las empresas no tienen recuperación de contraseña en el backend actual
                                 Result.failure(Exception("❌ La recuperación de contraseña para empresas no está disponible. Contacta al administrador."))
                             }
 

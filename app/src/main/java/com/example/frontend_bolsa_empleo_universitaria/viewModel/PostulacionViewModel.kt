@@ -150,18 +150,38 @@ class PostulacionViewModel(
 
     // ==================== FUNCIONES PARA ESTUDIANTE ====================
 
-    // Cargar postulaciones del estudiante
     fun cargarPostulacionesEstudiante(idUsuario: Long) {
         viewModelScope.launch {
             _loadingEstudiante.value = true
+            _errorEstudiante.value = null
             try {
-                val response = api.listarPorEstudiante(idUsuario)
+                println("📤 Cargando postulaciones para estudiante ID: $idUsuario")
+                // ✅ Usar listarPorCandidato (endpoint correcto)
+                val response = api.listarPorCandidato(idUsuario)
                 if (response.isSuccessful) {
-                    _postulacionesEstudiante.value = response.body() ?: emptyList()
+                    val postulaciones = response.body() ?: emptyList()
+                    println("✅ Postulaciones encontradas: ${postulaciones.size}")
+                    postulaciones.forEach { p ->
+                        println("   - ID: ${p.idPostulacion}, Oferta: ${p.idOferta}, Estado: ${p.estado}")
+                    }
+                    // Convertir PostulacionDto a PostulacionResponse
+                    val postulacionesResponse = postulaciones.map { dto ->
+                        PostulacionResponse(
+                            idPostulacion = dto.idPostulacion,
+                            fechaPostulacion = dto.fechaPostulacion,
+                            estado = dto.estado,
+                            idUsuario = dto.idUsuario,
+                            idOferta = dto.idOferta
+                        )
+                    }
+                    _postulacionesEstudiante.value = postulacionesResponse
                 } else {
-                    _errorEstudiante.value = "Error ${response.code()}"
+                    val errorMsg = "Error ${response.code()}: ${response.message()}"
+                    println("❌ $errorMsg")
+                    _errorEstudiante.value = errorMsg
                 }
             } catch (e: Exception) {
+                println("❌ Excepción: ${e.message}")
                 _errorEstudiante.value = e.message
             } finally {
                 _loadingEstudiante.value = false

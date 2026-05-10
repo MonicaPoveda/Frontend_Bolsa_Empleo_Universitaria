@@ -1,5 +1,3 @@
-
-
 package com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante
 
 import androidx.compose.foundation.background
@@ -23,22 +21,44 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionResponse
+import com.example.frontend_bolsa_empleo_universitaria.repository.PostulacionRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.SeguimientoPostulacionRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MisPostulacionesScreen(navController: NavController) {
     val context = LocalContext.current
     val tokenManager = remember { Token(context) }
-    val viewModel: PostulacionViewModel = viewModel(factory = PostulacionViewModelFactory(RetrofitClient.postulacionApi))
 
-    val postulaciones by viewModel.postulaciones.collectAsState()
-    val loading by viewModel.loading.collectAsState()
-    val error by viewModel.error.collectAsState()
+    // ✅ CORREGIDO: Crear repositorios y ViewModel correctamente
+    val postulacionRepository = remember {
+        PostulacionRepository(
+            RetrofitClient.postulacionApi,
+            RetrofitClient.usuarioApi
+        )
+    }
+    val seguimientoRepository = remember {
+        SeguimientoPostulacionRepository(RetrofitClient.seguimientoPostulacionApi)
+    }
 
-    // Estado para las postulaciones enriquecidas
+    val viewModel: PostulacionViewModel = viewModel(
+        factory = PostulacionViewModelFactory(
+            postulacionRepository,
+            seguimientoRepository,
+            RetrofitClient.postulacionApi
+        )
+    )
+
+    // ✅ Usar los StateFlow correctamente
+    val postulaciones by viewModel.postulacionesEstudiante.collectAsState()
+    val loading by viewModel.loadingEstudiante.collectAsState()
+    val error by viewModel.errorEstudiante.collectAsState()
+
     var postulacionesEnriquecidas by remember { mutableStateOf<List<PostulacionEnriquecida>>(emptyList()) }
     var cargandoOfertas by remember { mutableStateOf(false) }
 
@@ -46,7 +66,7 @@ fun MisPostulacionesScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         val userId = tokenManager.getUserId()
         if (userId != null) {
-            viewModel.cargarPostulaciones(userId)
+            viewModel.cargarPostulacionesEstudiante(userId)
         }
     }
 
@@ -74,7 +94,6 @@ fun MisPostulacionesScreen(navController: NavController) {
                     }
                     postulacionesEnriquecidas = enriquecidas
                 } else {
-                    // Fallback: solo mostrar IDs
                     postulacionesEnriquecidas = postulaciones.map { p ->
                         PostulacionEnriquecida(
                             idPostulacion = p.idPostulacion,
@@ -182,7 +201,6 @@ fun MisPostulacionesScreen(navController: NavController) {
     }
 }
 
-// Data class para postulaciones con datos de oferta
 data class PostulacionEnriquecida(
     val idPostulacion: Long,
     val fechaPostulacion: String,
@@ -206,7 +224,7 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
     }
     val estadoIcon = when (postulacion.estado) {
         "PENDIENTE" -> Icons.Default.HourglassEmpty
-        "EN_REVISION" -> Icons.Default.Refresh   // Ícono válido
+        "EN_REVISION" -> Icons.Default.Refresh
         "ACEPTADA" -> Icons.Default.CheckCircle
         "RECHAZADA" -> Icons.Default.Cancel
         else -> Icons.Default.Info
@@ -222,7 +240,6 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Fila: estado y fecha
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = estadoIcon,
@@ -248,7 +265,6 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Título y área
             Text(
                 text = postulacion.tituloOferta,
                 fontSize = 16.sp,
@@ -263,7 +279,6 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Salario y modalidad
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (postulacion.salario > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -279,7 +294,7 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
                 if (postulacion.modalidad.isNotBlank()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            Icons.Default.Work,  // ✅ ícono válido
+                            Icons.Default.Work,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
                             tint = Color(0xFF0056D2)

@@ -20,14 +20,7 @@ import com.example.frontend_bolsa_empleo_universitaria.screens.Administrador.Adm
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.DetalleOfertaEmpresaScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.EmpresaHomeScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.RegistroEmpresaScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.ConfiguracionCuentaScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.CrearPerfilEgresadoScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.CrearPerfilEstudianteScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.DetalleOfertaEstudianteScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.EstudianteHomeScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.MensajeAlertaCrearPerfilScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.MiPerfilScreen
-import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.MisPostulacionesScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.RegistroEstudianteScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Login.LoginScreen
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
@@ -37,10 +30,6 @@ import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewMode
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // Inicializar Retrofit con el contexto de la aplicación
-        RetrofitClient.init(this)
-
         enableEdgeToEdge()
         setContent {
             Frontend_Bolsa_Empleo_UniversitariaTheme {
@@ -81,15 +70,6 @@ fun AppNavigation() {
         composable("registro_empresa") {
             RegistroEmpresaScreen(navController = navController)
         }
-        composable("mensaje_alerta_crear_perfil") {
-            MensajeAlertaCrearPerfilScreen(navController)
-        }
-        composable("crear_perfil_estudiante") {
-            CrearPerfilEstudianteScreen(navController)
-        }
-        composable("crear_perfil_egresado") {
-            CrearPerfilEgresadoScreen(navController)
-        }
 
         // ✅ NUEVA RUTA: detalle de oferta para empresa
         composable("detalle_oferta/{ofertaId}") { backStackEntry ->
@@ -113,20 +93,6 @@ fun AppNavigation() {
                 navController = navController,
                 viewModel = viewModel
             )
-        }
-        // Dentro de NavHost, después de las existentes:
-        composable("detalle_oferta_estudiante/{ofertaId}") { backStackEntry ->
-            val ofertaId = backStackEntry.arguments?.getString("ofertaId")?.toLongOrNull() ?: 0L
-            DetalleOfertaEstudianteScreen(ofertaId = ofertaId, navController = navController)
-        }
-        composable("mis_postulaciones") {
-            MisPostulacionesScreen(navController = navController)
-        }
-        composable("mi_perfil") {
-            MiPerfilScreen(navController = navController)
-        }
-        composable("configuracion_cuenta") {
-            ConfiguracionCuentaScreen(navController = navController)
         }
     }
 }

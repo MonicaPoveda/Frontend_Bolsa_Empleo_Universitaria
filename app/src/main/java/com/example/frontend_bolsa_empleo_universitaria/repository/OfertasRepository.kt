@@ -73,4 +73,20 @@ class OfertasRepository(
             null
         }
     }
+
+    suspend fun eliminarOferta(id: Long): Boolean {
+        return try {
+            val response = api.eliminar(id)
+            if (response.isSuccessful) {
+                println("✅ Oferta eliminada exitosamente")
+                true
+            } else {
+                println("❌ Error al eliminar oferta: ${response.code()} - ${response.message()}")
+                false
+            }
+        } catch (e: Exception) {
+            println("❌ Excepción al eliminar oferta: ${e.message}")
+            false
+        }
+    }
 }

@@ -1,8 +1,10 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Empresa
 
 import android.text.format.DateFormat
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -43,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
@@ -119,7 +122,7 @@ fun AgregarOfertaScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .verticalScroll(rememberScrollState())  // ✅ Agregado scroll
+            .verticalScroll(rememberScrollState())
             .padding(24.dp)
     ) {
         Text(
@@ -131,7 +134,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Título - ✅ texto más oscuro
         OutlinedTextField(
             value = titulo,
             onValueChange = { titulo = it },
@@ -149,7 +151,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Área
         OutlinedTextField(
             value = area,
             onValueChange = { area = it },
@@ -167,7 +168,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Salario y Modalidad
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -205,7 +205,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Fecha de cierre
         Text(
             text = "Fecha de cierre *",
             style = MaterialTheme.typography.bodyMedium,
@@ -254,7 +253,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Descripción
         OutlinedTextField(
             value = descripcion,
             onValueChange = { descripcion = it },
@@ -289,7 +287,6 @@ fun AgregarOfertaScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // ✅ Botón más grande y visible
         Button(
             onClick = {
                 when {
@@ -339,8 +336,8 @@ fun AgregarOfertaScreen(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(60.dp),  // ✅ Altura aumentada
-            shape = RoundedCornerShape(16.dp),  // ✅ Esquinas más redondeadas
+                .height(60.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = BlueGradientStart,
                 contentColor = Color.White
@@ -365,13 +362,13 @@ fun AgregarOfertaScreen(
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     "Publicar Oferta",
-                    fontSize = 18.sp,  // ✅ Texto más grande
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))  // ✅ Espacio final
+        Spacer(modifier = Modifier.height(16.dp))
     }
 
     if (showSuccess) {
@@ -401,44 +398,63 @@ fun DateSelector(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    OutlinedTextField(
-        value = value,
-        onValueChange = {},
-        readOnly = true,
-        label = { Text(label, fontSize = 12.sp, color = Color.DarkGray) },
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        trailingIcon = {
-            Icon(
-                Icons.Default.ArrowDropDown,
-                contentDescription = "Seleccionar",
-                tint = BlueGradientStart,
-                modifier = Modifier.clickable { expanded = true }
-            )
-        },
-        textStyle = MaterialTheme.typography.bodyMedium.copy(
-            textAlign = TextAlign.Center,
-            color = Color.Black
-        ),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = BlueGradientStart,
-            unfocusedBorderColor = Color.Gray
+    Box(modifier = modifier) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label, fontSize = 12.sp, color = Color.DarkGray) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            trailingIcon = {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = "Seleccionar",
+                    tint = BlueGradientStart,
+                    modifier = Modifier.clickable { expanded = true }
+                )
+            },
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                textAlign = TextAlign.Center,
+                color = Color.Black
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = BlueGradientStart,
+                unfocusedBorderColor = Color.Gray,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            ),
+            singleLine = true
         )
-    )
 
-    DropdownMenu(
-        expanded = expanded,
-        onDismissRequest = { expanded = false },
-        modifier = Modifier.height(200.dp)
-    ) {
-        items.forEach { item ->
-            DropdownMenuItem(
-                text = { Text(item, fontSize = 14.sp, color = Color.Black) },
-                onClick = {
-                    onItemSelected(item)
-                    expanded = false
-                }
-            )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .background(Color.White, RoundedCornerShape(12.dp)),
+            containerColor = Color.White
+        ) {
+            items.forEach { item ->
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = item,
+                            fontSize = 14.sp,
+                            color = Color.Black,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
+                    onClick = {
+                        onItemSelected(item)
+                        expanded = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.White)
+                )
+            }
         }
     }
 }

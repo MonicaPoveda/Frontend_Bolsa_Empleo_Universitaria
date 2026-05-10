@@ -31,4 +31,7 @@ interface UsuarioApi {
     // ✅ NUEVO: Endpoint para buscar usuario por email (existe en tu UsuarioController)
     @GET("api/usuarios/buscar-email")
     suspend fun buscarPorEmail(@Query("email") email: String): Response<UsuarioDTO>
+
+    @GET("api/usuarios/listar")
+    suspend fun listar(): Response<List<UsuarioDTO>>
 }

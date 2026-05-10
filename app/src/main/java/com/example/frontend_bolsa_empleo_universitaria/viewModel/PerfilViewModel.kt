@@ -34,13 +34,8 @@ class PerfilViewModel(
             _loading.value = true
             _error.value = null
             try {
-                // 1. Cargar usuario (esto sí existe)
-                val responseUsu = usuarioApi.buscarPorEmail(email)
-                if (responseUsu.isSuccessful) {
-                    _usuario.value = responseUsu.body()
-                } else {
-                    _error.value = "Error al obtener usuario: ${responseUsu.code()}"
-                }
+
+
 
                 // 2. Cargar perfil usando listar y filtrar
                 val responsePerfil = perfilApi.listarPerfiles() // ✅ usa listar
@@ -50,6 +45,25 @@ class PerfilViewModel(
                     _perfil.value = miPerfil
                 } else {
                     _error.value = "Error al obtener perfil: ${responsePerfil.code()}"
+                }
+            } catch (e: Exception) {
+                _error.value = "Fallo de conexión: ${e.message}"
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+    fun cargarSoloPerfil(idUsuario: Long) {
+        viewModelScope.launch {
+            _loading.value = true
+            _error.value = null
+            try {
+                val response = perfilApi.listarPerfiles()
+                if (response.isSuccessful) {
+                    val perfiles = response.body() ?: emptyList()
+                    _perfil.value = perfiles.find { it.idUsuario == idUsuario }
+                } else {
+                    _error.value = "Error al obtener perfil: ${response.code()}"
                 }
             } catch (e: Exception) {
                 _error.value = "Fallo de conexión: ${e.message}"

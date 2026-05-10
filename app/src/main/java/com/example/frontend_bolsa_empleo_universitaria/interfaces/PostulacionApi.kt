@@ -14,7 +14,7 @@ interface PostulacionApi {
         @Body request: PostulacionRequest
     ): Response<PostulacionResponse>
 
-    @GET("api/postulaciones/candidato/{idUsuario}")
+    @GET("/api/postulaciones/candidato/{idUsuario}")
     suspend fun listarPorEstudiante(
         @Path("idUsuario") idUsuario: Long
     ): Response<List<PostulacionResponse>>

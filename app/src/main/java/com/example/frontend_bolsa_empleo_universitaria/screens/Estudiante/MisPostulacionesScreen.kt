@@ -21,7 +21,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
-import androidx.compose.material.icons.outlined.WorkOutline
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
@@ -54,7 +53,6 @@ fun MisPostulacionesScreen(navController: NavController) {
         if (postulaciones.isNotEmpty()) {
             cargandoOfertas = true
             try {
-                // Obtener todas las ofertas (endpoint público)
                 val responseOfertas = RetrofitClient.ofertaLaboralApi.listar()
                 if (responseOfertas.isSuccessful) {
                     val ofertasMap = responseOfertas.body()?.associateBy { it.idOferta } ?: emptyMap()
@@ -69,12 +67,12 @@ fun MisPostulacionesScreen(navController: NavController) {
                             area = oferta?.area ?: "",
                             salario = oferta?.salario ?: 0.0,
                             modalidad = oferta?.modalidad ?: "",
-                            nombreEmpresa = "Empresa" // El backend no devuelve nombre, podrías omitirlo o dejarlo fijo
+                            nombreEmpresa = "Empresa"
                         )
                     }
                     postulacionesEnriquecidas = enriquecidas
                 } else {
-                    // Si falla la carga de ofertas, al menos mostrar los IDs
+                    // Fallback: solo mostrar IDs
                     postulacionesEnriquecidas = postulaciones.map { p ->
                         PostulacionEnriquecida(
                             idPostulacion = p.idPostulacion,
@@ -91,7 +89,6 @@ fun MisPostulacionesScreen(navController: NavController) {
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                // En caso de error, usar solo lo que hay
                 postulacionesEnriquecidas = postulaciones.map { p ->
                     PostulacionEnriquecida(
                         idPostulacion = p.idPostulacion,
@@ -136,7 +133,6 @@ fun MisPostulacionesScreen(navController: NavController) {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFF0056D2))
                 }
                 error != null && error!!.contains("403") -> {
-                    // Mensaje específico para error de autorización
                     Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color(0xFFFF9800))
                         Spacer(modifier = Modifier.height(8.dp))
@@ -208,7 +204,7 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
     }
     val estadoIcon = when (postulacion.estado) {
         "PENDIENTE" -> Icons.Default.HourglassEmpty
-        "EN_REVISION" -> Icons.Default.Refresh  // ✅ Corregido
+        "EN_REVISION" -> Icons.Default.Refresh   // Ícono válido
         "ACEPTADA" -> Icons.Default.CheckCircle
         "RECHAZADA" -> Icons.Default.Cancel
         else -> Icons.Default.Info
@@ -224,6 +220,7 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+            // Fila: estado y fecha
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = estadoIcon,
@@ -249,6 +246,7 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
 
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Título y área
             Text(
                 text = postulacion.tituloOferta,
                 fontSize = 16.sp,
@@ -263,25 +261,28 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // Salario y modalidad
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (postulacion.salario > 0) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.AttachMoney,
+                            Icons.Default.AttachMoney,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
                             tint = Color(0xFF2E7D32)
                         )
+                        Text(" ${postulacion.salario.toInt()}/mes", fontSize = 12.sp, color = Color(0xFF2E7D32))
                     }
-                    if (postulacion.modalidad.isNotBlank()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.WorkOutline,
-                                contentDescription = null,
-                                modifier = Modifier.size(14.dp),
-                                tint = Color(0xFF0056D2)
-                            )
-                        }
+                }
+                if (postulacion.modalidad.isNotBlank()) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.Work,  // ✅ ícono válido
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = Color(0xFF0056D2)
+                        )
+                        Text(" ${postulacion.modalidad}", fontSize = 12.sp, color = Color(0xFF0056D2))
                     }
                 }
             }

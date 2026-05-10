@@ -8,6 +8,7 @@ import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionResponse
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 class PostulacionViewModel(
     private val api: PostulacionApi
@@ -28,15 +29,9 @@ class PostulacionViewModel(
             try {
                 val response = api.listarPorEstudiante(idUsuario)
                 if (response.isSuccessful) {
-                    val lista = response.body() ?: emptyList()
-                    _postulaciones.value = lista
+                    _postulaciones.value = response.body() ?: emptyList()
                 } else {
-                    val errorBody = response.errorBody()?.string() ?: ""
-                    _error.value = when (response.code()) {
-                        403 -> "Error de Autorización (403): El servidor no reconoce tu identidad correctamente. Contacta al soporte técnico."
-                        404 -> "No se encontraron postulaciones."
-                        else -> "Error del servidor: ${response.code()}"
-                    }
+                    _error.value = "Error ${response.code()}"
                 }
             } catch (e: Exception) {
                 _error.value = e.message
@@ -54,8 +49,15 @@ class PostulacionViewModel(
                 if (response.isSuccessful) {
                     onSuccess()
                 } else {
-                    val errorMsg = response.errorBody()?.string() ?: "Error ${response.code()}"
-                    onError(errorMsg)
+                    val errorBody = response.errorBody()?.string()
+                    val userMessage = try {
+                        // Intenta parsear como JSON con campo "message"
+                        JSONObject(errorBody).optString("message", "Error ${response.code()}")
+                    } catch (e: Exception) {
+                        // Si no es JSON, usa el cuerpo tal cual (o un mensaje genérico)
+                        errorBody ?: "Error ${response.code()}"
+                    }
+                    onError(userMessage)
                 }
             } catch (e: Exception) {
                 onError(e.message ?: "Error de red")

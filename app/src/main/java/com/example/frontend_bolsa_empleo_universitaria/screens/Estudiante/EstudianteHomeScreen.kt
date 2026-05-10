@@ -52,7 +52,7 @@ data class NavItem(
 val navItems = listOf(
     NavItem("Buscar", Icons.Default.Search, "busqueda"),
     NavItem("Postulaciones", Icons.Outlined.AssignmentTurnedIn, "postulaciones"),
-    NavItem("PerfilRequest", Icons.Default.Person, "perfil")
+    NavItem("Perfil", Icons.Default.Person, "perfil")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -440,7 +440,7 @@ fun EstudianteHomeScreen(
                         JobCard(
                             oferta = oferta,
                             onClick = {
-                                navController.navigate("detalle_oferta/${oferta.idOferta}")
+                                navController.navigate("detalle_oferta_estudiante/${oferta.idOferta}")
                             }
                         )
                     }

@@ -25,10 +25,10 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val BlueStart = Color(0xFF0056D2)
@@ -43,10 +43,15 @@ fun DetalleOfertaEstudianteScreen(
     val context = LocalContext.current
     val tokenManager = remember { Token(context) }
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    // ViewModel para ofertas (reutilizamos el existente)
-    val ofertasViewModel: OfertasViewModel = viewModel()
-    // ViewModel para postulaciones
+    // ✅ 1. Crear ViewModel de ofertas con su factory
+    val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
+    val ofertasViewModel: OfertasViewModel = viewModel(
+        factory = OfertasViewModelFactory(repository)
+    )
+
+    // ✅ 2. Crear ViewModel de postulaciones con su factory
     val postulacionViewModel: PostulacionViewModel = viewModel(
         factory = PostulacionViewModelFactory(RetrofitClient.postulacionApi)
     )
@@ -55,15 +60,14 @@ fun DetalleOfertaEstudianteScreen(
     var isLoading by remember { mutableStateOf(true) }
     var showPostularDialog by remember { mutableStateOf(false) }
     var postulando by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
 
-    // Cargar oferta
+    // Cargar oferta al iniciar
     LaunchedEffect(ofertaId) {
         isLoading = true
-        // Intentar obtener de ofertasViewModel primero
+        // Buscar en las ofertas ya cargadas en ViewModel (si las hay)
         var encontrada = ofertasViewModel.ofertas.value.find { it.idOferta == ofertaId }
         if (encontrada == null) {
-            // Buscar en repositorio directamente
+            // Si no está, cargar todas y buscar
             try {
                 val repo = OfertasRepository(RetrofitClient.ofertaLaboralApi)
                 val todas = repo.listarTodas()
@@ -95,6 +99,7 @@ fun DetalleOfertaEstudianteScreen(
                             postulando = true
                             val userId = tokenManager.getUserId()
                             if (userId != null) {
+                                // ✅ Usar el postulacionViewModel correctamente
                                 postulacionViewModel.postularse(
                                     idUsuario = userId,
                                     idOferta = ofertaId,
@@ -103,20 +108,17 @@ fun DetalleOfertaEstudianteScreen(
                                         scope.launch {
                                             snackbarHostState.showSnackbar("✅ ¡Postulación exitosa!")
                                         }
-                                        // Opcional: navegar a mis postulaciones después de 2 segundos
                                     },
                                     onError = { error ->
                                         postulando = false
                                         scope.launch {
-                                            snackbarHostState.showSnackbar("❌ Error: $error")
+                                            snackbarHostState.showSnackbar("❌ $error")
                                         }
                                     }
                                 )
                             } else {
                                 postulando = false
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("❌ Sesión no válida. Inicia sesión nuevamente.")
-                                }
+                                snackbarHostState.showSnackbar("❌ Sesión no válida. Inicia sesión nuevamente.")
                             }
                         }
                     },
@@ -170,7 +172,6 @@ fun DetalleOfertaEstudianteScreen(
                 val o = oferta!!
                 Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                     Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                        // Header gradiente
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -188,7 +189,7 @@ fun DetalleOfertaEstudianteScreen(
 
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             DetalleInfoChipEstudiante(modifier = Modifier.weight(1f), icon = Icons.Default.AttachMoney, label = "Salario", value = if (o.salario > 0) "$${o.salario.toInt()}/mes" else "No especificado", color = Color(0xFF2E7D32))
-                            DetalleInfoChipEstudiante(modifier = Modifier.weight(1f), icon = Icons.Default.WorkOutline, label = "Modalidad", value = o.modalidad.ifBlank { "No especificada" }, color = BlueStart)
+                            DetalleInfoChipEstudiante(modifier = Modifier.weight(1f), icon = Icons.Default.Work, label = "Modalidad", value = o.modalidad.ifBlank { "No especificada" }, color = BlueStart)
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

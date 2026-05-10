@@ -43,7 +43,6 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
         factory = PerfilViewModelFactory(RetrofitClient.usuarioApi, RetrofitClient.perfilApi)
     )
 
-    val usuarioState by viewModel.usuario.collectAsState()
     val perfilState by viewModel.perfil.collectAsState()
     val isLoadingViewModel by viewModel.loading.collectAsState()
     val errorViewModel by viewModel.error.collectAsState()
@@ -69,22 +68,18 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Cargar datos iniciales
-    LaunchedEffect(Unit) {
-        val email = tokenManager.getUserEmail()
-        val userId = tokenManager.getUserId()
-        if (email != null && userId != null) {
-            viewModel.cargarTodo(email, userId)
-        }
-    }
+    // Inicializar datos personales desde el token (solo una vez)
+    val tokenNombre = remember { tokenManager.getUserNombre() }
 
-    // Sincronizar estados locales con el ViewModel cuando carguen
-    LaunchedEffect(usuarioState) {
-        usuarioState?.let {
-            nombre = it.nombre ?: ""
-            apellido = it.apellido ?: ""
-            telefono = it.telefono ?: ""
+    LaunchedEffect(Unit) {
+        val userId = tokenManager.getUserId()
+        if (userId != null) {
+            viewModel.cargarSoloPerfil(userId)
         }
+        // Inicializar campos personales desde token
+        nombre = tokenNombre?.split(" ")?.firstOrNull() ?: ""
+        apellido = tokenNombre?.split(" ")?.drop(1)?.joinToString(" ") ?: ""
+        // email no editable, pero puedes mostrarlo si quieres
     }
 
     LaunchedEffect(perfilState) {
@@ -113,7 +108,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
             )
         }
     ) { padding ->
-        if (isLoadingViewModel && usuarioState == null) {
+        if (isLoadingViewModel) {
             Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }

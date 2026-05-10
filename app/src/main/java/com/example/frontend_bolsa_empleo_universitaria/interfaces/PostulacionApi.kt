@@ -12,35 +12,25 @@ interface PostulacionApi {
     @GET("api/postulaciones/listar")
     suspend fun listar(): Response<List<PostulacionDto>>
 
+    // Guardar nueva postulación (solo ESTUDIANTE)
     @POST("api/postulaciones/guardar")
-    suspend fun postularse(
-        @Body request: PostulacionRequest
-    ): Response<PostulacionResponse>
-    // Listar postulaciones por candidato (usuario)
-    @GET("api/postulaciones/candidato/{idUsuario}")
-    suspend fun listarPorCandidato(@Path("idUsuario") idUsuario: Long): Response<List<PostulacionDto>>
+    suspend fun postularse(@Body request: PostulacionRequest): Response<PostulacionResponse>
 
-    // Listar postulaciones por candidato (usuario)
-    @GET("/api/postulaciones/candidato/{idUsuario}")
-    suspend fun listarPorEstudiante(
-        @Path("idUsuario") idUsuario: Long
-    ): Response<List<PostulacionResponse>>
-
-    // Actualizar estado de postulación (ADMIN o ESTUDIANTE)
+    // Actualizar estado de postulación (ADMIN, ESTUDIANTE, EMPRESA)
     @PUT("api/postulaciones/actualizar/{id}")
-    suspend fun actualizar(
-        @Path("id") id: Long,
-        @Body postulacion: PostulacionDto
-    ): Response<PostulacionDto>
+    suspend fun actualizar(@Path("id") id: Long, @Body postulacion: PostulacionDto): Response<PostulacionDto>
 
     // Eliminar postulación (solo ADMIN)
     @DELETE("api/postulaciones/eliminar/{id}")
     suspend fun eliminar(@Path("id") id: Long): Response<Void>
 
-    @POST("api/postulaciones/guardar")
-    suspend fun guardar(@Body postulacion: PostulacionDto): Response<PostulacionDto>
+    // ✅ LISTAR POSTULACIONES DE UN USUARIO (ESTUDIANTE)
+    @GET("api/postulaciones/candidato/{idUsuario}")
+    suspend fun listarPorCandidato(@Path("idUsuario")
+                                       idUsuario: Long): Response<List<PostulacionDto>>
 
-    // Listar postulaciones por oferta (solo ADMIN)
+
+    // Listar postulaciones por oferta (ADMIN y EMPRESA)
     @GET("api/postulaciones/oferta/{idOferta}")
     suspend fun listarPorOferta(@Path("idOferta") idOferta: Long): Response<List<PostulacionDto>>
 }

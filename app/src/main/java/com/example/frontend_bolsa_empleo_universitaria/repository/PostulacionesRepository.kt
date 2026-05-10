@@ -3,10 +3,12 @@ package com.example.frontend_bolsa_empleo_universitaria.repository
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.PostulacionApi
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.UsuarioApi
 import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionDto
+import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionRequest
+import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionResponse
 import com.example.frontend_bolsa_empleo_universitaria.model.SeguimientoPostulacionDto
 import com.example.frontend_bolsa_empleo_universitaria.model.UsuarioDTO
 
-class PostulacionesRepository(
+class PostulacionRepository(
     private val api: PostulacionApi,
     private val usuarioApi: UsuarioApi
 ) {
@@ -38,11 +40,8 @@ class PostulacionesRepository(
     }
 
     private suspend fun obtenerUsuarioPorId(idUsuario: Long): UsuarioDTO? {
-        // Verificar caché
         usuarioCache[idUsuario]?.let { return it }
-
         return try {
-            // Usar listar y filtrar (aunque solo ADMIN puede, esto dará error para empresas)
             val response = usuarioApi.listar()
             if (response.isSuccessful) {
                 val usuarios = response.body() ?: emptyList()
@@ -60,6 +59,7 @@ class PostulacionesRepository(
             null
         }
     }
+
     suspend fun listarPorCandidato(idUsuario: Long): List<PostulacionDto> {
         return try {
             val response = api.listarPorCandidato(idUsuario)
@@ -75,17 +75,19 @@ class PostulacionesRepository(
         }
     }
 
-    suspend fun guardar(postulacion: PostulacionDto): PostulacionDto? {
+    // ✅ CORREGIDO: Usar postularse con PostulacionRequest
+    suspend fun crearPostulacion(idUsuario: Long, idOferta: Long): PostulacionResponse? {
         return try {
-            val response = api.guardar(postulacion)
+            val request = PostulacionRequest(idUsuario, idOferta)
+            val response = api.postularse(request)
             if (response.isSuccessful) {
                 response.body()
             } else {
-                println("Error guardar postulación: ${response.code()} - ${response.message()}")
+                println("Error crear postulación: ${response.code()} - ${response.message()}")
                 null
             }
         } catch (e: Exception) {
-            println("Excepción guardar: ${e.message}")
+            println("Excepción crear postulación: ${e.message}")
             null
         }
     }

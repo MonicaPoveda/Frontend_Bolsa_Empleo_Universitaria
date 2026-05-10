@@ -24,6 +24,8 @@ import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.PostulacionRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.SeguimientoPostulacionRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
@@ -43,15 +45,31 @@ fun DetalleOfertaEstudianteScreen(
     val context = LocalContext.current
     val tokenManager = remember { Token(context) }
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() } // ✅ Declarado
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // ViewModels
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val ofertasViewModel: OfertasViewModel = viewModel(
         factory = OfertasViewModelFactory(repository)
     )
+
+    // ✅ CORREGIDO: Crear repositorios y ViewModel correctamente
+    val postulacionRepository = remember {
+        PostulacionRepository(
+            RetrofitClient.postulacionApi,
+            RetrofitClient.usuarioApi
+        )
+    }
+    val seguimientoRepository = remember {
+        SeguimientoPostulacionRepository(RetrofitClient.seguimientoPostulacionApi)
+    }
+
     val postulacionViewModel: PostulacionViewModel = viewModel(
-        factory = PostulacionViewModelFactory(RetrofitClient.postulacionApi)
+        factory = PostulacionViewModelFactory(
+            postulacionRepository,
+            seguimientoRepository,
+            RetrofitClient.postulacionApi
+        )
     )
 
     var oferta by remember { mutableStateOf<OfertaLaboralResponse?>(null) }
@@ -59,7 +77,6 @@ fun DetalleOfertaEstudianteScreen(
     var showPostularDialog by remember { mutableStateOf(false) }
     var postulando by remember { mutableStateOf(false) }
 
-    // Estado para el diálogo de error (postulación duplicada u otros)
     var showErrorDialog by remember { mutableStateOf(false) }
     var errorMessageText by remember { mutableStateOf("") }
 
@@ -134,8 +151,7 @@ fun DetalleOfertaEstudianteScreen(
         )
     }
 
-    // Diálogo de error (postulación duplicada, etc.)
-    // Diálogo de error (postulación duplicada, etc.)
+    // Diálogo de error
     if (showErrorDialog) {
         AlertDialog(
             onDismissRequest = { showErrorDialog = false },
@@ -148,7 +164,7 @@ fun DetalleOfertaEstudianteScreen(
                 )
             },
             title = { Text("Error", fontWeight = FontWeight.Bold, color = Color.Black) },
-            text = { Text(errorMessageText, color = Color.Black) }, // ✅ texto negro
+            text = { Text(errorMessageText, color = Color.Black) },
             confirmButton = {
                 Button(
                     onClick = { showErrorDialog = false },
@@ -157,12 +173,12 @@ fun DetalleOfertaEstudianteScreen(
                     Text("Aceptar", color = Color.White)
                 }
             },
-            containerColor = Color.White // ✅ fondo blanco explícito
+            containerColor = Color.White
         )
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }, // ✅ SnackbarHost agregado
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Detalle de Oferta", color = Color.White, fontWeight = FontWeight.Bold) },
@@ -197,7 +213,6 @@ fun DetalleOfertaEstudianteScreen(
                 val o = oferta!!
                 Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                     Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-                        // Header gradiente
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -238,7 +253,6 @@ fun DetalleOfertaEstudianteScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                     }
 
-                    // Botón postular
                     Surface(shadowElevation = 8.dp, color = Color.White) {
                         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                             Button(

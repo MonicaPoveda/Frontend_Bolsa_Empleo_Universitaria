@@ -28,7 +28,6 @@ object RetrofitClient {
             val original = chain.request()
             val requestBuilder = original.newBuilder()
 
-            // Usamos .header() en lugar de .addHeader() para evitar duplicados
             tokenManager?.getToken()?.let { token ->
                 requestBuilder.header("Authorization", "Bearer $token")
             }
@@ -37,7 +36,6 @@ object RetrofitClient {
             chain.proceed(request)
         }
 
-        // Interceptor para forzar Content-Type limpio sin charset
         val contentTypeInterceptor = okhttp3.Interceptor { chain ->
             val original = chain.request()
             if (original.body != null) {
@@ -53,7 +51,7 @@ object RetrofitClient {
 
         val okHttpClient = OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
-            .addInterceptor(contentTypeInterceptor) // ✅ NUEVO: fuerza Content-Type sin charset
+            .addInterceptor(contentTypeInterceptor)
             .addInterceptor(logging)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -72,12 +70,13 @@ object RetrofitClient {
             .build()
     }
 
+    // ✅ APIs - SIN DUPLICADOS
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
     val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
     val perfilApi: PerfilApi by lazy { retrofit.create(PerfilApi::class.java) }
-    val postulacionApi: PostulacionApi by lazy { retrofit.create(PostulacionApi::class.java)}
-
     val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
+    val postulacionApi: PostulacionApi by lazy { retrofit.create(PostulacionApi::class.java) }  // ← Solo una vez
+    val seguimientoPostulacionApi: SeguimientoPostulacionApi by lazy { retrofit.create(SeguimientoPostulacionApi::class.java) }
 
     val seguimientoPostulacionApi: SeguimientoPostulacionApi by lazy { retrofit.create(SeguimientoPostulacionApi::class.java) }
     fun init(context: Context) {

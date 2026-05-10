@@ -19,18 +19,14 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarPerfilUsuario
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarUsuario
-import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
-import com.example.frontend_bolsa_empleo_universitaria.model.UsuarioDTO
-
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
-import kotlinx.coroutines.launch
-
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PerfilViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PerfilViewModelFactory
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +43,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
     val isLoadingViewModel by viewModel.loading.collectAsState()
     val errorViewModel by viewModel.error.collectAsState()
 
+    // Campos editables
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
@@ -54,6 +51,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
     var confirmPassword by remember { mutableStateOf("") }
     var mostrarPassword by remember { mutableStateOf(false) }
 
+    // Campos del perfil profesional
     var perfilId by remember { mutableStateOf<Long?>(null) }
     var carrera by remember { mutableStateOf("") }
     var universidad by remember { mutableStateOf("") }
@@ -68,20 +66,19 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Inicializar datos personales desde el token (solo una vez)
-    val tokenNombre = remember { tokenManager.getUserNombre() }
-
+    // ✅ Inicializar campos personales usando getters específicos del Token
     LaunchedEffect(Unit) {
         val userId = tokenManager.getUserId()
         if (userId != null) {
             viewModel.cargarSoloPerfil(userId)
         }
-        // Inicializar campos personales desde token
-        nombre = tokenNombre?.split(" ")?.firstOrNull() ?: ""
-        apellido = tokenNombre?.split(" ")?.drop(1)?.joinToString(" ") ?: ""
-        // email no editable, pero puedes mostrarlo si quieres
+        // Cargar datos desde el token
+        nombre = tokenManager.getUserNombre()
+        apellido = tokenManager.getUserApellido()
+        telefono = tokenManager.getUserTelefono()
     }
 
+    // Sincronizar perfil profesional
     LaunchedEffect(perfilState) {
         perfilState?.let {
             perfilId = it.idPerfil
@@ -104,7 +101,11 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF0056D2), titleContentColor = Color.White, navigationIconContentColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF0056D2),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
             )
         }
     ) { padding ->
@@ -121,7 +122,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Sección Datos Personales
+                // --- Datos Personales ---
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -130,16 +131,53 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Datos Personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
                         Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(value = apellido, onValueChange = { apellido = it }, label = { Text("Apellido") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(value = telefono, onValueChange = { telefono = it }, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(value = password, onValueChange = { password = it }, label = { Text("Nueva Contraseña (opcional)") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(), trailingIcon = {
-                            IconButton(onClick = { mostrarPassword = !mostrarPassword }) {
-                                Icon(if (mostrarPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = null)
+
+                        OutlinedTextField(
+                            value = nombre,
+                            onValueChange = { nombre = it },
+                            label = { Text("Nombre") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = apellido,
+                            onValueChange = { apellido = it },
+                            label = { Text("Apellido") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = telefono,
+                            onValueChange = { telefono = it },
+                            label = { Text("Teléfono") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = { password = it },
+                            label = { Text("Nueva Contraseña (opcional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                            trailingIcon = {
+                                IconButton(onClick = { mostrarPassword = !mostrarPassword }) {
+                                    Icon(
+                                        if (mostrarPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = null
+                                    )
+                                }
                             }
-                        })
+                        )
                         if (password.isNotBlank()) {
-                            OutlinedTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = { Text("Confirmar Contraseña") }, modifier = Modifier.fillMaxWidth(), singleLine = true, visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation())
+                            OutlinedTextField(
+                                value = confirmPassword,
+                                onValueChange = { confirmPassword = it },
+                                label = { Text("Confirmar Contraseña") },
+                                modifier = Modifier.fillMaxWidth(),
+                                singleLine = true,
+                                visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation()
+                            )
                             if (password != confirmPassword && confirmPassword.isNotBlank()) {
                                 Text("Las contraseñas no coinciden", color = Color.Red, fontSize = 12.sp)
                             }
@@ -147,7 +185,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     }
                 }
 
-                // Sección Perfil Profesional
+                // --- Perfil Profesional ---
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -156,16 +194,65 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Perfil Profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
                         Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedTextField(value = carrera, onValueChange = { carrera = it }, label = { Text("Carrera") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(value = universidad, onValueChange = { universidad = it }, label = { Text("Universidad") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(value = semestre, onValueChange = { semestre = it }, label = { Text("Semestre") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
-                        OutlinedTextField(value = habilidades, onValueChange = { habilidades = it }, label = { Text("Habilidades") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                        OutlinedTextField(value = experiencia, onValueChange = { experiencia = it }, label = { Text("Experiencia (solo egresados)") }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-                        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-                            OutlinedTextField(value = disponibilidad, onValueChange = {}, readOnly = true, label = { Text("Disponibilidad") }, trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }, modifier = Modifier.fillMaxWidth().menuAnchor())
-                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        OutlinedTextField(
+                            value = carrera,
+                            onValueChange = { carrera = it },
+                            label = { Text("Carrera") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = universidad,
+                            onValueChange = { universidad = it },
+                            label = { Text("Universidad") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = semestre,
+                            onValueChange = { semestre = it },
+                            label = { Text("Semestre") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = habilidades,
+                            onValueChange = { habilidades = it },
+                            label = { Text("Habilidades") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2
+                        )
+                        OutlinedTextField(
+                            value = experiencia,
+                            onValueChange = { experiencia = it },
+                            label = { Text("Experiencia (solo egresados)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 2
+                        )
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = disponibilidad,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Disponibilidad") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
                                 disponibilidadOptions.forEach { opcion ->
-                                    DropdownMenuItem(text = { Text(opcion) }, onClick = { disponibilidad = opcion; expanded = false })
+                                    DropdownMenuItem(
+                                        text = { Text(opcion) },
+                                        onClick = {
+                                            disponibilidad = opcion
+                                            expanded = false
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -174,7 +261,11 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
 
                 if (errorMessage != null || errorViewModel != null) {
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))) {
-                        Text(errorMessage ?: errorViewModel ?: "", color = Color.Red, modifier = Modifier.padding(12.dp))
+                        Text(
+                            errorMessage ?: errorViewModel ?: "",
+                            color = Color.Red,
+                            modifier = Modifier.padding(12.dp)
+                        )
                     }
                 }
 
@@ -191,63 +282,75 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                             val usuarioActualizado = ActualizarUsuario(
                                 nombre = nombre,
                                 apellido = apellido,
-                                email = tokenManager.getUserEmail() ?: "",   // ✅
+                                email = tokenManager.getUserEmail() ?: "",
                                 telefono = telefono.ifBlank { null },
                                 password = if (password.isNotBlank()) password else null
                             )
 
-                            viewModel.actualizarUsuario(userId, usuarioActualizado, onSuccess = {
-                                // 2. Actualizar perfil profesional si existe
-                                if (perfilId != null) {
-                                    val perfilActualizado = ActualizarPerfilUsuario(
-                                        idPerfil = perfilId!!,
-                                        carrera = carrera,
-                                        universidad = universidad,
-                                        semestre = semestre.ifBlank { null },
-                                        habilidades = habilidades,
-                                        experiencia = experiencia.ifBlank { null },
-                                        cvUrl = null,
-                                        disponibilidad = disponibilidad,
-                                        idUsuario = userId
-                                    )
-                                    viewModel.actualizarPerfil(perfilId!!, perfilActualizado, onSuccess = {
+                            viewModel.actualizarUsuario(
+                                userId,
+                                usuarioActualizado,
+                                onSuccess = {
+                                    // 2. Actualizar perfil profesional si existe
+                                    if (perfilId != null) {
+                                        val perfilActualizado = ActualizarPerfilUsuario(
+                                            idPerfil = perfilId!!,
+                                            carrera = carrera,
+                                            universidad = universidad,
+                                            semestre = semestre.ifBlank { null },
+                                            habilidades = habilidades,
+                                            experiencia = experiencia.ifBlank { null },
+                                            cvUrl = null,
+                                            disponibilidad = disponibilidad,
+                                            idUsuario = userId
+                                        )
+                                        viewModel.actualizarPerfil(
+                                            perfilId!!,
+                                            perfilActualizado,
+                                            onSuccess = {
+                                                scope.launch {
+                                                    snackbarHostState.showSnackbar("✅ Datos actualizados correctamente")
+                                                    // ✅ Actualizar token con todos los campos (incluido teléfono)
+                                                    tokenManager.saveToken(
+                                                        token = tokenManager.getToken() ?: "",
+                                                        email = tokenManager.getUserEmail() ?: "",
+                                                        rol = tokenManager.getUserRole() ?: "",
+                                                        idUsuario = userId,
+                                                        nombre = nombre,
+                                                        apellido = apellido,
+                                                        telefono = telefono
+                                                    )
+                                                    isLoadingSave = false
+                                                    navController.popBackStack()
+                                                }
+                                            },
+                                            onError = {
+                                                errorMessage = it
+                                                isLoadingSave = false
+                                            }
+                                        )
+                                    } else {
                                         scope.launch {
-                                            snackbarHostState.showSnackbar("✅ Datos actualizados correctamente")
-                                            // Actualizar datos locales en el token para reactividad en otras pantallas (como el Drawer)
+                                            snackbarHostState.showSnackbar("✅ Datos personales actualizados")
                                             tokenManager.saveToken(
                                                 token = tokenManager.getToken() ?: "",
                                                 email = tokenManager.getUserEmail() ?: "",
                                                 rol = tokenManager.getUserRole() ?: "",
                                                 idUsuario = userId,
                                                 nombre = nombre,
-                                                apellido = apellido
+                                                apellido = apellido,
+                                                telefono = telefono
                                             )
                                             isLoadingSave = false
                                             navController.popBackStack()
                                         }
-                                    }, onError = {
-                                        errorMessage = it
-                                        isLoadingSave = false
-                                    })
-                                } else {
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("✅ Datos personales actualizados")
-                                        tokenManager.saveToken(
-                                            token = tokenManager.getToken() ?: "",
-                                            email = tokenManager.getUserEmail() ?: "",
-                                            rol = tokenManager.getUserRole() ?: "",
-                                            idUsuario = userId,
-                                            nombre = nombre,
-                                            apellido = apellido
-                                        )
-                                        isLoadingSave = false
-                                        navController.popBackStack()
                                     }
+                                },
+                                onError = {
+                                    errorMessage = it
+                                    isLoadingSave = false
                                 }
-                            }, onError = {
-                                errorMessage = it
-                                isLoadingSave = false
-                            })
+                            )
                         } else {
                             errorMessage = "Sesión no válida"
                             isLoadingSave = false

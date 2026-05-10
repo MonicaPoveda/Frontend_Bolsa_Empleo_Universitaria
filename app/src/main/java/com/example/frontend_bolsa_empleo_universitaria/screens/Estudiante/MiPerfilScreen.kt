@@ -36,7 +36,11 @@ fun MiPerfilScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val nombre = tokenManager.getUserNombre() ?: "Estudiante"
+    val apellido = tokenManager.getUserApellido()
     val email = tokenManager.getUserEmail() ?: ""
+    val telefono = tokenManager.getUserTelefono()
+    val telefonoMostrar = if (telefono.isNotBlank()) telefono else "No disponible"
+
 
     // Cargar solo el perfil profesional
     LaunchedEffect(Unit) {
@@ -115,9 +119,11 @@ fun MiPerfilScreen(navController: NavController) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Datos Personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
                     Spacer(modifier = Modifier.height(12.dp))
-                    PersonalInfoRow(icon = Icons.Default.Person, label = "Nombre Completo", value = nombre)
+                    PersonalInfoRow(icon = Icons.Default.Person, label = "Nombre", value = nombre)
+                    PersonalInfoRow(icon = Icons.Default.Person, label = "Apellido", value = apellido)
                     PersonalInfoRow(icon = Icons.Default.Email, label = "Email", value = email)
-                    PersonalInfoRow(icon = Icons.Default.Phone, label = "Teléfono", value = "No disponible")
+                    PersonalInfoRow(icon = Icons.Default.Phone, label = "Teléfono", value = telefonoMostrar) // ✅ añadir esta línea
+
                 }
             }
 

@@ -41,6 +41,8 @@ class PostulacionViewModel(
         }
     }
 
+
+
     fun postularse(idUsuario: Long, idOferta: Long, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {
             try {
@@ -50,17 +52,29 @@ class PostulacionViewModel(
                     onSuccess()
                 } else {
                     val errorBody = response.errorBody()?.string()
-                    val userMessage = try {
-                        // Intenta parsear como JSON con campo "message"
-                        JSONObject(errorBody).optString("message", "Error ${response.code()}")
+                    val errorMsg = try {
+                        JSONObject(errorBody).optString("message", "")
                     } catch (e: Exception) {
-                        // Si no es JSON, usa el cuerpo tal cual (o un mensaje genérico)
-                        errorBody ?: "Error ${response.code()}"
+                        errorBody ?: ""
                     }
-                    onError(userMessage)
+
+                    // Personalizar el mensaje según el requerimiento: 403, 409 o 400 suelen indicar duplicidad
+                    val finalMessage = when {
+                        response.code() == 403 || response.code() == 409 || response.code() == 400 ||
+                        errorMsg.contains("ya existe", ignoreCase = true) || 
+                        errorMsg.contains("duplicate", ignoreCase = true) ||
+                        errorMsg.contains("postulado", ignoreCase = true) ||
+                        errorMsg.contains("403") -> {
+                            "Ya estás postulado a esta oferta, no puedes volver a postularte."
+                        }
+                        errorMsg.isBlank() -> "Error ${response.code()}: No se pudo completar la postulación"
+                        else -> errorMsg
+                    }
+                    
+                    onError(finalMessage)
                 }
             } catch (e: Exception) {
-                onError(e.message ?: "Error de red")
+                onError("Error de conexión: No se pudo procesar la postulación")
             }
         }
     }

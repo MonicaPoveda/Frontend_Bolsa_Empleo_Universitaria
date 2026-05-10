@@ -23,7 +23,7 @@ class Token(context: Context) {
     }
 
     fun getUserId(): Long? = if (prefs.contains("user_id")) prefs.getLong("user_id", -1) else null
-
+    fun getUserTelefono(): String = prefs.getString("user_telefono", "") ?: ""
     fun saveUserName(nombre: String, apellido: String) {
         prefs.edit()
             .putString("user_nombre", nombre)
@@ -32,6 +32,7 @@ class Token(context: Context) {
     }
 
     fun getUserNombre(): String = prefs.getString("user_nombre", "Usuario") ?: "Usuario"
+    fun getUserApellido(): String = prefs.getString("user_apellido", "") ?: ""
 
     // Métodos para el perfil
     fun setProfileCreated(created: Boolean) {
@@ -52,9 +53,10 @@ class Token(context: Context) {
 
 
     // MODIFICADO: Agregar parámetros idUsuario y nombre/apellido
-    fun saveToken(token: String, email: String, rol: String, idEmpresa: Long = 0, idUsuario: Long = -1, nombre: String = "", apellido: String = "") {
+    // Dentro de la clase Token
+    fun saveToken(token: String, email: String, rol: String, idEmpresa: Long = 0, idUsuario: Long = -1, nombre: String = "", apellido: String = "", telefono: String = "") {
         prefs.edit().apply {
-            putString("jwt_token", token) // Usar jwt_token que es el que usa getToken()
+            putString("jwt_token", token)
             putString("auth_token", token)
             putString("user_email", email)
             putString("user_role", rol)
@@ -62,9 +64,11 @@ class Token(context: Context) {
             putLong("user_id", idUsuario)
             putString("user_nombre", nombre)
             putString("user_apellido", apellido)
+            putString("user_telefono", telefono)
             apply()
         }
     }
+
 
 
 

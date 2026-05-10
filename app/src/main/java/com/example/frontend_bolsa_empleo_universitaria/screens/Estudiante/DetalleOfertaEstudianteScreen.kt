@@ -43,15 +43,13 @@ fun DetalleOfertaEstudianteScreen(
     val context = LocalContext.current
     val tokenManager = remember { Token(context) }
     val scope = rememberCoroutineScope()
-    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() } // ✅ Declarado
 
-    // ✅ 1. Crear ViewModel de ofertas con su factory
+    // ViewModels
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val ofertasViewModel: OfertasViewModel = viewModel(
         factory = OfertasViewModelFactory(repository)
     )
-
-    // ✅ 2. Crear ViewModel de postulaciones con su factory
     val postulacionViewModel: PostulacionViewModel = viewModel(
         factory = PostulacionViewModelFactory(RetrofitClient.postulacionApi)
     )
@@ -61,13 +59,15 @@ fun DetalleOfertaEstudianteScreen(
     var showPostularDialog by remember { mutableStateOf(false) }
     var postulando by remember { mutableStateOf(false) }
 
+    // Estado para el diálogo de error (postulación duplicada u otros)
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessageText by remember { mutableStateOf("") }
+
     // Cargar oferta al iniciar
     LaunchedEffect(ofertaId) {
         isLoading = true
-        // Buscar en las ofertas ya cargadas en ViewModel (si las hay)
         var encontrada = ofertasViewModel.ofertas.value.find { it.idOferta == ofertaId }
         if (encontrada == null) {
-            // Si no está, cargar todas y buscar
             try {
                 val repo = OfertasRepository(RetrofitClient.ofertaLaboralApi)
                 val todas = repo.listarTodas()
@@ -88,9 +88,7 @@ fun DetalleOfertaEstudianteScreen(
                 Icon(Icons.Default.Work, contentDescription = null, tint = BlueStart, modifier = Modifier.size(40.dp))
             },
             title = { Text("Confirmar postulación", fontWeight = FontWeight.Bold) },
-            text = {
-                Text("¿Deseas postularte a la oferta \"${oferta!!.titulo}\"?")
-            },
+            text = { Text("¿Deseas postularte a la oferta \"${oferta!!.titulo}\"?") },
             confirmButton = {
                 Button(
                     onClick = {
@@ -99,7 +97,6 @@ fun DetalleOfertaEstudianteScreen(
                             postulando = true
                             val userId = tokenManager.getUserId()
                             if (userId != null) {
-                                // ✅ Usar el postulacionViewModel correctamente
                                 postulacionViewModel.postularse(
                                     idUsuario = userId,
                                     idOferta = ofertaId,
@@ -111,18 +108,19 @@ fun DetalleOfertaEstudianteScreen(
                                     },
                                     onError = { error ->
                                         postulando = false
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("❌ $error")
-                                        }
+                                        errorMessageText = error
+                                        showErrorDialog = true
                                     }
                                 )
                             } else {
                                 postulando = false
-                                snackbarHostState.showSnackbar("❌ Sesión no válida. Inicia sesión nuevamente.")
+                                errorMessageText = "Sesión no válida. Inicia sesión nuevamente."
+                                showErrorDialog = true
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BlueStart)
+                    colors = ButtonDefaults.buttonColors(containerColor = BlueStart),
+                    enabled = !postulando
                 ) {
                     if (postulando) CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White)
                     else Text("Sí, postularme")
@@ -136,8 +134,35 @@ fun DetalleOfertaEstudianteScreen(
         )
     }
 
+    // Diálogo de error (postulación duplicada, etc.)
+    // Diálogo de error (postulación duplicada, etc.)
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            icon = {
+                Icon(
+                    Icons.Default.Error,
+                    contentDescription = null,
+                    tint = Color(0xFFE53935),
+                    modifier = Modifier.size(40.dp)
+                )
+            },
+            title = { Text("Error", fontWeight = FontWeight.Bold, color = Color.Black) },
+            text = { Text(errorMessageText, color = Color.Black) }, // ✅ texto negro
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = BlueStart)
+                ) {
+                    Text("Aceptar", color = Color.White)
+                }
+            },
+            containerColor = Color.White // ✅ fondo blanco explícito
+        )
+    }
+
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState) }, // ✅ SnackbarHost agregado
         topBar = {
             TopAppBar(
                 title = { Text("Detalle de Oferta", color = Color.White, fontWeight = FontWeight.Bold) },
@@ -172,6 +197,7 @@ fun DetalleOfertaEstudianteScreen(
                 val o = oferta!!
                 Column(modifier = Modifier.fillMaxSize().padding(padding)) {
                     Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                        // Header gradiente
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -212,6 +238,7 @@ fun DetalleOfertaEstudianteScreen(
                         Spacer(modifier = Modifier.height(24.dp))
                     }
 
+                    // Botón postular
                     Surface(shadowElevation = 8.dp, color = Color.White) {
                         Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                             Button(
@@ -237,8 +264,19 @@ fun DetalleOfertaEstudianteScreen(
 }
 
 @Composable
-private fun DetalleInfoChipEstudiante(modifier: Modifier = Modifier, icon: ImageVector, label: String, value: String, color: Color) {
-    Card(modifier = modifier, shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
+private fun DetalleInfoChipEstudiante(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    label: String,
+    value: String,
+    color: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp)
+    ) {
         Column(modifier = Modifier.padding(14.dp)) {
             Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(20.dp))
             Spacer(modifier = Modifier.height(6.dp))
@@ -255,5 +293,7 @@ private fun formatFecha(fecha: String): String {
             val partes = fecha.split("-")
             if (partes.size == 3) "${partes[2]}/${partes[1]}/${partes[0]}" else fecha
         }
-    } catch (e: Exception) { fecha }
+    } catch (e: Exception) {
+        fecha
+    }
 }

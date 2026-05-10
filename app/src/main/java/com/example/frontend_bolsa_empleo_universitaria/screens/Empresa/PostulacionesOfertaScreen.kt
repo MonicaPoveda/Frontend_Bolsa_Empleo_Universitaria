@@ -60,13 +60,20 @@ fun PostulantesOfertaScreen(
         )
     }
     val seguimientoRepository = remember { SeguimientoPostulacionRepository(RetrofitClient.seguimientoPostulacionApi) }
+
+    // ✅ Crear el ViewModel con los parámetros nombrados para evitar confusiones
     val viewModel: PostulacionViewModel = viewModel(
-        factory = PostulacionViewModelFactory(postulacionRepository, seguimientoRepository,RetrofitClient.postulacionApi )
+        factory = PostulacionViewModelFactory(
+            api = RetrofitClient.postulacionApi,
+            postulacionRepository = postulacionRepository,
+            seguimientoRepository = seguimientoRepository
+        )
     )
 
-    val postulaciones by viewModel.postulaciones
-    val isLoading by viewModel.loading
-    val errorMessage by viewModel.error
+    // ✅ Usar las propiedades correctas del ViewModel
+    val postulaciones by viewModel.postulacionesEmpresa
+    val isLoading by viewModel.loadingEmpresa
+    val errorMessage by viewModel.errorEmpresa
     val isUpdating by viewModel.updating
 
     // Estado para el filtro de estado
@@ -194,7 +201,7 @@ fun PostulantesOfertaScreen(
                 }
 
                 else -> {
-                    // Tarjetas de filtros (Todas, Pendientes, En revisión, Aceptadas, Rechazadas)
+                    // Tarjetas de filtros
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -256,7 +263,6 @@ fun PostulantesOfertaScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    // Título de la lista filtrada
                     Text(
                         text = when (filtroEstado) {
                             "PENDIENTE" -> "Postulaciones Pendientes"
@@ -271,7 +277,6 @@ fun PostulantesOfertaScreen(
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
 
-                    // Lista de postulantes filtrada
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
@@ -451,7 +456,6 @@ fun PostulanteCardSimple(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Contenedor para el selector de estado con menú interno
             Column {
                 Surface(
                     color = estadoColor.copy(alpha = 0.15f),
@@ -491,7 +495,6 @@ fun PostulanteCardSimple(
                     }
                 }
 
-                // Menú desplegable dentro de la tarjeta
                 if (showEstadoMenu) {
                     Card(
                         modifier = Modifier

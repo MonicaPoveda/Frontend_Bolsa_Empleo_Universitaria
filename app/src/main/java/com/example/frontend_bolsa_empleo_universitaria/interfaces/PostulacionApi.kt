@@ -35,7 +35,9 @@ interface PostulacionApi {
 
     // Listar postulaciones por candidato (usuario)
     @GET("api/postulaciones/candidato/{idUsuario}")
-    suspend fun listarPorCandidato(@Path("idUsuario") idUsuario: Long): Response<List<PostulacionDto>>
+    suspend fun listarPorCandidato(@Path("idUsuario")
+                                       idUsuario: Long): Response<List<PostulacionDto>>
+
 
     // Listar postulaciones por oferta (ADMIN y EMPRESA)
     @GET("api/postulaciones/oferta/{idOferta}")

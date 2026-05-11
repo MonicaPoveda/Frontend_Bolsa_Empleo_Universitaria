@@ -40,6 +40,7 @@ fun CrearPerfilEstudianteScreen(
     var habilidades by remember { mutableStateOf("") }
     var disponibilidad by remember { mutableStateOf("INMEDIATA") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
     var expanded by remember { mutableStateOf(false) }
 
     val disponibilidadOptions = listOf("INMEDIATA", "1 MES", "3 MESES", "6 MESES")
@@ -125,27 +126,119 @@ fun CrearPerfilEstudianteScreen(
                 singleLine = true
             )
 
-            OutlinedTextField(
-                value = semestre,
-                onValueChange = { semestre = it; errorMessage = null },
-                label = { Text("Semestre *") },
-                placeholder = { Text("Ej: 8") },
-                modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { Icon(Icons.Default.Numbers, contentDescription = null) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = errorMessage != null && semestre.isEmpty(),
-                singleLine = true
-            )
+            // --- Semestre Desplegable ---
+            var expandedSemestre by remember { mutableStateOf(false) }
+            val semestreOptions = (1..10).map { it.toString() }
+            ExposedDropdownMenuBox(
+                expanded = expandedSemestre,
+                onExpandedChange = { expandedSemestre = it }
+            ) {
+                OutlinedTextField(
+                    value = semestre,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Semestre *") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSemestre) },
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    leadingIcon = { Icon(Icons.Default.Numbers, contentDescription = null) }
+                )
+                DropdownMenu(
+                    expanded = expandedSemestre,
+                    onDismissRequest = { expandedSemestre = false },
+                    modifier = Modifier.fillMaxWidth(0.8f)
+                ) {
+                    semestreOptions.forEach { opcion ->
+                        DropdownMenuItem(
+                            text = { Text(opcion) },
+                            onClick = {
+                                semestre = opcion
+                                expandedSemestre = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            // --- Habilidades como Chips ---
+            var habilidadActual by remember { mutableStateOf("") }
+            val listaHabilidades = remember(habilidades) { 
+                if (habilidades.isBlank()) mutableListOf<String>() 
+                else habilidades.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList() 
+            }
 
             OutlinedTextField(
-                value = habilidades,
-                onValueChange = { habilidades = it },
-                label = { Text("Habilidades Técnicas") },
-                placeholder = { Text("Ej: Kotlin, Java, SQL (separadas por comas)") },
+                value = habilidadActual,
+                onValueChange = { habilidadActual = it },
+                label = { Text("Agregar Habilidades (Enter para añadir)") },
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Code, contentDescription = null) },
-                minLines = 2
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = {
+                    if (habilidadActual.isNotBlank()) {
+                        val nuevasHabilidades = if (habilidades.isBlank()) habilidadActual 
+                                               else "$habilidades, ${habilidadActual.trim()}"
+                        habilidades = nuevasHabilidades
+                        habilidadActual = ""
+                    }
+                })
             )
+            
+            FlowRow(
+                modifier = Modifier.padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                listaHabilidades.forEach { hab ->
+                    AssistChip(
+                        onClick = { },
+                        label = { Text(hab) },
+                        trailingIcon = {
+                            IconButton(
+                                onClick = {
+                                    val nuevaLista = listaHabilidades.filter { it != hab }
+                                    habilidades = nuevaLista.joinToString(", ")
+                                },
+                                modifier = Modifier.size(16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close, 
+                                    contentDescription = "Eliminar", 
+                                    modifier = Modifier.size(12.dp)
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+
+            // --- Selector de Experiencia ---
+            var tieneExperiencia by remember { mutableStateOf(false) }
+            var cvUrl by remember { mutableStateOf("") }
+            var experienciaDetalle by remember { mutableStateOf("") }
+
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = tieneExperiencia, onCheckedChange = { tieneExperiencia = it })
+                Text("¿Tienes experiencia laboral?")
+            }
+
+            if (tieneExperiencia) {
+                OutlinedTextField(
+                    value = experienciaDetalle,
+                    onValueChange = { experienciaDetalle = it },
+                    label = { Text("Cuéntanos tu experiencia") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Work, contentDescription = null) },
+                    minLines = 2
+                )
+                OutlinedTextField(
+                    value = cvUrl,
+                    onValueChange = { cvUrl = it },
+                    label = { Text("URL de tu CV (Opcional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Link, contentDescription = null) },
+                    singleLine = true
+                )
+            }
 
             ExposedDropdownMenuBox(
                 expanded = expanded,
@@ -187,12 +280,47 @@ fun CrearPerfilEstudianteScreen(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = errorMessage!!,
-                        color = Color.Red,
+                    Row(
                         modifier = Modifier.padding(12.dp),
-                        fontSize = 14.sp
-                    )
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Error, "Error", tint = Color.Red)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = errorMessage!!,
+                            color = Color.Red,
+                            modifier = Modifier.weight(1f),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            if (successMessage != null) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFF1E5A7A).copy(alpha = 0.1f)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = "Éxito",
+                            tint = Color(0xFF1E5A7A)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = successMessage!!,
+                            color = Color(0xFF1E5A7A),
+                            modifier = Modifier.weight(1f),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
 
@@ -224,8 +352,8 @@ fun CrearPerfilEstudianteScreen(
                                 universidad = universidad,
                                 semestre = semestre,
                                 habilidades = habilidades,
-                                experiencia = "",
-                                cvUrl = "",
+                                experiencia = if (tieneExperiencia) experienciaDetalle else "",
+                                cvUrl = if (tieneExperiencia) cvUrl else "",
                                 disponibilidad = disponibilidad,
                                 idUsuario = userId
                             )
@@ -237,9 +365,15 @@ fun CrearPerfilEstudianteScreen(
                                 val perfilCreado = response.body()
 
                                 if (perfilCreado != null && perfilCreado.idPerfil > 0) {
+                                    successMessage = "Perfil creado exitosamente"
+                                    errorMessage = null
+                                    
                                     // Guardar en SharedPreferences que ya tiene perfil
                                     tokenManager.setProfileCreated(true)
                                     tokenManager.setUserType("ESTUDIANTE")
+
+                                    // Esperar un momento para mostrar el mensaje de éxito
+                                    kotlinx.coroutines.delay(1500)
 
                                     // Navegar al home principal
                                     navController.navigate("estudiante_home") {

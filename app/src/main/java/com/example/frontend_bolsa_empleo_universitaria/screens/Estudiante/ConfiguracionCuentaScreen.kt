@@ -64,6 +64,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
 
     var isLoadingSave by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var successMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // ✅ Inicializar campos personales usando getters específicos del Token
@@ -148,11 +149,20 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                         )
                         OutlinedTextField(
                             value = telefono,
-                            onValueChange = { telefono = it },
+                            onValueChange = { 
+                                if (it.length <= 10) telefono = it.filter { char -> char.isDigit() }
+                            },
                             label = { Text("Teléfono") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            isError = telefono.isNotEmpty() && telefono.length != 10,
+                            supportingText = {
+                                if (telefono.isNotEmpty() && telefono.length != 10) {
+                                    Text("El teléfono debe tener 10 dígitos", color = Color.Red)
+                                }
+                            }
                         )
+                        
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
@@ -167,8 +177,18 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                         contentDescription = null
                                     )
                                 }
-                            }
+                            },
+                            isError = password.isNotEmpty() && (password.length < 6 || !password.matches(Regex(".*[A-Z].*")) || !password.matches(Regex(".*[0-9].*")) || !password.matches(Regex(".*[@#\$%^&+=!].*")))
                         )
+                        if (password.isNotEmpty()) {
+                            Text(
+                                "Mín. 6 caracteres, 1 mayúscula, 1 número y 1 carácter especial",
+                                fontSize = 11.sp,
+                                color = if (password.length >= 6 && password.matches(Regex(".*[A-Z].*")) && password.matches(Regex(".*[0-9].*"))) Color.Gray else Color.Red,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+                        
                         if (password.isNotBlank()) {
                             OutlinedTextField(
                                 value = confirmPassword,
@@ -176,7 +196,8 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                 label = { Text("Confirmar Contraseña") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
-                                visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation()
+                                visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                                isError = password != confirmPassword && confirmPassword.isNotEmpty()
                             )
                             if (password != confirmPassword && confirmPassword.isNotBlank()) {
                                 Text("Las contraseñas no coinciden", color = Color.Red, fontSize = 12.sp)
@@ -194,6 +215,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text("Perfil profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E5A7A))
                         Spacer(modifier = Modifier.height(12.dp))
+                        
                         OutlinedTextField(
                             value = carrera,
                             onValueChange = { carrera = it },
@@ -208,27 +230,110 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true
                         )
+
+                        // --- Semestre Desplegable ---
+                        var expandedSemestre by remember { mutableStateOf(false) }
+                        val semestreOptions = (1..10).map { it.toString() } + "Egresado"
+                        ExposedDropdownMenuBox(
+                            expanded = expandedSemestre,
+                            onExpandedChange = { expandedSemestre = it }
+                        ) {
+                            OutlinedTextField(
+                                value = semestre,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Semestre") },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSemestre) },
+                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                            )
+                            DropdownMenu(
+                                expanded = expandedSemestre,
+                                onDismissRequest = { expandedSemestre = false }
+                            ) {
+                                semestreOptions.forEach { opcion ->
+                                    DropdownMenuItem(
+                                        text = { Text(opcion) },
+                                        onClick = {
+                                            semestre = opcion
+                                            expandedSemestre = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // --- Habilidades como Chips ---
+                        var habilidadActual by remember { mutableStateOf("") }
+                        val listaHabilidades = remember(habilidades) { 
+                            if (habilidades.isBlank()) mutableListOf<String>() 
+                            else habilidades.split(",").map { it.trim() }.filter { it.isNotEmpty() }.toMutableList() 
+                        }
+
                         OutlinedTextField(
-                            value = semestre,
-                            onValueChange = { semestre = it },
-                            label = { Text("Semestre") },
+                            value = habilidadActual,
+                            onValueChange = { habilidadActual = it },
+                            label = { Text("Agregar Habilidades (Enter para añadir)") },
                             modifier = Modifier.fillMaxWidth(),
-                            singleLine = true
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
+                            keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = {
+                                if (habilidadActual.isNotBlank()) {
+                                    val nuevasHabilidades = if (habilidades.isBlank()) habilidadActual 
+                                                           else "$habilidades, ${habilidadActual.trim()}"
+                                    habilidades = nuevasHabilidades
+                                    habilidadActual = ""
+                                }
+                            })
                         )
-                        OutlinedTextField(
-                            value = habilidades,
-                            onValueChange = { habilidades = it },
-                            label = { Text("Habilidades") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2
-                        )
-                        OutlinedTextField(
-                            value = experiencia,
-                            onValueChange = { experiencia = it },
-                            label = { Text("Experiencia (solo egresados)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2
-                        )
+                        
+                        androidx.compose.foundation.layout.FlowRow(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listaHabilidades.forEach { hab ->
+                                AssistChip(
+                                    onClick = { },
+                                    label = { Text(hab) },
+                                    trailingIcon = {
+                                        IconButton(
+                                            onClick = {
+                                                val nuevaLista = listaHabilidades.filter { it != hab }
+                                                habilidades = nuevaLista.joinToString(", ")
+                                            },
+                                            modifier = Modifier.size(16.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Default.Close, 
+                                                contentDescription = "Eliminar", 
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
+                                )
+                            }
+                        }
+
+                        // --- Selector de Experiencia ---
+                        var tieneExperiencia by remember { mutableStateOf(experiencia.isNotBlank()) }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Checkbox(checked = tieneExperiencia, onCheckedChange = { 
+                                tieneExperiencia = it
+                                if (!it) experiencia = ""
+                            })
+                            Text("Tengo experiencia laboral")
+                        }
+
+                        if (tieneExperiencia) {
+                            OutlinedTextField(
+                                value = experiencia,
+                                onValueChange = { experiencia = it },
+                                label = { Text("Experiencia") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2
+                            )
+                        }
                         ExposedDropdownMenuBox(
                             expanded = expanded,
                             onExpandedChange = { expanded = it }
@@ -260,12 +365,51 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                 }
 
                 if (errorMessage != null || errorViewModel != null) {
-                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE))) {
-                        Text(
-                            errorMessage ?: errorViewModel ?: "",
-                            color = Color.Red,
-                            modifier = Modifier.padding(12.dp)
-                        )
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Error, "Error", tint = Color.Red)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                errorMessage ?: errorViewModel ?: "",
+                                color = Color.Red,
+                                modifier = Modifier.weight(1f),
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
+
+                if (successMessage != null) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFF1E5A7A).copy(alpha = 0.1f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = "Éxito",
+                                tint = Color(0xFF1E5A7A)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = successMessage!!,
+                                color = Color(0xFF1E5A7A),
+                                modifier = Modifier.weight(1f),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
 
@@ -309,7 +453,8 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                             perfilActualizado,
                                             onSuccess = {
                                                 scope.launch {
-                                                    snackbarHostState.showSnackbar("✅ Datos actualizados correctamente")
+                                                    successMessage = "Perfil actualizado exitosamente"
+                                                    errorMessage = null
                                                     // ✅ Actualizar token con todos los campos (incluido teléfono)
                                                     tokenManager.saveToken(
                                                         token = tokenManager.getToken() ?: "",
@@ -321,17 +466,20 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                                         telefono = telefono
                                                     )
                                                     isLoadingSave = false
+                                                    kotlinx.coroutines.delay(1500)
                                                     navController.popBackStack()
                                                 }
                                             },
                                             onError = {
                                                 errorMessage = it
+                                                successMessage = null
                                                 isLoadingSave = false
                                             }
                                         )
                                     } else {
                                         scope.launch {
-                                            snackbarHostState.showSnackbar("✅ Datos personales actualizados")
+                                            successMessage = "Datos personales actualizados"
+                                            errorMessage = null
                                             tokenManager.saveToken(
                                                 token = tokenManager.getToken() ?: "",
                                                 email = tokenManager.getUserEmail() ?: "",
@@ -342,12 +490,14 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                                 telefono = telefono
                                             )
                                             isLoadingSave = false
+                                            kotlinx.coroutines.delay(1500)
                                             navController.popBackStack()
                                         }
                                     }
                                 },
                                 onError = {
                                     errorMessage = it
+                                    successMessage = null
                                     isLoadingSave = false
                                 }
                             )

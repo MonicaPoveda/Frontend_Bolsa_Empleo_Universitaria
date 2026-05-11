@@ -41,7 +41,8 @@ fun MisPostulacionesScreen(navController: NavController) {
     val postulacionRepository = remember {
         PostulacionRepository(
             RetrofitClient.postulacionApi,
-            RetrofitClient.usuarioApi
+            RetrofitClient.usuarioApi,
+            RetrofitClient.ofertaLaboralApi
         )
     }
     val seguimientoRepository = remember {

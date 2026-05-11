@@ -1,7 +1,9 @@
 package com.example.frontend_bolsa_empleo_universitaria.repository
 
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.OfertaLaboralApi
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.PostulacionApi
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.UsuarioApi
+import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionDto
 import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionRequest
 import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionResponse
@@ -10,11 +12,13 @@ import com.example.frontend_bolsa_empleo_universitaria.model.UsuarioDTO
 
 class PostulacionRepository(
     private val api: PostulacionApi,
-    private val usuarioApi: UsuarioApi
+    private val usuarioApi: UsuarioApi,
+    private val ofertaApi: OfertaLaboralApi
 ) {
 
-    // Cache de usuarios
+    // Cache de usuarios y ofertas
     private val usuarioCache = mutableMapOf<Long, UsuarioDTO>()
+    private val ofertaCache = mutableMapOf<Long, OfertaLaboralResponse>()
 
     suspend fun listarPorOferta(idOferta: Long): List<PostulacionDto> {
         return try {
@@ -74,11 +78,41 @@ class PostulacionRepository(
         return null // Ya que preCargarUsuarios debería haber llenado la caché
     }
 
+    private suspend fun preCargarOfertas() {
+        try {
+            if (ofertaCache.isNotEmpty()) return
+
+            println("💼 Pre-cargando lista de ofertas para títulos...")
+            val response = ofertaApi.listar()
+            if (response.isSuccessful) {
+                val ofertas = response.body() ?: emptyList()
+                ofertas.forEach { oferta ->
+                    ofertaCache[oferta.idOferta] = oferta
+                }
+                println("✅ Caché de ofertas lista: ${ofertaCache.size} ofertas")
+            }
+        } catch (e: Exception) {
+            println("⚠️ Error al pre-cargar ofertas: ${e.message}")
+        }
+    }
+
     suspend fun listarPorCandidato(idUsuario: Long): List<PostulacionDto> {
         return try {
             val response = api.listarPorCandidato(idUsuario)
             if (response.isSuccessful) {
-                response.body() ?: emptyList()
+                val postulaciones = response.body() ?: emptyList()
+                
+                if (postulaciones.isEmpty()) return emptyList()
+
+                // Pre-cargar ofertas para obtener el título
+                preCargarOfertas()
+
+                postulaciones.map { postulacion ->
+                    val oferta = ofertaCache[postulacion.idOferta]
+                    postulacion.copy(
+                        tituloOferta = oferta?.titulo ?: "Oferta #${postulacion.idOferta}"
+                    )
+                }
             } else {
                 println("Error listarPorCandidato: ${response.code()} - ${response.message()}")
                 emptyList()

@@ -57,7 +57,8 @@ fun PostulantesOfertaScreen(
     val postulacionRepository = remember {
         PostulacionRepository(
             RetrofitClient.postulacionApi,
-            RetrofitClient.usuarioApi
+            RetrofitClient.usuarioApi,
+            RetrofitClient.ofertaLaboralApi
         )
     }
     val seguimientoRepository = remember { SeguimientoPostulacionRepository(RetrofitClient.seguimientoPostulacionApi) }

@@ -88,9 +88,7 @@ class LoginViewModel(
                     val empresaError = empresaResult.exceptionOrNull()?.message ?: ""
                     val finalError = when {
                         empresaError.contains("TIMEOUT_ERROR") -> "❌ Tiempo de espera agotado. El servidor de empresas no responde."
-                        empresaError.contains("HTTP_ERROR_403") || empresaError.contains("PENDIENTE") -> 
-                            "❌ Tu solicitud está PENDIENTE. Espera la aprobación del administrador."
-                        else -> "❌ Credenciales incorrectas. Verifica tu email y contraseña."
+                        else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
                     }
                     _uiState.value = LoginUiState.Error(finalError)
                     
@@ -99,7 +97,7 @@ class LoginViewModel(
                     val finalError = when {
                         userError.contains("TIMEOUT_ERROR") -> "❌ El servidor tardó demasiado en responder. Revisa tu conexión."
                         userError.contains("NETWORK_ERROR") -> "❌ Error de conexión. No se pudo contactar con el servidor."
-                        else -> "❌ Error de autenticación: $userError"
+                        else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
                     }
                     _uiState.value = LoginUiState.Error(finalError)
                 }

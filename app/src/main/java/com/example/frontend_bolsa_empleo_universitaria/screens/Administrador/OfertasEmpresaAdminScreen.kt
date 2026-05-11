@@ -1,5 +1,6 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Administrador
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -71,7 +72,8 @@ fun OfertasEmpresaAdminScreen(idEmpresa: Long, nombreEmpresa: String, navControl
                             modalidad = oferta.modalidad,
                             salario = oferta.salario.toInt().toString(),
                             onClick = {
-                                navController.navigate("postulantes_oferta/${oferta.idOferta}/${oferta.titulo}")
+                                val encodedTitulo = Uri.encode(oferta.titulo)
+                                navController.navigate("postulantes_oferta/${oferta.idOferta}/$encodedTitulo")
                             }
                         )
                     }

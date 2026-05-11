@@ -7,5 +7,5 @@ data class LoginResponseEmpresa(
 ) {
     // El rol siempre será EMPRESA para este tipo de login
     val rol: String get() = "EMPRESA"
-    val email: String get() = empresa.email
+    val email: String get() = empresa.email ?: ""
 }

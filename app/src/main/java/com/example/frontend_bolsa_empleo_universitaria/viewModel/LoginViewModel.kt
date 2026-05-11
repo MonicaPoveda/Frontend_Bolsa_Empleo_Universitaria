@@ -29,80 +29,64 @@ class LoginViewModel(
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
-            println("🔐 Login iniciado para: $email")
-
             try {
-                // ----- Intento como estudiante -----
-                val estudianteResult = authRepository.login(email, password)
-                if (estudianteResult.isSuccess) {
-                    val response = estudianteResult.getOrNull()
+                // 1. Intento como Usuario (Estudiantes y Admins)
+                val userResult = authRepository.login(email, password)
+                if (userResult.isSuccess) {
+                    val response = userResult.getOrNull()
                     response?.let {
-                        println("✅ Login exitoso como ESTUDIANTE")
+                        val rolBackend = it.usuario.tipoUsuario
+                        val rolApp = when(rolBackend) {
+                            "ADMIN" -> "ADMIN"
+                            "EMPR" -> "EMPRESA"
+                            else -> "ESTUDIANTE"
+                        }
+                        
                         tokenManager.saveToken(
                             token = it.token,
                             email = email,
-                            rol = "ESTUDIANTE",
+                            rol = rolApp,
                             idEmpresa = 0,
                             idUsuario = it.usuario.idUsuario,
                             nombre = it.usuario.nombre,
                             apellido = it.usuario.apellido,
-                            telefono = it.usuario.telefono ?: ""   // ✅ guardar teléfono
+                            telefono = it.usuario.telefono ?: ""
                         )
-                        _uiState.value = LoginUiState.Success(it.token, "ESTUDIANTE", email)
+                        _uiState.value = LoginUiState.Success(it.token, rolApp, email)
                         return@launch
                     }
-                } else {
-                    println("❌ Falló login como estudiante: ${estudianteResult.exceptionOrNull()?.message}")
                 }
 
-                // ----- Intento como empresa -----
+                // 2. Intento como Empresa
                 val empresaResult = empresaRepository.login(email, password)
                 if (empresaResult.isSuccess) {
                     val response = empresaResult.getOrNull()
                     response?.let {
-                        println("✅ Login exitoso como EMPRESA")
-                        println("   ID Empresa: ${it.empresa.idEmpresa}")
-
-                        // Datos del usuario asociado (puede ser null, por eso usamos safe call)
-                        val idUsuario = it.usuario?.idUsuario ?: 0
-                        val nombre = it.usuario?.nombre ?: ""
-                        val apellido = it.usuario?.apellido ?: ""
-                        val telefono = it.usuario?.telefono ?: ""
-
                         tokenManager.saveToken(
                             token = it.token,
                             email = email,
-                            rol = "EMPRESA",                       // ✅ rol correcto
-                            idEmpresa = it.empresa.idEmpresa,      // ✅ ID real de la empresa
-                            idUsuario = idUsuario,
-                            nombre = nombre,
-                            apellido = apellido,
-                            telefono = telefono
+                            rol = "EMPRESA",
+                            idEmpresa = it.empresa.idEmpresa,
+                            idUsuario = it.usuario?.idUsuario ?: 0,
+                            nombre = it.usuario?.nombre ?: "",
+                            apellido = it.usuario?.apellido ?: "",
+                            telefono = it.usuario?.telefono ?: ""
                         )
                         _uiState.value = LoginUiState.Success(it.token, "EMPRESA", email)
                         return@launch
                     }
-                } else {
-                    println("❌ Falló login como empresa: ${empresaResult.exceptionOrNull()?.message}")
                 }
 
-                // ----- Ambos fallaron -----
+                // Manejo de errores detallado original
                 val error = when {
                     empresaResult.exceptionOrNull()?.message?.contains("PENDIENTE") == true ->
                         "❌ Tu solicitud está PENDIENTE. Espera la aprobación del administrador."
-                    empresaResult.exceptionOrNull()?.message?.contains("no encontrada") == true ||
-                            estudianteResult.exceptionOrNull()?.message?.contains("no encontrada") == true ->
-                        "❌ Credenciales incorrectas. Verifica tu email y contraseña."
-                    empresaResult.exceptionOrNull()?.message?.contains("403") == true ||
-                            estudianteResult.exceptionOrNull()?.message?.contains("403") == true ->
-                        "❌ Acceso denegado. Verifica tus credenciales."
-                    else -> "❌ Error al iniciar sesión. Verifica tus credenciales."
+                    else -> "❌ Credenciales incorrectas. Verifica tu email y contraseña."
                 }
                 _uiState.value = LoginUiState.Error(error)
 
             } catch (e: Exception) {
-                println("💥 Error en login: ${e.message}")
-                _uiState.value = LoginUiState.Error("Error de conexión: ${e.message}")
+                _uiState.value = LoginUiState.Error("Error: ${e.message}")
             }
         }
     }

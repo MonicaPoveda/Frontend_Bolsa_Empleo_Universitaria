@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -41,8 +42,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -57,9 +62,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Date
-import kotlin.text.ifEmpty
 
 private val BlueGradientStart = UniEmpleoColors.Blue
+
+// Opciones predefinidas para modalidad
+private val modalidadOptions = listOf("Presencial", "Híbrida", "Remota")
 
 @Composable
 fun AgregarOfertaScreen(
@@ -188,19 +195,12 @@ fun AgregarOfertaScreen(
                 )
             )
 
-            OutlinedTextField(
-                value = modalidad,
+            // MODALIDAD: DropdownMenu con scroll y opciones limitadas
+            ModalidadSelector(
+                selectedValue = modalidad,
                 onValueChange = { modalidad = it },
-                label = { Text("Modalidad *", color = Color.DarkGray) },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(12.dp),
-                singleLine = true,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedTextColor = Color.Black,
-                    unfocusedTextColor = Color.Black,
-                    focusedBorderColor = BlueGradientStart,
-                    unfocusedBorderColor = Color.Gray
-                )
+                options = modalidadOptions,
+                modifier = Modifier.weight(1f)
             )
         }
 
@@ -294,6 +294,7 @@ fun AgregarOfertaScreen(
                     titulo.isBlank() -> errorMessage = "Ingresa el título de la oferta"
                     area.isBlank() -> errorMessage = "Ingresa el área/cargo"
                     salario.isBlank() -> errorMessage = "Ingresa el salario"
+                    modalidad.isBlank() -> errorMessage = "Selecciona la modalidad"
                     descripcion.isBlank() -> errorMessage = "Ingresa la descripción"
                     else -> {
                         isLoading = true
@@ -304,7 +305,7 @@ fun AgregarOfertaScreen(
                             descripcion = descripcion,
                             area = area,
                             salario = salario.toDoubleOrNull() ?: 0.0,
-                            modalidad = modalidad.ifEmpty { "Presencial" },
+                            modalidad = modalidad,
                             fechaPublicacion = fechaActual,
                             fechaCierre = fechaCierreSeleccionada,
                             estado = true,
@@ -390,6 +391,84 @@ fun AgregarOfertaScreen(
 }
 
 @Composable
+fun ModalidadSelector(
+    selectedValue: String,
+    onValueChange: (String) -> Unit,
+    options: List<String>,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier) {
+        OutlinedTextField(
+            value = selectedValue,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Modalidad", color = Color.DarkGray) },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            trailingIcon = {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = "Seleccionar",
+                    tint = BlueGradientStart,
+                    modifier = Modifier.clickable { expanded = true }
+                )
+            },
+            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                color = Color.Black
+            ),
+            placeholder = { Text("Selecciona una opción", color = Color.Gray, fontSize = 14.sp) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = BlueGradientStart,
+                unfocusedBorderColor = Color.Gray,
+                focusedTextColor = Color.Black,
+                unfocusedTextColor = Color.Black
+            ),
+            singleLine = true
+        )
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .background(Color.White, RoundedCornerShape(12.dp)),
+            containerColor = Color.White
+        ) {
+            // Limitar altura y permitir scroll con un Column
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 200.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                options.forEach { option ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = option,
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        onClick = {
+                            onValueChange(option)
+                            expanded = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(if (selectedValue == option) Color(0xFFF0F0F0) else Color.White)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun DateSelector(
     value: String,
     label: String,
@@ -398,6 +477,7 @@ fun DateSelector(
     onItemSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
 
     Box(modifier = modifier) {
         OutlinedTextField(
@@ -405,7 +485,12 @@ fun DateSelector(
             onValueChange = {},
             readOnly = true,
             label = { Text(label, fontSize = 12.sp, color = Color.DarkGray) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { coordinates ->
+                    // Obtenemos la posición para mostrar el menú justo debajo
+                    coordinates.positionInRoot()
+                },
             shape = RoundedCornerShape(12.dp),
             trailingIcon = {
                 Icon(
@@ -434,27 +519,38 @@ fun DateSelector(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .background(Color.White, RoundedCornerShape(12.dp)),
-            containerColor = Color.White
+            containerColor = Color.White,
+            offset = with(density) {
+                androidx.compose.ui.unit.DpOffset(0.dp, 8.dp)
+            }
         ) {
-            items.forEach { item ->
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            text = item,
-                            fontSize = 14.sp,
-                            color = Color.Black,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    },
-                    onClick = {
-                        onItemSelected(item)
-                        expanded = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
-                )
+            // Limitar altura y permitir scroll con un Column
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 200.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                items.forEach { item ->
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = item,
+                                fontSize = 14.sp,
+                                color = Color.Black,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        },
+                        onClick = {
+                            onItemSelected(item)
+                            expanded = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White)
+                    )
+                }
             }
         }
     }

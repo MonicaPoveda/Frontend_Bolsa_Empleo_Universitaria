@@ -143,7 +143,14 @@ fun AppNavigation() {
             val id = backStackEntry.arguments?.getString("ofertaId")?.toLongOrNull() ?: 0L
             DetalleOfertaEstudianteScreen(ofertaId = id, navController = navController)
         }
-
+// Dentro de NavHost, agregar:
+        composable("perfil_estudiante_empresa/{idUsuario}") { backStackEntry ->
+            val idUsuario = backStackEntry.arguments?.getString("idUsuario")?.toLongOrNull() ?: 0L
+            PerfilEstudianteEmpresaScreen(
+                idUsuario = idUsuario,
+                navController = navController
+            )
+        }
         composable("mis_postulaciones") { MisPostulacionesScreen(navController = navController) }
         composable("mi_perfil") { MiPerfilScreen(navController = navController) }
         composable("configuracion_cuenta") { ConfiguracionCuentaScreen(navController = navController) }

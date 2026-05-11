@@ -317,7 +317,11 @@ fun PostulantesOfertaScreen(
                                     },
                                     getEstadoColor = { getEstadoColor(it) },
                                     getEstadoBadge = { getEstadoBadge(it) },
-                                    isUpdating = isUpdating
+                                    isUpdating = isUpdating,
+                                    onVerPerfil = { idUsuario, nombre, email, idOferta ->
+                                        // Navegar al perfil del estudiante
+                                        navController.navigate("perfil_estudiante_empresa/$idUsuario")
+                                    }
                                 )
                             }
                         }
@@ -380,7 +384,8 @@ fun PostulanteCardSimple(
     onEstadoChange: (String) -> Unit,
     getEstadoColor: (String) -> Color,
     getEstadoBadge: (String) -> String,
-    isUpdating: Boolean
+    isUpdating: Boolean,
+    onVerPerfil: (Long, String, String, String) -> Unit = { _, _, _, _ -> } // ← NUEVO: callback con datos del estudiante
 ) {
     var showEstadoMenu by remember { mutableStateOf(false) }
     val estados = listOf("PENDIENTE", "EN_REVISION", "ACEPTADA", "RECHAZADA")
@@ -400,6 +405,7 @@ fun PostulanteCardSimple(
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
+            // Header con avatar, nombre, email y botón ver perfil
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -419,7 +425,8 @@ fun PostulanteCardSimple(
                     )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
-                Column {
+
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = postulacion.nombreEstudiante.ifBlank { "Estudiante #${postulacion.idUsuario}" },
                         fontSize = 16.sp,
@@ -430,6 +437,26 @@ fun PostulanteCardSimple(
                         text = postulacion.emailEstudiante.ifBlank { "Email no disponible" },
                         fontSize = 13.sp,
                         color = Color.Gray
+                    )
+                }
+
+                // ✅ BOTÓN VER PERFIL (ícono de ojo)
+                IconButton(
+                    onClick = {
+                        onVerPerfil(
+                            postulacion.idUsuario,
+                            postulacion.nombreEstudiante,
+                            postulacion.emailEstudiante,
+                            postulacion.idOferta.toString()
+                        )
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Visibility,
+                        contentDescription = "Ver perfil completo",
+                        tint = BlueGradientStart,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }

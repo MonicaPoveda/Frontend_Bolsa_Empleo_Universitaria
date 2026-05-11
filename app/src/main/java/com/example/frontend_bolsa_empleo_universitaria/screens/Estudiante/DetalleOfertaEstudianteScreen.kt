@@ -26,6 +26,7 @@ import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralRespon
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.PostulacionRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.SeguimientoPostulacionRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
@@ -33,8 +34,8 @@ import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionView
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
 import kotlinx.coroutines.launch
 
-private val BlueStart = Color(0xFF0056D2)
-private val BlueEnd = Color(0xFF007BFF)
+private val BlueStart = UniEmpleoColors.Navy
+private val BlueEnd = UniEmpleoColors.Blue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

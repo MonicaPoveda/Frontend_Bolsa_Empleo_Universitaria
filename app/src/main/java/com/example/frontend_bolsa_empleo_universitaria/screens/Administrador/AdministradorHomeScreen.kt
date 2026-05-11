@@ -27,16 +27,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private val AdminIndigo = Color(0xFF1A237E)
-private val AdminIndigoLight = Color(0xFF3949AB)
-private val BackgroundGray = Color(0xFFF4F7F9)
-private val AccentIndigo = Color(0xFF6366F1)
-private val TextSecondary = Color(0xFF6B7280)
+private val AdminIndigo = UniEmpleoColors.Navy
+private val AdminIndigoLight = UniEmpleoColors.Blue
+private val BackgroundGray = UniEmpleoColors.Background
+private val AccentIndigo = UniEmpleoColors.Teal
+private val TextSecondary = UniEmpleoColors.Muted
 private val StatusGold = Color(0xFFB45309)
 private val StatusGoldBg = Color(0xFFFEF3C7)
 
@@ -154,17 +155,6 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                     )
 
                     AdminDrawerItem(
-                        icon = Icons.Outlined.WorkOutline, 
-                        text = "Ofertas laborales", 
-                        onClick = { 
-                            scope.launch { 
-                                drawerState.close()
-                                navController.navigate("admin_ofertas")
-                            }
-                        }
-                    )
-                    
-                    AdminDrawerItem(
                         icon = Icons.Outlined.Description, 
                         text = "Solicitudes", 
                         badge = if(pendingCount > 0) "$pendingCount nuevas" else null,
@@ -174,52 +164,6 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                             scope.launch { 
                                 drawerState.close()
                                 navController.navigate("notificaciones")
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-                    HorizontalDivider(color = Color(0xFFF3F4F6))
-
-                    // Sección: GESTIÓN
-                    Text(
-                        "GESTIÓN", 
-                        fontSize = 11.sp, 
-                        fontWeight = FontWeight.Bold, 
-                        color = TextSecondary.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(start = 12.dp, top = 20.dp, bottom = 8.dp),
-                        letterSpacing = 1.sp
-                    )
-                    
-                    AdminDrawerItem(
-                        icon = Icons.Outlined.PeopleOutline, 
-                        text = "Usuarios", 
-                        onClick = { 
-                            scope.launch { 
-                                drawerState.close()
-                                navController.navigate("admin_usuarios")
-                            }
-                        }
-                    )
-                    
-                    AdminDrawerItem(
-                        icon = Icons.Outlined.BarChart, 
-                        text = "Reportes", 
-                        onClick = { 
-                            scope.launch { 
-                                drawerState.close()
-                                navController.navigate("admin_reportes")
-                            }
-                        }
-                    )
-                    
-                    AdminDrawerItem(
-                        icon = Icons.Outlined.Settings, 
-                        text = "Configuración", 
-                        onClick = { 
-                            scope.launch { 
-                                drawerState.close()
-                                navController.navigate("configuracion_cuenta")
                             }
                         }
                     )
@@ -268,7 +212,7 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
             containerColor = BackgroundGray,
             topBar = {
                 TopAppBar(
-                    title = { Text("Gestión Universitaria", color = Color.White, fontWeight = FontWeight.ExtraBold) },
+                    title = { Text("UNIEMPLEO Admin", color = Color.White, fontWeight = FontWeight.ExtraBold) },
                     navigationIcon = {
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(Icons.Default.Menu, null, tint = Color.White)
@@ -301,7 +245,7 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                                         Icon(Icons.Default.CorporateFare, null, tint = Color.White, modifier = Modifier.padding(12.dp).size(36.dp))
                                     }
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text("Bolsa de Empleo", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
+                                    Text("UNIEMPLEO", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 20.sp)
                                 }
                             }
                             Spacer(modifier = Modifier.height(30.dp))

@@ -28,6 +28,7 @@ import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
@@ -35,12 +36,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Colores
-private val BlueGradientStart = Color(0xFF0056D2)
-private val BlueGradientEnd = Color(0xFF007BFF)
-private val BackgroundGray = Color(0xFFF8FAFF)
-private val ChipHybridColor = Color(0xFFE3F2FD)
-private val ChipHybridText = Color(0xFF1976D2)
-private val PriceColor = Color(0xFF2E7D32)
+private val BlueGradientStart = UniEmpleoColors.Navy
+private val BlueGradientEnd = UniEmpleoColors.Blue
+private val BackgroundGray = UniEmpleoColors.Background
+private val ChipHybridColor = UniEmpleoColors.SurfaceSoft
+private val ChipHybridText = UniEmpleoColors.Blue
+private val PriceColor = UniEmpleoColors.Success
 
 // Nav Items
 data class NavItem(
@@ -172,18 +173,6 @@ fun EstudianteHomeScreen(
                     scope.launch { drawerState.close() }
                 }
 
-                DrawerMenuItemGmail(
-                    icon = Icons.Default.Notifications,
-                    text = "Notificaciones",
-                    badge = "3",
-                    badgeColor = Color(0xFF1976D2),
-                    selected = selectedDrawerItem == "notificaciones"
-                ) {
-                    selectedDrawerItem = "notificaciones"
-                    scope.launch { drawerState.close() }
-                    navController.navigate("notificaciones")
-                }
-
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 Text(
@@ -205,28 +194,6 @@ fun EstudianteHomeScreen(
                     navController.navigate("configuracion_cuenta")
                 }
 
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
-
-                Text(
-                    text = "SOPORTE",
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Gray
-                )
-
-                DrawerMenuItemGmail(
-                    icon = Icons.Default.Info,
-                    text = "Acerca de",
-                    badge = null,
-                    selected = selectedDrawerItem == "acerca"
-                ) {
-                    selectedDrawerItem = "acerca"
-                    scope.launch { drawerState.close() }
-                    navController.navigate("acerca_de")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
                 Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 DrawerMenuItemGmail(
@@ -344,7 +311,7 @@ fun EstudianteHomeScreen(
                                 Spacer(modifier = Modifier.height(8.dp))
 
                                 Text(
-                                    text = "Bolsa de Empleo",
+                                    text = "UNIEMPLEO",
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.ExtraBold,
                                     color = Color.White,
@@ -354,7 +321,7 @@ fun EstudianteHomeScreen(
                                 Spacer(modifier = Modifier.height(2.dp))
 
                                 Text(
-                                    text = "Encuentra tu próximo empleo",
+                                text = "Encuentra oportunidades para crecer",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = Color.White.copy(alpha = 0.85f),
                                     fontSize = 14.sp
@@ -417,7 +384,7 @@ fun EstudianteHomeScreen(
 
                     item {
                         Text(
-                            text = if (busqueda.isBlank()) "Ofertas Recientes" else "Resultados para '$busqueda'",
+                            text = if (busqueda.isBlank()) "Ofertas recientes" else "Resultados para '$busqueda'",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black
@@ -459,7 +426,7 @@ fun EstudianteHomeScreen(
                                         tint = Color.LightGray
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text("No se encontraron ofertas", color = Color.Gray)
+                                    Text("No se encontraron ofertas", color = UniEmpleoColors.Muted)
                                 }
                             }
                         }
@@ -621,13 +588,13 @@ fun DrawerMenuItemGmail(
     icon: ImageVector,
     text: String,
     badge: String? = null,
-    badgeColor: Color = Color(0xFF1976D2),
+    badgeColor: Color = UniEmpleoColors.Blue,
     iconTint: Color = Color(0xFF444444),
     textColor: Color = Color(0xFF222222),
     selected: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bgColor = if (selected) Color(0xFFE3F2FD) else Color.Transparent
+    val bgColor = if (selected) UniEmpleoColors.SurfaceSoft else Color.Transparent
 
     Row(
         modifier = Modifier

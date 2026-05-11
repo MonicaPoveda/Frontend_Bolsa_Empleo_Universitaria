@@ -24,6 +24,8 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.PostulacionResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.PostulacionRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.SeguimientoPostulacionRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoScaffold
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
@@ -131,27 +133,14 @@ fun MisPostulacionesScreen(navController: NavController) {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mis Postulaciones", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0056D2),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
-        }
+    UniEmpleoScaffold(
+        title = "Mis postulaciones",
+        onBack = { navController.popBackStack() }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             when {
                 loading || cargandoOfertas -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = Color(0xFF0056D2))
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = UniEmpleoColors.Blue)
                 }
                 error != null && error!!.contains("403") -> {
                     Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -177,11 +166,14 @@ fun MisPostulacionesScreen(navController: NavController) {
                 }
                 postulacionesEnriquecidas.isEmpty() -> {
                     Column(modifier = Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.BusinessCenter, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.Gray)
+                        Icon(Icons.Default.BusinessCenter, contentDescription = null, modifier = Modifier.size(64.dp), tint = UniEmpleoColors.Muted)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("No te has postulado a ninguna oferta aún.", fontSize = 16.sp, color = Color.Gray)
+                        Text("Aun no tienes postulaciones", fontSize = 16.sp, color = UniEmpleoColors.Text, fontWeight = FontWeight.SemiBold)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Button(onClick = { navController.navigate("estudiante_home") }) {
+                        Button(
+                            onClick = { navController.navigate("estudiante_home") },
+                            colors = ButtonDefaults.buttonColors(containerColor = UniEmpleoColors.Blue)
+                        ) {
                             Text("Explorar ofertas")
                         }
                     }
@@ -297,9 +289,9 @@ fun PostulacionCardEnriquecida(postulacion: PostulacionEnriquecida, navControlle
                             Icons.Default.Work,
                             contentDescription = null,
                             modifier = Modifier.size(14.dp),
-                            tint = Color(0xFF0056D2)
+                            tint = UniEmpleoColors.Blue
                         )
-                        Text(" ${postulacion.modalidad}", fontSize = 12.sp, color = Color(0xFF0056D2))
+                        Text(" ${postulacion.modalidad}", fontSize = 12.sp, color = UniEmpleoColors.Blue)
                     }
                 }
             }

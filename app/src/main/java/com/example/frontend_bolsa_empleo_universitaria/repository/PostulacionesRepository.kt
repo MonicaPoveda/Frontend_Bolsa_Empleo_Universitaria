@@ -18,46 +18,60 @@ class PostulacionRepository(
 
     suspend fun listarPorOferta(idOferta: Long): List<PostulacionDto> {
         return try {
+            println("🔍 Cargando postulaciones para oferta: $idOferta")
             val response = api.listarPorOferta(idOferta)
             if (response.isSuccessful) {
                 val postulaciones = response.body() ?: emptyList()
-                // Enriquecer cada postulación con datos del usuario
+                println("✅ Postulaciones obtenidas: ${postulaciones.size}")
+                
+                if (postulaciones.isEmpty()) return emptyList()
+
+                // Pre-cargar usuarios una sola vez para evitar múltiples llamadas a la API
+                preCargarUsuarios()
+
+                // Enriquecer cada postulación con datos del usuario desde la caché
                 postulaciones.map { postulacion ->
-                    val usuario = obtenerUsuarioPorId(postulacion.idUsuario)
+                    val usuario = usuarioCache[postulacion.idUsuario]
                     postulacion.copy(
                         nombreEstudiante = if (usuario != null) "${usuario.nombre} ${usuario.apellido}" else "Estudiante #${postulacion.idUsuario}",
                         emailEstudiante = usuario?.email ?: "Email no disponible"
                     )
                 }
             } else {
-                println("Error listarPorOferta: ${response.code()} - ${response.message()}")
+                println("❌ Error listarPorOferta: ${response.code()} - ${response.message()}")
                 emptyList()
             }
         } catch (e: Exception) {
-            println("Excepción listarPorOferta: ${e.message}")
+            println("⚠️ Excepción listarPorOferta: ${e.message}")
             emptyList()
         }
     }
 
-    private suspend fun obtenerUsuarioPorId(idUsuario: Long): UsuarioDTO? {
-        usuarioCache[idUsuario]?.let { return it }
-        return try {
+    private suspend fun preCargarUsuarios() {
+        try {
+            // Solo cargamos si la caché está vacía o para refrescar
+            if (usuarioCache.isNotEmpty()) return
+
+            println("👤 Pre-cargando lista de usuarios para nombres...")
             val response = usuarioApi.listar()
             if (response.isSuccessful) {
                 val usuarios = response.body() ?: emptyList()
-                val usuario = usuarios.find { it.idUsuario == idUsuario }
-                if (usuario != null) {
-                    usuarioCache[idUsuario] = usuario
+                usuarios.forEach { usuario ->
+                    usuarioCache[usuario.idUsuario] = usuario
                 }
-                usuario
+                println("✅ Caché de usuarios lista: ${usuarioCache.size} usuarios")
             } else {
-                println("Error al obtener usuario $idUsuario: ${response.code()}")
-                null
+                println("⚠️ No se pudo listar usuarios (${response.code()}). Los nombres se mostrarán como IDs.")
             }
         } catch (e: Exception) {
-            println("Excepción al obtener usuario: ${e.message}")
-            null
+            println("⚠️ Error al pre-cargar usuarios: ${e.message}")
         }
+    }
+
+    private suspend fun obtenerUsuarioPorId(idUsuario: Long): UsuarioDTO? {
+        // Esta función ahora solo se usa como fallback o si se requiere un usuario específico
+        usuarioCache[idUsuario]?.let { return it }
+        return null // Ya que preCargarUsuarios debería haber llenado la caché
     }
 
     suspend fun listarPorCandidato(idUsuario: Long): List<PostulacionDto> {

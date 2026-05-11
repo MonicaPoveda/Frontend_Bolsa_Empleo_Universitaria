@@ -102,7 +102,7 @@ fun MensajeAlertaCrearPerfilScreen(
                         .fillMaxWidth()
                         .height(56.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF0056D2)
+                        containerColor = Color(0xFF1E5A7A)
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {

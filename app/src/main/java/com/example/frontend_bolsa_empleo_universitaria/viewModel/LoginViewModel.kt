@@ -32,6 +32,7 @@ class LoginViewModel(
             try {
                 // 1. Intento como Usuario (Estudiantes y Admins)
                 val userResult = authRepository.login(email, password)
+                
                 if (userResult.isSuccess) {
                     val response = userResult.getOrNull()
                     response?.let {
@@ -57,36 +58,54 @@ class LoginViewModel(
                     }
                 }
 
-                // 2. Intento como Empresa
-                val empresaResult = empresaRepository.login(email, password)
-                if (empresaResult.isSuccess) {
-                    val response = empresaResult.getOrNull()
-                    response?.let {
-                        tokenManager.saveToken(
-                            token = it.token,
-                            email = email,
-                            rol = "EMPRESA",
-                            idEmpresa = it.empresa.idEmpresa,
-                            idUsuario = it.usuario?.idUsuario ?: 0,
-                            nombre = it.usuario?.nombre ?: "",
-                            apellido = it.usuario?.apellido ?: "",
-                            telefono = it.usuario?.telefono ?: ""
-                        )
-                        _uiState.value = LoginUiState.Success(it.token, "EMPRESA", email)
-                        return@launch
-                    }
-                }
+                val userError = userResult.exceptionOrNull()?.message ?: ""
 
-                // Manejo de errores detallado original
-                val error = when {
-                    empresaResult.exceptionOrNull()?.message?.contains("PENDIENTE") == true ->
-                        "❌ Tu solicitud está PENDIENTE. Espera la aprobación del administrador."
-                    else -> "❌ Credenciales incorrectas. Verifica tu email y contraseña."
+                // El login de empresa SOLO ocurre si el usuario responde 401 o 403
+                // Esto evita el fallback automático en caso de Timeout o Errores de Red
+                if (userError.contains("HTTP_ERROR_401") || userError.contains("HTTP_ERROR_403")) {
+                    
+                    // 2. Intento como Empresa
+                    val empresaResult = empresaRepository.login(email, password)
+                    if (empresaResult.isSuccess) {
+                        val response = empresaResult.getOrNull()
+                        response?.let {
+                            tokenManager.saveToken(
+                                token = it.token,
+                                email = email,
+                                rol = "EMPRESA",
+                                idEmpresa = it.empresa.idEmpresa,
+                                idUsuario = it.usuario?.idUsuario ?: 0,
+                                nombre = it.usuario?.nombre ?: "",
+                                apellido = it.usuario?.apellido ?: "",
+                                telefono = it.usuario?.telefono ?: ""
+                            )
+                            _uiState.value = LoginUiState.Success(it.token, "EMPRESA", email)
+                            return@launch
+                        }
+                    }
+
+                    // Manejo de errores de Empresa
+                    val empresaError = empresaResult.exceptionOrNull()?.message ?: ""
+                    val finalError = when {
+                        empresaError.contains("TIMEOUT_ERROR") -> "❌ Tiempo de espera agotado. El servidor de empresas no responde."
+                        empresaError.contains("HTTP_ERROR_403") || empresaError.contains("PENDIENTE") -> 
+                            "❌ Tu solicitud está PENDIENTE. Espera la aprobación del administrador."
+                        else -> "❌ Credenciales incorrectas. Verifica tu email y contraseña."
+                    }
+                    _uiState.value = LoginUiState.Error(finalError)
+                    
+                } else {
+                    // Manejo de errores de Usuario (Timeout, Red, etc.)
+                    val finalError = when {
+                        userError.contains("TIMEOUT_ERROR") -> "❌ El servidor tardó demasiado en responder. Revisa tu conexión."
+                        userError.contains("NETWORK_ERROR") -> "❌ Error de conexión. No se pudo contactar con el servidor."
+                        else -> "❌ Error de autenticación: $userError"
+                    }
+                    _uiState.value = LoginUiState.Error(finalError)
                 }
-                _uiState.value = LoginUiState.Error(error)
 
             } catch (e: Exception) {
-                _uiState.value = LoginUiState.Error("Error: ${e.message}")
+                _uiState.value = LoginUiState.Error("Error inesperado: ${e.message}")
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Empresa
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,6 +28,7 @@ import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
@@ -34,12 +36,12 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // Colores
-private val BlueGradientStart = Color(0xFF0056D2)
-private val BlueGradientEnd = Color(0xFF007BFF)
-private val BackgroundGray = Color(0xFFF8FAFF)
-private val ChipHybridColor = Color(0xFFE3F2FD)
-private val ChipHybridText = Color(0xFF1976D2)
-private val PriceColor = Color(0xFF2E7D32)
+private val BlueGradientStart = UniEmpleoColors.Navy
+private val BlueGradientEnd = UniEmpleoColors.Blue
+private val BackgroundGray = UniEmpleoColors.Background
+private val ChipHybridColor = UniEmpleoColors.SurfaceSoft
+private val ChipHybridText = UniEmpleoColors.Blue
+private val PriceColor = UniEmpleoColors.Success
 
 // Nav Items para Empresa
 data class NavItemEmpresa(
@@ -51,7 +53,7 @@ data class NavItemEmpresa(
 val navItemsEmpresa = listOf(
     NavItemEmpresa("Inicio", Icons.Default.Home, "inicio"),
     NavItemEmpresa("Agregar", Icons.Default.Add, "agregar"),
-    NavItemEmpresa("PerfilRequest", Icons.Default.Person, "perfil")
+    NavItemEmpresa("Perfil", Icons.Default.Person, "perfil")
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -185,28 +187,6 @@ fun EmpresaHomeScreen(
                     navController.navigate("editar_perfil_empresa")
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
-
-                Text(
-                    text = "SOPORTE",
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Gray
-                )
-
-                DrawerMenuItemEmpresa(
-                    icon = Icons.Default.Info,
-                    text = "Acerca de",
-                    badge = null,
-                    selected = selectedDrawerItem == "acerca"
-                ) {
-                    selectedDrawerItem = "acerca"
-                    scope.launch { drawerState.close() }
-                    navController.navigate("acerca_de")
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
 
                 DrawerMenuItemEmpresa(
@@ -382,7 +362,7 @@ fun EmpresaOfertasScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "Panel de Empresa",
+                            text = "UNIEMPLEO Empresas",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White,
@@ -514,7 +494,8 @@ fun EmpresaOfertasScreen(
                     oferta = oferta,
                     onClick = { onVerDetalle(oferta.idOferta) },
                     onVerPostulantes = {
-                        navController.navigate("postulantes_oferta/${oferta.idOferta}/${oferta.titulo}")
+                        val encodedTitulo = Uri.encode(oferta.titulo)
+                        navController.navigate("postulantes_oferta/${oferta.idOferta}/$encodedTitulo")
                     },
                     onEliminar = { onEliminar(oferta.idOferta) }
                 )
@@ -890,13 +871,13 @@ fun DrawerMenuItemEmpresa(
     icon: ImageVector,
     text: String,
     badge: String? = null,
-    badgeColor: Color = Color(0xFF1976D2),
+    badgeColor: Color = UniEmpleoColors.Blue,
     iconTint: Color = Color(0xFF444444),
     textColor: Color = Color(0xFF222222),
     selected: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bgColor = if (selected) Color(0xFFE3F2FD) else Color.Transparent
+    val bgColor = if (selected) UniEmpleoColors.SurfaceSoft else Color.Transparent
 
     Row(
         modifier = Modifier

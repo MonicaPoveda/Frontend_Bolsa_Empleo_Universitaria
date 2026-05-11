@@ -26,14 +26,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralRequest
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 
-private val BlueStart = Color(0xFF0056D2)
-private val BackgroundGray = Color(0xFFF5F5F5)
+private val BlueStart = UniEmpleoColors.Blue
+private val BackgroundGray = UniEmpleoColors.Background
 
 // Función para formatear fechas
 private fun formaFecha(fecha: String): String {

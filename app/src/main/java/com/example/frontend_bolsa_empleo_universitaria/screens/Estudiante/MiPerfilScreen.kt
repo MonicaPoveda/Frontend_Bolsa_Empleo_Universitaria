@@ -22,6 +22,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoGradient
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoScaffold
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 
 
@@ -63,35 +66,22 @@ fun MiPerfilScreen(navController: NavController) {
         isLoading = false
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mi Perfil", fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0056D2),
-                    titleContentColor = Color.White,
-                    navigationIconContentColor = Color.White
-                )
-            )
-        }
+    UniEmpleoScaffold(
+        title = "Mi perfil",
+        onBack = { navController.popBackStack() }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .background(Color(0xFFF5F5F5))
+                .background(UniEmpleoColors.Background)
         ) {
             // Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Brush.verticalGradient(listOf(Color(0xFF0056D2), Color(0xFF007BFF))))
+                    .background(UniEmpleoGradient)
                     .padding(24.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
@@ -117,7 +107,7 @@ fun MiPerfilScreen(navController: NavController) {
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Datos Personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
+                    Text("Datos personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UniEmpleoColors.Blue)
                     Spacer(modifier = Modifier.height(12.dp))
                     PersonalInfoRow(icon = Icons.Default.Person, label = "Nombre", value = nombre)
                     PersonalInfoRow(icon = Icons.Default.Person, label = "Apellido", value = apellido)
@@ -135,10 +125,10 @@ fun MiPerfilScreen(navController: NavController) {
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Perfil Profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
+                    Text("Perfil profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UniEmpleoColors.Blue)
                     Spacer(modifier = Modifier.height(12.dp))
                     when {
-                        isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = Color(0xFF0056D2))
+                        isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = UniEmpleoColors.Blue)
                         errorMessage != null -> Text("Error: $errorMessage", color = Color.Red)
                         perfil == null -> {
                             Text("No has creado tu perfil profesional aún.", color = Color.Gray)
@@ -167,7 +157,7 @@ fun MiPerfilScreen(navController: NavController) {
 @Composable
 fun PersonalInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String, multiline: Boolean = false) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color(0xFF0056D2))
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = UniEmpleoColors.Blue)
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(label, fontSize = 12.sp, color = Color.Gray)

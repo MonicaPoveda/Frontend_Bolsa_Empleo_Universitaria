@@ -13,6 +13,16 @@ object RetrofitClient {
 
     private const val BASE_URL = "https://backend-sistema-empleo-universitario.onrender.com/"
 
+    private val publicAuthPaths = setOf(
+        "/api/usuarios/login",
+        "/api/usuarios/recuperar-password",
+        "/api/usuarios/guardar",
+        "/api/empresas/login",
+        "/api/empresas/recuperar-password",
+        "/api/empresas/guardar",
+        "/api/empresas-pendientes/enviar"
+    )
+
     lateinit var appContext: Context
 
     private val tokenManager: Token?
@@ -28,8 +38,14 @@ object RetrofitClient {
             val original = chain.request()
             val requestBuilder = original.newBuilder()
 
-            tokenManager?.getToken()?.let { token ->
-                requestBuilder.header("Authorization", "Bearer $token")
+            if (shouldAddAuthorizationHeader(original.url.encodedPath)) {
+                tokenManager?.getToken()
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { token ->
+                        requestBuilder.header("Authorization", "Bearer $token")
+                    }
+            } else {
+                requestBuilder.removeHeader("Authorization")
             }
 
             val request = requestBuilder.build()
@@ -53,9 +69,9 @@ object RetrofitClient {
             .addInterceptor(authInterceptor)
             .addInterceptor(contentTypeInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
-            .writeTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
 
@@ -81,5 +97,9 @@ object RetrofitClient {
     fun init(context: Context) {
         appContext = context.applicationContext
         println("✅ RetrofitClient inicializado con BASE_URL: $BASE_URL")
+    }
+
+    private fun shouldAddAuthorizationHeader(path: String): Boolean {
+        return path !in publicAuthPaths
     }
 }

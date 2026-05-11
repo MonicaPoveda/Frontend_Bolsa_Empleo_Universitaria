@@ -6,6 +6,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
+import java.net.SocketTimeoutException
 
 class EmpresaRepository(
     private val empresaApi: EmpresaApi
@@ -21,18 +22,14 @@ class EmpresaRepository(
             try {
                 val response = empresaApi.login(loginRequest)
                 Result.success(response)
+            } catch (e: SocketTimeoutException) {
+                Result.failure(Exception("TIMEOUT_ERROR: El servidor tardó demasiado en responder."))
             } catch (e: IOException) {
-                Result.failure(Exception("Error de red: ${e.message}"))
+                Result.failure(Exception("NETWORK_ERROR: ${e.message}"))
             } catch (e: HttpException) {
-                val errorMessage = when (e.code()) {
-                    401 -> "Credenciales incorrectas"
-                    403 -> "Acceso denegado. Empresa no aprobada."
-                    404 -> "Servicio no disponible"
-                    else -> "Error del servidor: ${e.code()}"
-                }
-                Result.failure(Exception(errorMessage))
+                Result.failure(Exception("HTTP_ERROR_${e.code()}: ${e.message()}"))
             } catch (e: Exception) {
-                Result.failure(Exception("Error inesperado: ${e.message}"))
+                Result.failure(Exception("UNKNOWN_ERROR: ${e.message}"))
             }
         }
     }

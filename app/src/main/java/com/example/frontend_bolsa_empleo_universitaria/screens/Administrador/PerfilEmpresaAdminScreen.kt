@@ -24,14 +24,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
 // Paleta de colores Premium Clean (Estilo Notion/Stripe)
-private val CleanWhite = Color(0xFFFFFFFF)
-private val CleanBackground = Color(0xFFFBFBFB)
-private val AccentIndigo = Color(0xFF6366F1)
-private val TextMain = Color(0xFF1F2937)
-private val TextSecondary = Color(0xFF6B7280)
+private val CleanWhite = UniEmpleoColors.Surface
+private val CleanBackground = UniEmpleoColors.Background
+private val AccentIndigo = UniEmpleoColors.Blue
+private val TextMain = UniEmpleoColors.Text
+private val TextSecondary = UniEmpleoColors.Muted
 private val BorderLight = Color(0xFFE5E7EB)
 private val SuccessGreen = Color(0xFF059669)
 private val SuccessGreenBg = Color(0xFFECFDF5)
@@ -50,11 +51,6 @@ fun PerfilEmpresaAdminScreen(idEmpresa: Long, navController: NavController, view
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextSecondary, modifier = Modifier.size(20.dp))
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* Opciones extra */ }) {
-                        Icon(Icons.Default.MoreHoriz, contentDescription = "Más", tint = TextSecondary, modifier = Modifier.size(20.dp))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = CleanWhite)

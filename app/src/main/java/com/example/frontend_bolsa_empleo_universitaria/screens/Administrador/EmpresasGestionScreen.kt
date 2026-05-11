@@ -21,11 +21,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
-private val AdminIndigo = Color(0xFF1A237E)
-private val AdminIndigoLight = Color(0xFF3949AB)
-private val BackgroundGray = Color(0xFFF4F7F9)
+private val AdminIndigo = UniEmpleoColors.Navy
+private val AdminIndigoLight = UniEmpleoColors.Blue
+private val BackgroundGray = UniEmpleoColors.Background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

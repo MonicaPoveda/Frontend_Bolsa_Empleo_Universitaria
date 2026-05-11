@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralRequest
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -58,7 +59,7 @@ import kotlinx.coroutines.withContext
 import java.util.Date
 import kotlin.text.ifEmpty
 
-private val BlueGradientStart = Color(0xFF0056D2)
+private val BlueGradientStart = UniEmpleoColors.Blue
 
 @Composable
 fun AgregarOfertaScreen(

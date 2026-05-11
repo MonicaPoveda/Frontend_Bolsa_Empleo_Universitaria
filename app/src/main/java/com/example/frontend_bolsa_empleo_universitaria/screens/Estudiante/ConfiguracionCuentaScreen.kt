@@ -102,7 +102,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0056D2),
+                    containerColor = Color(0xFF1E5A7A),
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -129,7 +129,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Datos Personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
+                        Text("Datos personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E5A7A))
                         Spacer(modifier = Modifier.height(12.dp))
 
                         OutlinedTextField(
@@ -192,7 +192,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     elevation = CardDefaults.cardElevation(2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Perfil Profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
+                        Text("Perfil profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF1E5A7A))
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedTextField(
                             value = carrera,
@@ -357,7 +357,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0056D2)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E5A7A)),
                     enabled = !isLoadingSave && !isLoadingViewModel
                 ) {
                     if (isLoadingSave) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)

@@ -1,5 +1,10 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Login
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -17,6 +25,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
@@ -55,6 +64,21 @@ fun LoginScreen(navController: NavController) {
 
     // Estado para verificar perfil después del login
     var verificandoPerfil by remember { mutableStateOf(false) }
+    var startAnimation by remember { mutableStateOf(false) }
+    val introAlpha by animateFloatAsState(
+        targetValue = if (startAnimation) 1f else 0f,
+        animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing),
+        label = "login_intro_alpha"
+    )
+    val introOffset by animateDpAsState(
+        targetValue = if (startAnimation) 0.dp else 28.dp,
+        animationSpec = tween(durationMillis = 700, easing = FastOutSlowInEasing),
+        label = "login_intro_offset"
+    )
+
+    LaunchedEffect(Unit) {
+        startAnimation = true
+    }
 
     LaunchedEffect(uiState) {
         when (uiState) {
@@ -158,11 +182,21 @@ fun LoginScreen(navController: NavController) {
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent
     ) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF0F2D42),
+                            Color(0xFF1E5A7A),
+                            Color(0xFFEAF3F5)
+                        )
+                    )
+                )
                 .padding(paddingValues),
             contentAlignment = Alignment.Center
         ) {
@@ -171,8 +205,12 @@ fun LoginScreen(navController: NavController) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    elevation = CardDefaults.cardElevation(8.dp)
+                        .padding(horizontal = 24.dp)
+                        .alpha(introAlpha)
+                        .offset(y = introOffset),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(12.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -192,8 +230,12 @@ fun LoginScreen(navController: NavController) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp),
-                    elevation = CardDefaults.cardElevation(8.dp)
+                        .padding(horizontal = 24.dp)
+                        .alpha(introAlpha)
+                        .offset(y = introOffset),
+                    shape = RoundedCornerShape(28.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(12.dp)
                 ) {
                     Column(
                         modifier = Modifier
@@ -201,11 +243,35 @@ fun LoginScreen(navController: NavController) {
                             .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Surface(
+                            modifier = Modifier.size(72.dp),
+                            shape = RoundedCornerShape(22.dp),
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.School,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(40.dp)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
                         Text(
-                            text = "Bolsa de Empleo",
-                            style = MaterialTheme.typography.headlineMedium,
+                            text = "UNIEMPLEO",
+                            style = MaterialTheme.typography.headlineLarge,
                             color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.ExtraBold
+                        )
+
+                        Text(
+                            text = "Bolsa universitaria de oportunidades",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -220,6 +286,7 @@ fun LoginScreen(navController: NavController) {
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.errorContainer
                                 ),
+                                shape = RoundedCornerShape(18.dp),
                                 modifier = Modifier.padding(bottom = 16.dp)
                             ) {
                                 Text(
@@ -238,7 +305,14 @@ fun LoginScreen(navController: NavController) {
                             label = { Text("Email") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) }
+                            shape = RoundedCornerShape(18.dp),
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -249,6 +323,7 @@ fun LoginScreen(navController: NavController) {
                             label = { Text("Contraseña") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
+                            shape = RoundedCornerShape(18.dp),
                             visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                             trailingIcon = {
@@ -258,7 +333,13 @@ fun LoginScreen(navController: NavController) {
                                         contentDescription = null
                                     )
                                 }
-                            }
+                            },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surface
+                            )
                         )
 
                         TextButton(
@@ -272,10 +353,17 @@ fun LoginScreen(navController: NavController) {
 
                         Button(
                             onClick = { viewModel.login(email, password) },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = uiState !is LoginUiState.Loading && email.isNotBlank() && password.isNotBlank()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp),
+                            enabled = uiState !is LoginUiState.Loading && email.isNotBlank() && password.isNotBlank(),
+                            shape = RoundedCornerShape(18.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         ) {
-                            Text("Ingresar")
+                            Text("Ingresar", style = MaterialTheme.typography.labelLarge)
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -290,13 +378,33 @@ fun LoginScreen(navController: NavController) {
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
-                            TextButton(onClick = { navController.navigate("registro_estudiante") }) {
-                                Text("Soy Estudiante")
+                            OutlinedButton(
+                                onClick = { navController.navigate("registro_estudiante") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Estudiante")
                             }
-                            TextButton(onClick = { navController.navigate("registro_empresa") }) {
-                                Text("Soy Empresa")
+                            OutlinedButton(
+                                onClick = { navController.navigate("registro_empresa") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Business,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Empresa")
                             }
                         }
                     }
@@ -478,7 +586,6 @@ fun RecoverPasswordDialog(
     snackbarHostState: SnackbarHostState
 ) {
     var email by remember { mutableStateOf("") }
-    var tipoUsuario by remember { mutableStateOf("ESTUDIANTE") }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -656,32 +763,6 @@ fun RecoverPasswordDialog(
                     Text("Ingresa tu correo para recibir una contraseña temporal.")
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text(
-                        text = "Tipo de usuario:",
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilterChip(
-                            selected = tipoUsuario == "ESTUDIANTE",
-                            onClick = { tipoUsuario = "ESTUDIANTE" },
-                            label = { Text("Estudiante") },
-                            modifier = Modifier.weight(1f)
-                        )
-                        FilterChip(
-                            selected = tipoUsuario == "EMPRESA",
-                            onClick = { tipoUsuario = "EMPRESA" },
-                            label = { Text("Empresa") },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it; errorMessage = null },
@@ -711,11 +792,7 @@ fun RecoverPasswordDialog(
                     onClick = {
                         isLoading = true
                         scope.launch {
-                            val result = if (tipoUsuario == "ESTUDIANTE") {
-                                authRepository.recuperarPassword(email)
-                            } else {
-                                Result.failure(Exception("❌ La recuperación de contraseña para empresas no está disponible. Contacta al administrador."))
-                            }
+                            val result = authRepository.recuperarPassword(email)
 
                             result.onSuccess { response ->
                                 temporaryPassword = response.passwordTemporal

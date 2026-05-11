@@ -13,23 +13,23 @@ class PostulacionRepository(
     private val usuarioApi: UsuarioApi
 ) {
 
-    // Cache de usuarios para evitar múltiples llamadas pesadas
+    // Cache de usuarios
     private val usuarioCache = mutableMapOf<Long, UsuarioDTO>()
 
     suspend fun listarPorOferta(idOferta: Long): List<PostulacionDto> {
         return try {
-            println("🔍 [Admin/Empresa] Cargando postulaciones para oferta ID: $idOferta")
+            println("🔍 Cargando postulaciones para oferta: $idOferta")
             val response = api.listarPorOferta(idOferta)
             if (response.isSuccessful) {
                 val postulaciones = response.body() ?: emptyList()
-                println("✅ Postulaciones encontradas: ${postulaciones.size}")
+                println("✅ Postulaciones obtenidas: ${postulaciones.size}")
                 
                 if (postulaciones.isEmpty()) return emptyList()
 
-                // Optimizamos: Cargamos la lista de usuarios una sola vez para esta consulta
+                // Pre-cargar usuarios una sola vez para evitar múltiples llamadas a la API
                 preCargarUsuarios()
 
-                // Enriquecer con los nombres de la caché
+                // Enriquecer cada postulación con datos del usuario desde la caché
                 postulaciones.map { postulacion ->
                     val usuario = usuarioCache[postulacion.idUsuario]
                     postulacion.copy(
@@ -38,7 +38,7 @@ class PostulacionRepository(
                     )
                 }
             } else {
-                println("❌ Error listarPorOferta: ${response.code()}")
+                println("❌ Error listarPorOferta: ${response.code()} - ${response.message()}")
                 emptyList()
             }
         } catch (e: Exception) {
@@ -49,20 +49,29 @@ class PostulacionRepository(
 
     private suspend fun preCargarUsuarios() {
         try {
-            // Solo cargamos si la caché está vacía
+            // Solo cargamos si la caché está vacía o para refrescar
             if (usuarioCache.isNotEmpty()) return
 
-            println("👤 Obteniendo lista de usuarios para enriquecer postulaciones...")
+            println("👤 Pre-cargando lista de usuarios para nombres...")
             val response = usuarioApi.listar()
             if (response.isSuccessful) {
-                response.body()?.forEach { usuario ->
+                val usuarios = response.body() ?: emptyList()
+                usuarios.forEach { usuario ->
                     usuarioCache[usuario.idUsuario] = usuario
                 }
-                println("✅ Caché de usuarios sincronizada (${usuarioCache.size} registros)")
+                println("✅ Caché de usuarios lista: ${usuarioCache.size} usuarios")
+            } else {
+                println("⚠️ No se pudo listar usuarios (${response.code()}). Los nombres se mostrarán como IDs.")
             }
         } catch (e: Exception) {
-            println("⚠️ No se pudo pre-cargar usuarios: ${e.message}")
+            println("⚠️ Error al pre-cargar usuarios: ${e.message}")
         }
+    }
+
+    private suspend fun obtenerUsuarioPorId(idUsuario: Long): UsuarioDTO? {
+        // Esta función ahora solo se usa como fallback o si se requiere un usuario específico
+        usuarioCache[idUsuario]?.let { return it }
+        return null // Ya que preCargarUsuarios debería haber llenado la caché
     }
 
     suspend fun listarPorCandidato(idUsuario: Long): List<PostulacionDto> {
@@ -71,19 +80,28 @@ class PostulacionRepository(
             if (response.isSuccessful) {
                 response.body() ?: emptyList()
             } else {
+                println("Error listarPorCandidato: ${response.code()} - ${response.message()}")
                 emptyList()
             }
         } catch (e: Exception) {
+            println("Excepción listarPorCandidato: ${e.message}")
             emptyList()
         }
     }
 
+    // ✅ CORREGIDO: Usar postularse con PostulacionRequest
     suspend fun crearPostulacion(idUsuario: Long, idOferta: Long): PostulacionResponse? {
         return try {
             val request = PostulacionRequest(idUsuario, idOferta)
             val response = api.postularse(request)
-            if (response.isSuccessful) response.body() else null
+            if (response.isSuccessful) {
+                response.body()
+            } else {
+                println("Error crear postulación: ${response.code()} - ${response.message()}")
+                null
+            }
         } catch (e: Exception) {
+            println("Excepción crear postulación: ${e.message}")
             null
         }
     }
@@ -91,8 +109,14 @@ class PostulacionRepository(
     suspend fun actualizar(id: Long, postulacion: PostulacionDto): PostulacionDto? {
         return try {
             val response = api.actualizar(id, postulacion)
-            if (response.isSuccessful) response.body() else null
+            if (response.isSuccessful) {
+                response.body()
+            } else {
+                println("Error actualizar postulación: ${response.code()} - ${response.message()}")
+                null
+            }
         } catch (e: Exception) {
+            println("Excepción actualizar: ${e.message}")
             null
         }
     }
@@ -102,6 +126,7 @@ class PostulacionRepository(
             val response = api.eliminar(id)
             response.isSuccessful
         } catch (e: Exception) {
+            println("Excepción eliminar: ${e.message}")
             false
         }
     }

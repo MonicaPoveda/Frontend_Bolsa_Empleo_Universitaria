@@ -19,11 +19,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaDto
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.launch
 
-private val BlueGradientStart = Color(0xFF0056D2)
-private val BackgroundGray = Color(0xFFF8FAFF)
+private val BlueGradientStart = UniEmpleoColors.Blue
+private val BackgroundGray = UniEmpleoColors.Background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

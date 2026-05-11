@@ -64,7 +64,7 @@ fun CrearPerfilEstudianteScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0056D2),
+                    containerColor = Color(0xFF1E5A7A),
                     titleContentColor = Color.White,
                     navigationIconContentColor = Color.White
                 )
@@ -85,7 +85,7 @@ fun CrearPerfilEstudianteScreen(
                 modifier = Modifier
                     .size(64.dp)
                     .align(Alignment.CenterHorizontally),
-                tint = Color(0xFF0056D2)
+                tint = Color(0xFF1E5A7A)
             )
 
             Text(
@@ -287,7 +287,7 @@ fun CrearPerfilEstudianteScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0056D2)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E5A7A)),
                 enabled = !isLoading
             ) {
                 if (isLoading) {

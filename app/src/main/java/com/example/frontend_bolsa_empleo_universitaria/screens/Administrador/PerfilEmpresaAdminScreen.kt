@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import android.net.Uri
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
@@ -178,7 +179,10 @@ fun PerfilEmpresaAdminScreen(idEmpresa: Long, navController: NavController, view
                                 icon = Icons.Outlined.WorkOutline,
                                 color = AccentIndigo,
                                 bgColor = AccentIndigo.copy(alpha = 0.05f),
-                                onClick = { navController.navigate("ofertas_por_empresa/${it.idEmpresa}/${it.nombre ?: "Empresa"}") }
+                                onClick = {
+                                    val nombre = Uri.encode(it.nombre ?: "Empresa")
+                                    navController.navigate("ofertas_por_empresa/${it.idEmpresa}/$nombre")
+                                }
                             )
 
                             Spacer(modifier = Modifier.height(24.dp))

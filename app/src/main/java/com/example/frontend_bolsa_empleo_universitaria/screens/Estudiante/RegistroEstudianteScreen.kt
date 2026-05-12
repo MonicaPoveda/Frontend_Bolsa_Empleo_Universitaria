@@ -19,6 +19,8 @@ import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.RegUsuRequest
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaOutlinedFormField
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.regex.Pattern
@@ -191,87 +193,84 @@ fun RegistroEstudianteScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Campo Nombre
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = nombre,
                 onValueChange = {
                     nombre = it
                     showError = false
                 },
-                label = { Text("Nombre") },
-                placeholder = { Text("Ej: Juan") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Nombre",
+                placeholder = "Ej: Juan",
                 isError = nombreError != null && nombre.isNotEmpty(),
-                supportingText = {
-                    if (nombreError != null && nombre.isNotEmpty()) {
+                supportingText = if (nombreError != null && nombre.isNotEmpty()) {
+                    {
                         Text(
                             text = nombreError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
+                            color = BolsaTokens.Palette.Error,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Nombre") }
+                } else null,
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Nombre", tint = BolsaTokens.Palette.Primary) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Apellido
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = apellido,
                 onValueChange = {
                     apellido = it
                     showError = false
                 },
-                label = { Text("Apellido") },
-                placeholder = { Text("Ej: Pérez") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Apellido",
+                placeholder = "Ej: Pérez",
                 isError = apellidoError != null && apellido.isNotEmpty(),
-                supportingText = {
-                    if (apellidoError != null && apellido.isNotEmpty()) {
+                supportingText = if (apellidoError != null && apellido.isNotEmpty()) {
+                    {
                         Text(
                             text = apellidoError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
+                            color = BolsaTokens.Palette.Error,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                },
-                leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Apellido") }
+                } else null,
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = "Apellido", tint = BolsaTokens.Palette.Primary) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Email
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = email,
                 onValueChange = {
                     email = it.lowercase()
                     showError = false
                 },
-                label = { Text("Correo Electrónico") },
-                placeholder = { Text("estudiante@universidad.edu.co o usuario@gmail.com") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Correo electrónico",
+                placeholder = "estudiante@universidad.edu.co o usuario@gmail.com",
                 isError = emailError != null && email.isNotEmpty(),
-                supportingText = {
-                    when {
-                        emailError != null && email.isNotEmpty() -> {
+                supportingText = when {
+                    emailError != null && email.isNotEmpty() -> {
+                        {
                             Text(
                                 text = emailError!!,
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 11.sp
-                            )
-                        }
-                        email.isNotEmpty() && emailError == null -> {
-                            val tipoCorreo = getEmailType(email)
-                            Text(
-                                text = "✓ $tipoCorreo",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 11.sp
+                                color = BolsaTokens.Palette.Error,
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
+                    email.isNotEmpty() && emailError == null -> {
+                        {
+                            val tipoCorreo = getEmailType(email)
+                            Text(
+                                text = "✓ $tipoCorreo",
+                                color = BolsaTokens.Palette.Primary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    else -> null
                 },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email") }
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email", tint = BolsaTokens.Palette.Primary) }
             )
 
             // Tarjeta informativa sobre tipos de correo permitidos
@@ -312,64 +311,67 @@ fun RegistroEstudianteScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Teléfono
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = telefono,
                 onValueChange = {
                     telefono = it.filter { it.isDigit() }
                     showError = false
                 },
-                label = { Text("Teléfono") },
-                placeholder = { Text("3001234567") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Teléfono",
+                placeholder = "3001234567",
                 isError = telefonoError != null && telefono.isNotEmpty(),
-                supportingText = {
-                    if (telefonoError != null && telefono.isNotEmpty()) {
+                supportingText = if (telefonoError != null && telefono.isNotEmpty()) {
+                    {
                         Text(
                             text = telefonoError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
+                            color = BolsaTokens.Palette.Error,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                },
-                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = "Teléfono") }
+                } else null,
+                leadingIcon = { Icon(Icons.Default.Phone, contentDescription = "Teléfono", tint = BolsaTokens.Palette.Primary) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Contraseña
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = password,
                 onValueChange = {
                     password = it
                     showError = false
                 },
-                label = { Text("Contraseña") },
-                placeholder = { Text("Mínimo 6 caracteres") },
+                label = "Contraseña",
+                placeholder = "Mínimo 6 caracteres",
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
                 isError = passwordError != null && password.isNotEmpty(),
-                supportingText = {
-                    if (passwordError != null && password.isNotEmpty()) {
-                        Text(
-                            text = passwordError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
-                        )
-                    } else if (password.isNotEmpty() && passwordError == null) {
-                        Text(
-                            text = "✓ Contraseña segura",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 11.sp
-                        )
+                supportingText = when {
+                    passwordError != null && password.isNotEmpty() -> {
+                        {
+                            Text(
+                                text = passwordError!!,
+                                color = BolsaTokens.Palette.Error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
+                    password.isNotEmpty() && passwordError == null -> {
+                        {
+                            Text(
+                                text = "✓ Contraseña segura",
+                                color = BolsaTokens.Palette.Primary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    else -> null
                 },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña", tint = BolsaTokens.Palette.Primary) },
                 trailingIcon = {
                     IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                         Icon(
                             if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (isPasswordVisible) "Ocultar" else "Mostrar"
+                            contentDescription = if (isPasswordVisible) "Ocultar" else "Mostrar",
+                            tint = BolsaTokens.Palette.TextSecondary
                         )
                     }
                 }
@@ -377,33 +379,38 @@ fun RegistroEstudianteScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Confirmar Contraseña
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = confirmPassword,
                 onValueChange = {
                     confirmPassword = it
                     showError = false
                 },
-                label = { Text("Confirmar Contraseña") },
+                label = "Confirmar contraseña",
+                placeholder = "Repite tu contraseña",
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
                 isError = confirmPasswordError != null && confirmPassword.isNotEmpty(),
-                supportingText = {
-                    if (confirmPasswordError != null && confirmPassword.isNotEmpty()) {
-                        Text(
-                            text = confirmPasswordError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
-                        )
-                    } else if (confirmPassword.isNotEmpty() && confirmPasswordError == null) {
-                        Text(
-                            text = "✓ Las contraseñas coinciden",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 11.sp
-                        )
+                supportingText = when {
+                    confirmPasswordError != null && confirmPassword.isNotEmpty() -> {
+                        {
+                            Text(
+                                text = confirmPasswordError!!,
+                                color = BolsaTokens.Palette.Error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
+                    confirmPassword.isNotEmpty() && confirmPasswordError == null -> {
+                        {
+                            Text(
+                                text = "✓ Las contraseñas coinciden",
+                                color = BolsaTokens.Palette.Primary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    else -> null
                 },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirmar") }
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirmar", tint = BolsaTokens.Palette.Primary) }
             )
 
             // Requisitos de contraseña

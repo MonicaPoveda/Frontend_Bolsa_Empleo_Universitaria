@@ -38,32 +38,32 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 
+/** @deprecated Usar [BolsaTokens.Palette]; se mantiene por compatibilidad con imports existentes. */
 object UniEmpleoColors {
-    val Navy = Color(0xFF123047)
-    val Blue = Color(0xFF1E5A7A)
-    val Teal = Color(0xFF0F8B8D)
-    val Gold = Color(0xFFE7B75F)
-    val Background = Color(0xFFF4F8FA)
-    val Surface = Color.White
-    val SurfaceSoft = Color(0xFFEAF3F5)
-    val Text = Color(0xFF17212B)
-    val Muted = Color(0xFF647782)
-    val Success = Color(0xFF2E7D32)
-    val Warning = Color(0xFFB45309)
-    val Danger = Color(0xFFE53935)
+    val Navy = BolsaTokens.Palette.HeaderStart
+    val Blue = BolsaTokens.Palette.Primary
+    val Teal = BolsaTokens.Palette.Info
+    val Gold = BolsaTokens.Palette.Accent
+    val Background = BolsaTokens.Palette.Background
+    val Surface = BolsaTokens.Palette.Surface
+    val SurfaceSoft = BolsaTokens.Palette.PrimaryLight
+    val Text = BolsaTokens.Palette.TextPrimary
+    val Muted = BolsaTokens.Palette.TextSecondary
+    val Success = BolsaTokens.Palette.Success
+    val Warning = BolsaTokens.Palette.Warning
+    val Danger = BolsaTokens.Palette.Error
 }
 
 object UniEmpleoDimens {
-    val ScreenPadding = 16.dp
-    val CardRadius = 18.dp
+    val ScreenPadding = BolsaTokens.Dimens.screenPadding
+    val CardRadius = BolsaTokens.Dimens.cardRadius
     val SectionRadius = 28.dp
-    val FieldRadius = 16.dp
+    val FieldRadius = BolsaTokens.Dimens.fieldRadius
 }
 
-val UniEmpleoGradient = Brush.verticalGradient(
-    listOf(UniEmpleoColors.Navy, UniEmpleoColors.Blue)
-)
+val UniEmpleoGradient: Brush get() = BolsaTokens.headerGradientVertical
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,11 +113,15 @@ fun UniEmpleoTopBar(
             when {
                 navigationIcon != null -> navigationIcon()
                 onBack != null -> {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.size(BolsaTokens.Dimens.touchMin)
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Volver",
-                            tint = Color.White
+                            tint = Color.White,
+                            modifier = Modifier.size(BolsaTokens.Dimens.iconMd)
                         )
                     }
                 }
@@ -158,7 +162,7 @@ fun UniEmpleoHero(
                     .background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(18.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(icon, null, tint = Color.White, modifier = Modifier.size(36.dp))
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(title, color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -184,7 +188,7 @@ fun UniEmpleoCard(
 @Composable
 fun uniEmpleoTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = UniEmpleoColors.Blue,
-    unfocusedBorderColor = Color(0xFFB8C8CF),
+    unfocusedBorderColor = BolsaTokens.Palette.Divider,
     focusedContainerColor = UniEmpleoColors.Surface,
     unfocusedContainerColor = UniEmpleoColors.Surface,
     focusedLabelColor = UniEmpleoColors.Blue,

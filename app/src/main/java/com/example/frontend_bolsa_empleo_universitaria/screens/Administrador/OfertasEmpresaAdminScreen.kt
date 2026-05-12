@@ -32,6 +32,7 @@ private val BackgroundGray = UniEmpleoColors.Background
 fun OfertasEmpresaAdminScreen(idEmpresa: Long, nombreEmpresa: String, navController: NavController, viewModel: AdminViewModel) {
     val ofertas by viewModel.ofertasEmpresa.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val nombreMostrar = remember(nombreEmpresa) { Uri.decode(nombreEmpresa) }
 
     LaunchedEffect(idEmpresa) {
         viewModel.listarOfertasPorEmpresa(idEmpresa)
@@ -44,7 +45,7 @@ fun OfertasEmpresaAdminScreen(idEmpresa: Long, nombreEmpresa: String, navControl
                 title = { 
                     Column {
                         Text("Ofertas de Empleo", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        Text(nombreEmpresa, fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                        Text(nombreMostrar, fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
                     }
                 },
                 navigationIcon = {

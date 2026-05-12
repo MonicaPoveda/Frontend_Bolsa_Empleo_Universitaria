@@ -27,7 +27,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaOutlinedFormField
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 import kotlinx.coroutines.delay
@@ -252,15 +254,17 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                         }
                         Card(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).align(Alignment.BottomCenter),
-                            shape = RoundedCornerShape(16.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+                            shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White)
                         ) {
-                            TextField(
-                                value = busqueda, onValueChange = { busqueda = it }, modifier = Modifier.fillMaxWidth(),
-                                placeholder = { Text("Buscar empresas o sectores...") },
-                                leadingIcon = { Icon(Icons.Default.Search, null, tint = AdminIndigo) },
-                                colors = TextFieldDefaults.colors(focusedContainerColor = Color.White, unfocusedContainerColor = Color.White, focusedIndicatorColor = Color.Transparent, unfocusedIndicatorColor = Color.Transparent),
-                                singleLine = true
+                            BolsaOutlinedFormField(
+                                value = busqueda,
+                                onValueChange = { busqueda = it },
+                                label = "Buscar",
+                                placeholder = "Empresas, sectores o ciudad",
+                                leadingIcon = { Icon(Icons.Default.Search, null, tint = BolsaTokens.Palette.Primary) },
+                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
                             )
                         }
                     }

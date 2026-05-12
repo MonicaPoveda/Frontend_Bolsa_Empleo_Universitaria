@@ -1,6 +1,5 @@
 package com.example.frontend_bolsa_empleo_universitaria.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -13,47 +12,51 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = UniversityGold,
-    secondary = UniversityTeal,
-    tertiary = UniversityBlue,
-    background = Color(0xFF0D1820),
-    surface = Color(0xFF122231),
-    onPrimary = Color(0xFF211A0B),
+    primary = BolsaTokens.Palette.Primary,
+    onPrimary = Color.White,
+    primaryContainer = BolsaTokens.Palette.HeaderEnd,
+    onPrimaryContainer = Color.White,
+    secondary = BolsaTokens.Palette.Secondary,
     onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFFEAF3F5),
-    onSurface = Color(0xFFEAF3F5)
+    tertiary = BolsaTokens.Palette.Accent,
+    onTertiary = Color(0xFF2B2109),
+    background = Color(0xFF0F172A),
+    onBackground = Color(0xFFE2E8F0),
+    surface = Color(0xFF1E293B),
+    onSurface = Color(0xFFE2E8F0),
+    surfaceVariant = Color(0xFF334155),
+    onSurfaceVariant = Color(0xFFCBD5E1),
+    outline = Color(0xFF64748B),
+    error = BolsaTokens.Palette.Error,
+    onError = Color.White
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = UniversityBlue,
-    secondary = UniversityTeal,
-    tertiary = UniversityGold,
-    background = UniversitySurface,
-    surface = Color.White,
-    surfaceVariant = UniversityMist,
+    primary = BolsaTokens.Palette.Primary,
     onPrimary = Color.White,
+    primaryContainer = BolsaTokens.Palette.PrimaryLight,
+    onPrimaryContainer = BolsaTokens.Palette.HeaderStart,
+    secondary = BolsaTokens.Palette.Secondary,
     onSecondary = Color.White,
-    onTertiary = Color(0xFF2B2109),
-    onBackground = UniversityInk,
-    onSurface = UniversityInk,
-    outline = Color(0xFF9BAEB6)
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    secondaryContainer = Color(0xFFEDE9FE),
+    onSecondaryContainer = BolsaTokens.Palette.HeaderEnd,
+    tertiary = BolsaTokens.Palette.Accent,
+    onTertiary = Color(0xFF422006),
+    background = BolsaTokens.Palette.Background,
+    onBackground = BolsaTokens.Palette.TextPrimary,
+    surface = BolsaTokens.Palette.Surface,
+    onSurface = BolsaTokens.Palette.TextPrimary,
+    surfaceVariant = Color(0xFFF1F5F9),
+    onSurfaceVariant = BolsaTokens.Palette.TextSecondary,
+    outline = BolsaTokens.Palette.Divider,
+    error = BolsaTokens.Palette.Error,
+    onError = Color.White,
+    outlineVariant = Color(0xFFCBD5E1)
 )
 
 @Composable
 fun Frontend_Bolsa_Empleo_UniversitariaTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -70,6 +73,7 @@ fun Frontend_Bolsa_Empleo_UniversitariaTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = BolsaShapes,
         content = content
     )
 }

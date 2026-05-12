@@ -27,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
+import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
@@ -73,8 +74,9 @@ fun EmpresaHomeScreen(
     val nombreEmpresa = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Empresa"
 
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
+    val empresaRepository = remember { EmpresaRepository(RetrofitClient.empresaApi) }
     val viewModel: OfertasViewModel = viewModel(
-        factory = OfertasViewModelFactory(repository)
+        factory = OfertasViewModelFactory(repository, empresaRepository)
     )
 
     val idEmpresa = token.getEmpresaId()

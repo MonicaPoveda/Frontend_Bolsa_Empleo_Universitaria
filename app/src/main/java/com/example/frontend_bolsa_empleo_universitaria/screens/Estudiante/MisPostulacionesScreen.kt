@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -38,34 +37,7 @@ import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
 import kotlinx.coroutines.delay
-
-// ── Paleta de colores ─────────────────────────────────────────────────────────
-private object AppColors {
-    val Background    = Color(0xFFF4F7FF)
-    val Surface       = Color(0xFFFFFFFF)
-    val Primary       = Color(0xFF2563EB)
-    val PrimaryLight  = Color(0xFFEFF6FF)
-    val Secondary     = Color(0xFF7C3AED)
-    val AccentGold    = Color(0xFFF59E0B)
-    val TextPrimary   = Color(0xFF0F172A)
-    val TextSecondary = Color(0xFF64748B)
-    val Divider       = Color(0xFFE2E8F0)
-
-    // Estados
-    val Pending  = Color(0xFFF59E0B)
-    val Review   = Color(0xFF3B82F6)
-    val Accepted = Color(0xFF10B981)
-    val Rejected = Color(0xFFEF4444)
-}
-
-// ── Gradiente de encabezado ───────────────────────────────────────────────────
-private val HeaderGradient = Brush.linearGradient(
-    colors = listOf(Color(0xFF1E40AF), Color(0xFF6D28D9)),
-    start = Offset(0f, 0f),
-    end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-)
-
-// ── Pantalla principal ────────────────────────────────────────────────────────
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MisPostulacionesScreen(navController: NavController) {
@@ -100,12 +72,11 @@ fun MisPostulacionesScreen(navController: NavController) {
 
     // ── Carga periódica ───────────────────────────────────────────────────────
     LaunchedEffect(Unit) {
-        val userId = tokenManager.getUserId()
-        if (userId != null) {
-            while (true) {
-                viewModel.cargarPostulacionesEstudiante(userId)
-                delay(1000)
-            }
+        val userId = tokenManager.getUserId() ?: return@LaunchedEffect
+        viewModel.cargarPostulacionesEstudiante(userId)
+        while (true) {
+            delay(25_000)
+            viewModel.cargarPostulacionesEstudiante(userId)
         }
     }
 
@@ -172,7 +143,7 @@ fun MisPostulacionesScreen(navController: NavController) {
 
     // ── UI ────────────────────────────────────────────────────────────────────
     Scaffold(
-        containerColor = AppColors.Background,
+        containerColor = BolsaTokens.Palette.Background,
         topBar = { PostulacionesTopBar(navController, postulacionesEnriquecidas.size) }
     ) { padding ->
         Box(
@@ -244,7 +215,7 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(HeaderGradient)
+            .background(BolsaTokens.headerGradientLinear)
     ) {
         Column(
             modifier = Modifier
@@ -279,7 +250,7 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
                         color = Color.White.copy(alpha = 0.2f)
                     ) {
                         Text(
-                            text  = "$count aplicaciones",
+                            text = if (count == 1) "1 postulación" else "$count postulaciones",
                             color = Color.White,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
@@ -303,7 +274,7 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text      = "Seguimiento de tus aplicaciones laborales",
+                text      = "Seguimiento de tus postulaciones laborales",
                 fontSize  = 14.sp,
                 color     = Color.White.copy(alpha = 0.75f),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -328,7 +299,7 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
                 lineTo(size.width, size.height)
                 close()
             }
-            drawPath(path, Color(0xFFF4F7FF))
+            drawPath(path, BolsaTokens.Palette.Background)
         }
     }
 }
@@ -348,11 +319,11 @@ fun PostulacionCardModerna(
     )
 
     val estilo = when (postulacion.estado) {
-        "PENDIENTE"   -> EstadoStyle(AppColors.Pending,  Color(0xFFFEF3C7), "Pendiente",   Icons.Default.HourglassEmpty)
-        "EN_REVISION" -> EstadoStyle(AppColors.Review,   Color(0xFFEFF6FF), "En revisión", Icons.Default.Refresh)
-        "ACEPTADA"    -> EstadoStyle(AppColors.Accepted, Color(0xFFECFDF5), "Aceptada",    Icons.Default.CheckCircle)
-        "RECHAZADA"   -> EstadoStyle(AppColors.Rejected, Color(0xFFFEF2F2), "Rechazada",   Icons.Default.Cancel)
-        else          -> EstadoStyle(AppColors.TextSecondary, AppColors.Divider, postulacion.estado, Icons.Default.Info)
+        "PENDIENTE"   -> EstadoStyle(BolsaTokens.Palette.Warning,  Color(0xFFFEF3C7), "Pendiente",   Icons.Default.HourglassEmpty)
+        "EN_REVISION" -> EstadoStyle(BolsaTokens.Palette.Info,   Color(0xFFEFF6FF), "En revisión", Icons.Default.Refresh)
+        "ACEPTADA"    -> EstadoStyle(BolsaTokens.Palette.Success, Color(0xFFECFDF5), "Aceptada",    Icons.Default.CheckCircle)
+        "RECHAZADA"   -> EstadoStyle(BolsaTokens.Palette.Error, Color(0xFFFEF2F2), "Rechazada",   Icons.Default.Cancel)
+        else          -> EstadoStyle(BolsaTokens.Palette.TextSecondary, BolsaTokens.Palette.Divider, postulacion.estado, Icons.Default.Info)
     }
 
     val accentBrush = Brush.verticalGradient(
@@ -367,7 +338,7 @@ fun PostulacionCardModerna(
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
             shape = RoundedCornerShape(20.dp),
-            containerColor = AppColors.Surface,
+            containerColor = BolsaTokens.Palette.Surface,
             icon = {
                 Surface(
                     shape = CircleShape,
@@ -377,7 +348,7 @@ fun PostulacionCardModerna(
                     Icon(
                         Icons.Default.DeleteForever,
                         contentDescription = null,
-                        tint = AppColors.Rejected,
+                        tint = BolsaTokens.Palette.Error,
                         modifier = Modifier.padding(14.dp)
                     )
                 }
@@ -387,7 +358,7 @@ fun PostulacionCardModerna(
                     "¿Eliminar postulación?",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp,
-                    color = AppColors.TextPrimary,
+                    color = BolsaTokens.Palette.TextPrimary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -396,7 +367,7 @@ fun PostulacionCardModerna(
                 Text(
                     text = "Se eliminará tu postulación a \"${postulacion.tituloOferta}\". Esta acción no se puede deshacer.",
                     fontSize = 14.sp,
-                    color = AppColors.TextSecondary,
+                    color = BolsaTokens.Palette.TextSecondary,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     lineHeight = 20.sp,
                     modifier = Modifier.fillMaxWidth()
@@ -408,7 +379,7 @@ fun PostulacionCardModerna(
                         mostrarDialogo = false
                         onEliminar?.invoke(postulacion)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = AppColors.Rejected),
+                    colors = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Error),
                     shape  = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -422,9 +393,9 @@ fun PostulacionCardModerna(
                     onClick = { mostrarDialogo = false },
                     shape   = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
-                    border  = BorderStroke(1.dp, AppColors.Divider)
+                    border  = BorderStroke(1.dp, BolsaTokens.Palette.Divider)
                 ) {
-                    Text("Cancelar", color = AppColors.TextSecondary, fontWeight = FontWeight.SemiBold)
+                    Text("Cancelar", color = BolsaTokens.Palette.TextSecondary, fontWeight = FontWeight.SemiBold)
                 }
             }
         )
@@ -435,7 +406,7 @@ fun PostulacionCardModerna(
             .fillMaxWidth()
             .clickable { navController.navigate("detalle_oferta_estudiante/${postulacion.idOferta}") },
         shape     = RoundedCornerShape(20.dp),
-        colors    = CardDefaults.cardColors(containerColor = AppColors.Surface),
+        colors    = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp, pressedElevation = 6.dp)
     ) {
         Row(modifier = Modifier.fillMaxWidth()) {
@@ -502,7 +473,7 @@ fun PostulacionCardModerna(
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "Eliminar postulación",
-                            tint     = AppColors.Rejected,
+                            tint     = BolsaTokens.Palette.Error,
                             modifier = Modifier.size(18.dp)
                         )
                     }
@@ -515,7 +486,7 @@ fun PostulacionCardModerna(
                     text       = postulacion.tituloOferta,
                     fontSize   = 19.sp,
                     fontWeight = FontWeight.ExtraBold,
-                    color      = AppColors.TextPrimary,
+                    color      = BolsaTokens.Palette.TextPrimary,
                     maxLines   = 2,
                     overflow   = TextOverflow.Ellipsis,
                     lineHeight = 25.sp
@@ -527,7 +498,7 @@ fun PostulacionCardModerna(
                         text     = postulacion.nombreEmpresa,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color    = AppColors.Primary,
+                        color    = BolsaTokens.Palette.Primary,
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }
@@ -538,7 +509,7 @@ fun PostulacionCardModerna(
                     Text(
                         text     = postulacion.area,
                         fontSize = 15.sp,
-                        color    = AppColors.TextSecondary
+                        color    = BolsaTokens.Palette.TextSecondary
                     )
                 }
 
@@ -550,18 +521,18 @@ fun PostulacionCardModerna(
                         Icons.Default.CalendarToday,
                         contentDescription = null,
                         modifier = Modifier.size(13.dp),
-                        tint = AppColors.TextSecondary.copy(alpha = 0.7f)
+                        tint = BolsaTokens.Palette.TextSecondary.copy(alpha = 0.7f)
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
                         text     = postulacion.fechaPostulacion.take(10),
                         fontSize = 13.sp,
-                        color    = AppColors.TextSecondary.copy(alpha = 0.7f)
+                        color    = BolsaTokens.Palette.TextSecondary.copy(alpha = 0.7f)
                     )
                 }
 
                 Spacer(Modifier.height(14.dp))
-                Divider(color = AppColors.Divider, thickness = 1.dp)
+                HorizontalDivider(color = BolsaTokens.Palette.Divider, thickness = 1.dp)
                 Spacer(Modifier.height(12.dp))
 
                 // ── Fila inferior: chips salario + modalidad + "Ver detalle" ─
@@ -577,14 +548,14 @@ fun PostulacionCardModerna(
                             InfoChip(
                                 icon  = Icons.Default.AttachMoney,
                                 text  = "$${postulacion.salario.toInt()}/mes",
-                                color = AppColors.Accepted
+                                color = BolsaTokens.Palette.Success
                             )
                         }
                         if (postulacion.modalidad.isNotBlank()) {
                             InfoChip(
                                 icon  = Icons.Default.Work,
                                 text  = postulacion.modalidad,
-                                color = AppColors.Primary
+                                color = BolsaTokens.Palette.Primary
                             )
                         }
                     }
@@ -594,14 +565,14 @@ fun PostulacionCardModerna(
                         Text(
                             text       = "Ver detalle",
                             fontSize   = 13.sp,
-                            color      = AppColors.Primary,
+                            color      = BolsaTokens.Palette.Primary,
                             fontWeight = FontWeight.SemiBold
                         )
                         Icon(
                             Icons.Default.ChevronRight,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = AppColors.Primary
+                            tint = BolsaTokens.Palette.Primary
                         )
                     }
                 }
@@ -634,12 +605,12 @@ private fun LoadingState() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             CircularProgressIndicator(
-                color       = AppColors.Primary,
+                color       = BolsaTokens.Palette.Primary,
                 strokeWidth = 3.dp,
                 modifier    = Modifier.size(48.dp)
             )
             Spacer(Modifier.height(16.dp))
-            Text("Cargando postulaciones…", color = AppColors.TextSecondary, fontSize = 14.sp)
+            Text("Cargando postulaciones…", color = BolsaTokens.Palette.TextSecondary, fontSize = 14.sp)
         }
     }
 }
@@ -665,11 +636,11 @@ private fun ErrorState403(navController: NavController) {
                 )
             }
             Spacer(Modifier.height(20.dp))
-            Text("Acceso restringido", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AppColors.TextPrimary)
+            Text("Acceso restringido", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BolsaTokens.Palette.TextPrimary)
             Spacer(Modifier.height(8.dp))
             Text(
                 "No se pueden cargar tus postulaciones.\nContacta al administrador.",
-                color = AppColors.TextSecondary,
+                color = BolsaTokens.Palette.TextSecondary,
                 fontSize = 14.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 lineHeight = 20.sp
@@ -677,7 +648,7 @@ private fun ErrorState403(navController: NavController) {
             Spacer(Modifier.height(24.dp))
             Button(
                 onClick = { navController.popBackStack() },
-                colors  = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
+                colors  = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Primary),
                 shape   = RoundedCornerShape(12.dp)
             ) {
                 Text("Volver", fontWeight = FontWeight.SemiBold)
@@ -703,13 +674,13 @@ private fun ErrorStateGeneral(error: String) {
                     Icons.Default.ErrorOutline,
                     contentDescription = null,
                     modifier = Modifier.padding(20.dp),
-                    tint = AppColors.Rejected
+                    tint = BolsaTokens.Palette.Error
                 )
             }
             Spacer(Modifier.height(16.dp))
-            Text("Ocurrió un error", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = AppColors.TextPrimary)
+            Text("Ocurrió un error", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BolsaTokens.Palette.TextPrimary)
             Spacer(Modifier.height(8.dp))
-            Text(error, color = AppColors.TextSecondary, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(error, color = BolsaTokens.Palette.TextSecondary, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
         }
     }
 }
@@ -725,7 +696,7 @@ private fun EmptyState(navController: NavController) {
             // Ícono con fondo degradado simulado
             Surface(
                 shape  = RoundedCornerShape(28.dp),
-                color  = AppColors.PrimaryLight,
+                color  = BolsaTokens.Palette.PrimaryLight,
                 modifier = Modifier.size(96.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -733,7 +704,7 @@ private fun EmptyState(navController: NavController) {
                         Icons.Default.BusinessCenter,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
-                        tint = AppColors.Primary
+                        tint = BolsaTokens.Palette.Primary
                     )
                 }
             }
@@ -742,12 +713,12 @@ private fun EmptyState(navController: NavController) {
                 "Aún no tienes postulaciones",
                 fontWeight = FontWeight.Bold,
                 fontSize   = 20.sp,
-                color      = AppColors.TextPrimary
+                color      = BolsaTokens.Palette.TextPrimary
             )
             Spacer(Modifier.height(8.dp))
             Text(
                 "Explora ofertas disponibles y comienza tu búsqueda laboral.",
-                color    = AppColors.TextSecondary,
+                color    = BolsaTokens.Palette.TextSecondary,
                 fontSize = 14.sp,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 lineHeight = 20.sp
@@ -755,7 +726,7 @@ private fun EmptyState(navController: NavController) {
             Spacer(Modifier.height(28.dp))
             Button(
                 onClick = { navController.navigate("estudiante_home") },
-                colors  = ButtonDefaults.buttonColors(containerColor = AppColors.Primary),
+                colors  = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Primary),
                 shape   = RoundedCornerShape(14.dp),
                 modifier = Modifier.height(50.dp)
             ) {

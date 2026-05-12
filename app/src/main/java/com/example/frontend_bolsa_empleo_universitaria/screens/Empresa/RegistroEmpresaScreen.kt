@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.SolicitudRegistroEmpresa
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaOutlinedFormField
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import kotlinx.coroutines.launch
 import java.util.regex.Pattern
 
@@ -141,61 +143,60 @@ fun RegistroEmpresaScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Campo Nombre de la Empresa
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = nombre,
                 onValueChange = {
                     nombre = it
                     showError = false
                 },
-                label = { Text("Nombre de la Empresa") },
-                placeholder = { Text("Ej: Mi Empresa SAS") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Nombre de la empresa",
+                placeholder = "Ej: Mi Empresa SAS",
                 isError = nombreError != null && nombre.isNotEmpty(),
-                supportingText = {
-                    if (nombreError != null && nombre.isNotEmpty()) {
+                supportingText = if (nombreError != null && nombre.isNotEmpty()) {
+                    {
                         Text(
                             text = nombreError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
+                            color = BolsaTokens.Palette.Error,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
-                },
-                leadingIcon = { Icon(Icons.Default.Business, contentDescription = "Empresa") }
+                } else null,
+                leadingIcon = { Icon(Icons.Default.Business, contentDescription = "Empresa", tint = BolsaTokens.Palette.Primary) }
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Email
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = email,
                 onValueChange = {
                     email = it.lowercase()
                     showError = false
                 },
-                label = { Text("Correo Electrónico") },
-                placeholder = { Text("empresa@midominio.com.co") },
-                modifier = Modifier.fillMaxWidth(),
+                label = "Correo electrónico",
+                placeholder = "empresa@midominio.com.co",
                 isError = emailError != null && email.isNotEmpty(),
-                supportingText = {
-                    when {
-                        emailError != null && email.isNotEmpty() -> {
+                supportingText = when {
+                    emailError != null && email.isNotEmpty() -> {
+                        {
                             Text(
                                 text = emailError!!,
-                                color = MaterialTheme.colorScheme.error,
-                                fontSize = 11.sp
-                            )
-                        }
-                        email.isNotEmpty() && emailError == null -> {
-                            Text(
-                                text = "✓ Correo empresarial válido",
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 11.sp
+                                color = BolsaTokens.Palette.Error,
+                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
+                    email.isNotEmpty() && emailError == null -> {
+                        {
+                            Text(
+                                text = "✓ Correo empresarial válido",
+                                color = BolsaTokens.Palette.Primary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    else -> null
                 },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email") }
+                leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email", tint = BolsaTokens.Palette.Primary) }
             )
 
             // Tarjeta informativa sobre correos permitidos
@@ -233,39 +234,44 @@ fun RegistroEmpresaScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Contraseña
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = password,
                 onValueChange = {
                     password = it
                     showError = false
                 },
-                label = { Text("Contraseña") },
-                placeholder = { Text("Mínimo 6 caracteres") },
+                label = "Contraseña",
+                placeholder = "Mínimo 6 caracteres",
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
                 isError = passwordError != null && password.isNotEmpty(),
-                supportingText = {
-                    if (passwordError != null && password.isNotEmpty()) {
-                        Text(
-                            text = passwordError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
-                        )
-                    } else if (password.isNotEmpty() && passwordError == null) {
-                        Text(
-                            text = "✓ Contraseña segura",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 11.sp
-                        )
+                supportingText = when {
+                    passwordError != null && password.isNotEmpty() -> {
+                        {
+                            Text(
+                                text = passwordError!!,
+                                color = BolsaTokens.Palette.Error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
+                    password.isNotEmpty() && passwordError == null -> {
+                        {
+                            Text(
+                                text = "✓ Contraseña segura",
+                                color = BolsaTokens.Palette.Primary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    else -> null
                 },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña") },
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña", tint = BolsaTokens.Palette.Primary) },
                 trailingIcon = {
                     IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                         Icon(
                             if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (isPasswordVisible) "Ocultar" else "Mostrar"
+                            contentDescription = if (isPasswordVisible) "Ocultar" else "Mostrar",
+                            tint = BolsaTokens.Palette.TextSecondary
                         )
                     }
                 }
@@ -273,33 +279,38 @@ fun RegistroEmpresaScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Campo Confirmar Contraseña
-            OutlinedTextField(
+            BolsaOutlinedFormField(
                 value = confirmPassword,
                 onValueChange = {
                     confirmPassword = it
                     showError = false
                 },
-                label = { Text("Confirmar Contraseña") },
+                label = "Confirmar contraseña",
+                placeholder = "Repite tu contraseña",
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                modifier = Modifier.fillMaxWidth(),
                 isError = confirmPasswordError != null && confirmPassword.isNotEmpty(),
-                supportingText = {
-                    if (confirmPasswordError != null && confirmPassword.isNotEmpty()) {
-                        Text(
-                            text = confirmPasswordError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 11.sp
-                        )
-                    } else if (confirmPassword.isNotEmpty() && confirmPasswordError == null) {
-                        Text(
-                            text = "✓ Las contraseñas coinciden",
-                            color = MaterialTheme.colorScheme.primary,
-                            fontSize = 11.sp
-                        )
+                supportingText = when {
+                    confirmPasswordError != null && confirmPassword.isNotEmpty() -> {
+                        {
+                            Text(
+                                text = confirmPasswordError!!,
+                                color = BolsaTokens.Palette.Error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
+                    confirmPassword.isNotEmpty() && confirmPasswordError == null -> {
+                        {
+                            Text(
+                                text = "✓ Las contraseñas coinciden",
+                                color = BolsaTokens.Palette.Primary,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                    else -> null
                 },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirmar") }
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirmar", tint = BolsaTokens.Palette.Primary) }
             )
 
             // Mensaje de error general

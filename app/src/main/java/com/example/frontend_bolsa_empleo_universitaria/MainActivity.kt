@@ -168,6 +168,8 @@ fun AppNavigation() {
             EmpresasGestionScreen(navController = navController, viewModel = adminViewModel)
         }
 
+        class FakePerfilEmpresaAdminScreen // Placeholder for potentially missing imports or symbols if any, though imports seem fine
+
         composable("perfil_empresa_admin/{idEmpresa}") { backStackEntry: NavBackStackEntry ->
             val id = backStackEntry.arguments?.getString("idEmpresa")?.toLongOrNull() ?: 0L
             PerfilEmpresaAdminScreen(idEmpresa = id, navController = navController, viewModel = adminViewModel)

@@ -7,6 +7,8 @@ import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +29,8 @@ class LoginViewModel(
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    private var pollingJob: Job? = null
 
     fun login(email: String, password: String) {
         viewModelScope.launch {
@@ -55,6 +59,7 @@ class LoginViewModel(
                             apellido = it.usuario.apellido,
                             telefono = it.usuario.telefono ?: ""
                         )
+                        stopStatusPolling()
                         _uiState.value = LoginUiState.Success(it.token, rolApp, email)
                         return@launch
                     }
@@ -63,13 +68,13 @@ class LoginViewModel(
                 val userError = userResult.exceptionOrNull()?.message ?: ""
 
                 // PASO PREVIO: Verificar si es una empresa pendiente ANTES de intentar el login de empresa
-                if (userError.contains("HTTP_ERROR_401") || userError.contains("HTTP_ERROR_403")) {
+                if (userError.contains("401") || userError.contains("403") || userError.contains("PENDIENTE") || userError.contains("RECHAZADA")){
                     try {
                         val pendientesResponse = adminRepository.listarEmpresasPendientes()
                         if (pendientesResponse.isSuccessful) {
                             val listaPendientes = pendientesResponse.body()
                             val esPendiente = listaPendientes?.any { it.email.equals(email, ignoreCase = true) } == true
-                            
+
                             if (esPendiente) {
                                 _uiState.value = LoginUiState.Error("⏳ Su solicitud de registro está en proceso de revisión por el administrador. Por favor, espere a ser aprobado.")
                                 return@launch
@@ -94,23 +99,30 @@ class LoginViewModel(
                                 apellido = it.usuario?.apellido ?: "",
                                 telefono = it.usuario?.telefono ?: ""
                             )
+                            stopStatusPolling()
                             _uiState.value = LoginUiState.Success(it.token, "EMPRESA", email)
                             return@launch
                         }
                     }
 
+                    // Manejo de errores de Empresa
                     val empresaError = empresaResult.exceptionOrNull()?.message ?: ""
                     val finalError = when {
-                        empresaError.contains("TIMEOUT_ERROR") -> "❌ Tiempo de espera agotado."
+                        empresaError.contains("TIMEOUT_ERROR") -> "❌ Tiempo de espera agotado. El servidor no responde."
+                        empresaError.contains("NETWORK_ERROR") -> "❌ Error de conexión. Revisa tu internet."
+                        empresaError.contains("PENDIENTE") || empresaError.contains("RECHAZADA") -> empresaError
+                        empresaError.isNotBlank() && !empresaError.contains("HTTP_ERROR") -> empresaError
                         else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
                     }
                     _uiState.value = LoginUiState.Error(finalError)
-
+                    
                 } else {
-                    // Otros errores de usuario (Red, Timeout)
+                    // Manejo de errores de Usuario
                     val finalError = when {
                         userError.contains("TIMEOUT_ERROR") -> "❌ El servidor tardó demasiado en responder."
-                        userError.contains("NETWORK_ERROR") -> "❌ Error de conexión. Revisa tu internet."
+                        userError.contains("NETWORK_ERROR") -> "❌ Error de conexión. No se pudo contactar con el servidor."
+                        userError.contains("PENDIENTE") || userError.contains("RECHAZADA") -> userError
+                        userError.isNotBlank() && !userError.contains("HTTP_ERROR") -> userError
                         else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
                     }
                     _uiState.value = LoginUiState.Error(finalError)
@@ -120,5 +132,37 @@ class LoginViewModel(
                 _uiState.value = LoginUiState.Error("Error inesperado: ${e.message}")
             }
         }
+    }
+
+    fun startStatusPolling(email: String, pass: String) {
+        if (pollingJob?.isActive == true) return
+
+        pollingJob = viewModelScope.launch {
+            while (true) {
+                delay(5000) // Revisa cada 5 segundos (más corto como pediste)
+                val userResult = authRepository.login(email, pass)
+                if (userResult.isSuccess) {
+                    login(email, pass) // Si ya no da error, hace el login completo
+                    break
+                } else {
+                    val error = userResult.exceptionOrNull()?.message ?: ""
+                    // Si el error ya no es PENDIENTE (ej: ahora es RECHAZADA o SUCCESS), actualizamos
+                    if (!error.contains("PENDIENTE", ignoreCase = true)) {
+                        login(email, pass)
+                        break
+                    }
+                }
+            }
+        }
+    }
+
+    fun stopStatusPolling() {
+        pollingJob?.cancel()
+        pollingJob = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopStatusPolling()
     }
 }

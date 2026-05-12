@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,16 +30,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
-import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
-import com.example.frontend_bolsa_empleo_universitaria.utils.Token
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaModernDialog
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaOutlinedFormField
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaSnackbarHost
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.showBolsaSuccess
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginUiState
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModelFactory
@@ -51,8 +48,8 @@ fun LoginScreen(navController: NavController) {
     val token = remember { Token(context) }
     val authRepo = remember { AuthRepository(RetrofitClient.usuarioApi) }
     val empresaRepo = remember { EmpresaRepository(RetrofitClient.empresaApi) }
-    val adminRepo = remember { AdminRepository(context) }
     val perfilRepo = remember { PerfilRepository(RetrofitClient.perfilApi) }
+    val adminRepo = remember { AdminRepository(context) }
 
     val viewModel: LoginViewModel = viewModel(
         factory = LoginViewModelFactory(authRepo, token, empresaRepo, adminRepo)
@@ -63,7 +60,8 @@ fun LoginScreen(navController: NavController) {
     var isPasswordVisible by remember { mutableStateOf(false) }
     var showRecoverDialog by remember { mutableStateOf(false) }
     var showEmpresaPendienteDialog by remember { mutableStateOf(false) }
-    var empresaPendienteInfo by remember { mutableStateOf<EmpresaPendienteInfo?>(null) }
+    var showEmpresaRechazadaDialog by remember { mutableStateOf(false) }
+    var empresaStatusInfo by remember { mutableStateOf<EmpresaStatusInfo?>(null) }
 
     val uiState by viewModel.uiState.collectAsState()
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -151,16 +149,23 @@ fun LoginScreen(navController: NavController) {
                 }
             }
             is LoginUiState.Error -> {
-                val error = (uiState as LoginUiState.Error).message
-                errorMessage = error
+                val rawError = (uiState as LoginUiState.Error).message
+                // Limpiar códigos HTTP y comillas exteriores para que el error sea legible
+                val cleanError = rawError
+                    .replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "")
+                    .removeSurrounding("\"")
+                    .trim()
 
-                // Verificar si el error es por empresa pendiente
-                if (error.contains("PENDIENTE")) {
-                    empresaPendienteInfo = EmpresaPendienteInfo(
-                        email = email,
-                        mensaje = error
-                    )
+                errorMessage = cleanError
+
+                // Verificar estados específicos de la empresa
+                if (cleanError.contains("PENDIENTE", ignoreCase = true)) {
+                    empresaStatusInfo = EmpresaStatusInfo(email = email, mensaje = cleanError)
                     showEmpresaPendienteDialog = true
+                    viewModel.startStatusPolling(email, password)
+                } else if (cleanError.contains("RECHAZADA", ignoreCase = true)) {
+                    empresaStatusInfo = EmpresaStatusInfo(email = email, mensaje = cleanError)
+                    showEmpresaRechazadaDialog = true
                 }
             }
             else -> {}
@@ -174,22 +179,38 @@ fun LoginScreen(navController: NavController) {
         )
     }
 
-    if (showEmpresaPendienteDialog && empresaPendienteInfo != null) {
+    if (showEmpresaPendienteDialog && empresaStatusInfo != null) {
         EmpresaPendienteDialog(
-            info = empresaPendienteInfo!!,
+            info = EmpresaPendienteInfo(empresaStatusInfo!!.email, empresaStatusInfo!!.mensaje),
             onDismiss = {
                 showEmpresaPendienteDialog = false
-                empresaPendienteInfo = null
+                empresaStatusInfo = null
+                viewModel.stopStatusPolling()
             },
             onNavigateToRegistro = {
                 showEmpresaPendienteDialog = false
+                viewModel.stopStatusPolling()
+                navController.navigate("registro_empresa")
+            }
+        )
+    }
+
+    if (showEmpresaRechazadaDialog && empresaStatusInfo != null) {
+        EmpresaRechazadaDialog(
+            info = empresaStatusInfo!!,
+            onDismiss = {
+                showEmpresaRechazadaDialog = false
+                empresaStatusInfo = null
+            },
+            onNavigateToRegistro = {
+                showEmpresaRechazadaDialog = false
                 navController.navigate("registro_empresa")
             }
         )
     }
 
     Scaffold(
-        snackbarHost = { BolsaSnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color.Transparent
     ) { paddingValues ->
         Box(
@@ -212,11 +233,11 @@ fun LoginScreen(navController: NavController) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = BolsaTokens.Dimens.screenPadding)
                         .alpha(introAlpha)
                         .offset(y = introOffset),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+                    colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
                     elevation = CardDefaults.cardElevation(12.dp)
                 ) {
                     Column(
@@ -225,11 +246,15 @@ fun LoginScreen(navController: NavController) {
                             .padding(32.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(modifier = Modifier.size(40.dp))
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(40.dp),
+                            color = BolsaTokens.Palette.Primary
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = "Verificando tu información...",
-                            style = MaterialTheme.typography.bodyMedium
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = BolsaTokens.Palette.TextSecondary
                         )
                     }
                 }
@@ -237,11 +262,11 @@ fun LoginScreen(navController: NavController) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp)
+                        .padding(horizontal = BolsaTokens.Dimens.screenPadding)
                         .alpha(introAlpha)
                         .offset(y = introOffset),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+                    colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
                     elevation = CardDefaults.cardElevation(12.dp)
                 ) {
                     Column(
@@ -253,13 +278,13 @@ fun LoginScreen(navController: NavController) {
                         Surface(
                             modifier = Modifier.size(72.dp),
                             shape = RoundedCornerShape(22.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            color = BolsaTokens.Palette.Primary.copy(alpha = 0.12f)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.School,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = BolsaTokens.Palette.Primary,
                                     modifier = Modifier.size(40.dp)
                                 )
                             }
@@ -270,73 +295,105 @@ fun LoginScreen(navController: NavController) {
                         Text(
                             text = "UNIEMPLEO",
                             style = MaterialTheme.typography.headlineLarge,
-                            color = MaterialTheme.colorScheme.primary,
+                            color = BolsaTokens.Palette.Primary,
                             fontWeight = FontWeight.ExtraBold
                         )
 
                         Text(
                             text = "Bolsa universitaria de oportunidades",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = BolsaTokens.Palette.TextSecondary,
                             textAlign = TextAlign.Center
                         )
 
                         Spacer(modifier = Modifier.height(24.dp))
 
                         if (uiState is LoginUiState.Loading) {
-                            CircularProgressIndicator(modifier = Modifier.size(30.dp))
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(30.dp),
+                                color = BolsaTokens.Palette.Primary
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
                         }
 
                         errorMessage?.let {
                             Card(
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                    containerColor = BolsaTokens.Palette.Error.copy(alpha = 0.05f)
                                 ),
-                                shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier.padding(bottom = 16.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth(),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BolsaTokens.Palette.Error.copy(alpha = 0.2f))
                             ) {
-                                Text(
-                                    text = it,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(12.dp)
-                                )
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ErrorOutline,
+                                        contentDescription = null,
+                                        tint = BolsaTokens.Palette.Error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = it,
+                                        color = BolsaTokens.Palette.Error,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
 
-                        BolsaOutlinedFormField(
+                        OutlinedTextField(
                             value = email,
                             onValueChange = { email = it; errorMessage = null },
-                            label = "Correo institucional o personal",
-                            placeholder = "nombre@ejemplo.com",
-                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = BolsaTokens.Palette.Primary) }
+                            label = { Text("Email") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
+                            leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = BolsaTokens.Palette.Primary,
+                                unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                focusedContainerColor = BolsaTokens.Palette.Surface,
+                                unfocusedContainerColor = BolsaTokens.Palette.Surface
+                            )
                         )
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        BolsaOutlinedFormField(
+                        OutlinedTextField(
                             value = password,
                             onValueChange = { password = it; errorMessage = null },
-                            label = "Contraseña",
-                            placeholder = "••••••••",
-                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = BolsaTokens.Palette.Primary) },
+                            label = { Text("Contraseña") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
+                            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                             trailingIcon = {
                                 IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
                                     Icon(
                                         imageVector = if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                        contentDescription = null,
-                                        tint = BolsaTokens.Palette.TextSecondary
+                                        contentDescription = null
                                     )
                                 }
                             },
-                            visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation()
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = BolsaTokens.Palette.Primary,
+                                unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                focusedContainerColor = BolsaTokens.Palette.Surface,
+                                unfocusedContainerColor = BolsaTokens.Palette.Surface
+                            )
                         )
 
                         TextButton(
                             onClick = { showRecoverDialog = true },
-                            modifier = Modifier.align(Alignment.End)
+                            modifier = Modifier.align(Alignment.End),
+                            colors = ButtonDefaults.textButtonColors(contentColor = BolsaTokens.Palette.Primary)
                         ) {
                             Text("¿Olvidaste tu contraseña?")
                         }
@@ -349,10 +406,10 @@ fun LoginScreen(navController: NavController) {
                                 .fillMaxWidth()
                                 .height(54.dp),
                             enabled = uiState !is LoginUiState.Loading && email.isNotBlank() && password.isNotBlank(),
-                            shape = RoundedCornerShape(18.dp),
+                            shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                containerColor = BolsaTokens.Palette.Primary,
+                                contentColor = BolsaTokens.Palette.Surface
                             )
                         ) {
                             Text("Ingresar", style = MaterialTheme.typography.labelLarge)
@@ -360,12 +417,15 @@ fun LoginScreen(navController: NavController) {
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = BolsaTokens.Palette.Divider
+                        )
 
                         Text(
                             text = "¿No tienes una cuenta?",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = BolsaTokens.Palette.TextSecondary
                         )
 
                         Row(
@@ -375,28 +435,32 @@ fun LoginScreen(navController: NavController) {
                             OutlinedButton(
                                 onClick = { navController.navigate("registro_estudiante") },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BolsaTokens.Palette.Divider)
                             ) {
                                 Icon(
                                     Icons.Default.Person,
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(18.dp),
+                                    tint = BolsaTokens.Palette.Primary
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Estudiante")
+                                Text("Estudiante", color = BolsaTokens.Palette.TextPrimary)
                             }
                             OutlinedButton(
                                 onClick = { navController.navigate("registro_empresa") },
                                 modifier = Modifier.weight(1f),
-                                shape = RoundedCornerShape(16.dp)
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, BolsaTokens.Palette.Divider)
                             ) {
                                 Icon(
                                     Icons.Default.Business,
                                     contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
+                                    modifier = Modifier.size(18.dp),
+                                    tint = BolsaTokens.Palette.Primary
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Empresa")
+                                Text("Empresa", color = BolsaTokens.Palette.TextPrimary)
                             }
                         }
                     }
@@ -406,6 +470,51 @@ fun LoginScreen(navController: NavController) {
     }
 }
 
+data class EmpresaStatusInfo(val email: String, val mensaje: String)
+
+// Diálogo para empresas rechazadas
+@Composable
+fun EmpresaRechazadaDialog(
+    info: EmpresaStatusInfo,
+    onDismiss: () -> Unit,
+    onNavigateToRegistro: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Cancel, null, tint = Color(0xFFDC2626), modifier = Modifier.size(48.dp)) },
+        title = { Text("Solicitud Rechazada", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text("Tu registro no ha sido aprobado por el administrador.")
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Motivo:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))
+                ) {
+                    Text(
+                        text = info.mensaje
+                            .replace("RECHAZADA:", "", ignoreCase = true)
+                            .replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "")
+                            .removeSurrounding("\"")
+                            .trim(),
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onNavigateToRegistro) { Text("Intentar nuevo registro") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cerrar") }
+        }
+    )
+}
+
 // Data class para información de empresa pendiente
 data class EmpresaPendienteInfo(
     val email: String,
@@ -413,26 +522,186 @@ data class EmpresaPendienteInfo(
 )
 
 // Diálogo para empresas pendientes de aprobación
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmpresaPendienteDialog(
     info: EmpresaPendienteInfo,
     onDismiss: () -> Unit,
     onNavigateToRegistro: () -> Unit
 ) {
-    BolsaModernDialog(
+    AlertDialog(
         onDismissRequest = onDismiss,
-        title = "Solicitud pendiente",
-        text = "Tu registro de empresa está en revisión (PENDIENTE). Correo: ${info.email}. " +
-            "Detalle: ${info.mensaje}. No podrás iniciar sesión hasta que un administrador apruebe o rechace la solicitud. " +
-            "Recibirás notificación por correo cuando haya novedades. Si corresponde, puedes completar un nuevo registro con datos actualizados.",
-        icon = Icons.Default.Schedule,
-        iconTint = BolsaTokens.Palette.Warning,
-        iconBackground = BolsaTokens.Palette.Warning.copy(alpha = 0.14f),
-        confirmText = "Entendido",
-        onConfirm = onDismiss,
-        dismissText = "Ir al registro de empresa",
-        onDismiss = onNavigateToRegistro,
-        confirmColor = BolsaTokens.Palette.Primary
+        icon = {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = "Información",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(48.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "⏳ Solicitud Pendiente",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    text = "Tu solicitud de registro está siendo revisada por el administrador.",
+                    style = MaterialTheme.typography.bodyLarge
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "📋 Detalles de tu solicitud:",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("📧 Correo:", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                info.email,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("📊 Estado:", style = MaterialTheme.typography.bodySmall)
+                            Surface(
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    "PENDIENTE",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                        }
+
+                        // Mostrar el comentario detallado del administrador si existe
+                        val adminComment = info.mensaje
+                            .replace("PENDIENTE:", "", ignoreCase = true)
+                            .replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "")
+                            .removeSurrounding("\"")
+                            .trim()
+
+                        if (adminComment.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(modifier = Modifier.alpha(0.3f))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "💬 Comentario del administrador:",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = adminComment,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Info,
+                                contentDescription = "Info",
+                                modifier = Modifier.size(16.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "📝 ¿Qué puedes hacer mientras tanto?",
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "• ✅ Espera a que un administrador revise tu solicitud\n" +
+                                    "• 📧 Recibirás un correo cuando sea aprobada\n" +
+                                    "• 🔐 Una vez aprobada, podrás iniciar sesión\n" +
+                                    "• 📞 Si tienes dudas, contacta al administrador",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "⚠️ Nota: Mientras tu solicitud esté PENDIENTE no podrás iniciar sesión. El administrador te notificará cuando sea APROBADA o RECHAZADA.",
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Text("Entendido", fontSize = 16.sp)
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onNavigateToRegistro,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Intentar otro registro", fontSize = 14.sp)
+            }
+        }
     )
 }
 
@@ -531,7 +800,7 @@ fun RecoverPasswordDialog(
                                             val clip = android.content.ClipData.newPlainText("contraseña", temporaryPassword)
                                             clipboard.setPrimaryClip(clip)
                                             scope.launch {
-                                                snackbarHostState.showBolsaSuccess("Contraseña copiada al portapapeles")
+                                                snackbarHostState.showSnackbar("🔐 Contraseña copiada al portapapeles")
                                             }
                                         },
                                         colors = IconButtonDefaults.iconButtonColors(
@@ -620,12 +889,12 @@ fun RecoverPasswordDialog(
                     Text("Ingresa tu correo para recibir una contraseña temporal.")
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    BolsaOutlinedFormField(
+                    OutlinedTextField(
                         value = email,
                         onValueChange = { email = it; errorMessage = null },
-                        label = "Correo electrónico",
-                        placeholder = "nombre@ejemplo.com",
-                        leadingIcon = { Icon(Icons.Default.Email, contentDescription = null, tint = BolsaTokens.Palette.Primary) }
+                        label = { Text("Correo Electrónico") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
                     )
 
                     if (isLoading) {

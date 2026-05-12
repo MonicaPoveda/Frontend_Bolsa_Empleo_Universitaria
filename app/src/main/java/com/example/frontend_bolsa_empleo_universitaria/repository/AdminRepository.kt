@@ -49,8 +49,8 @@ class AdminRepository(private val context: Context) {
     }
 
     suspend fun listarEmpresasPendientes(): Response<List<EmpresaPendiente>> = api.listarEmpresasPendientes()
-    suspend fun aprobarEmpresa(id: Long): Response<EmpresaDto> = api.aprobarEmpresa(id)
-    suspend fun rechazarEmpresa(id: Long): Response<Void> = api.rechazarEmpresa(id)
+    suspend fun aprobarEmpresa(id: Long, mensaje: String? = null): Response<EmpresaDto> = api.aprobarEmpresa(id, mensaje)
+    suspend fun rechazarEmpresa(id: Long, mensaje: String? = null): Response<Void> = api.rechazarEmpresa(id, mensaje)
     suspend fun listarEmpresasAceptadas(): Response<List<EmpresaDto>> = api.listarEmpresasAceptadas()
     
     // ✅ CORRECCIÓN: Usamos el mismo endpoint que las empresas y filtramos para asegurar que vemos los datos

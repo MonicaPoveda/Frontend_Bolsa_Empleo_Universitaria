@@ -12,10 +12,16 @@ interface AdminApi {
     suspend fun listarEmpresasPendientes(): Response<List<EmpresaPendiente>>
 
     @PUT("api/empresas-pendientes/aprobar/{id}")
-    suspend fun aprobarEmpresa(@Path("id") id: Long): Response<EmpresaDto>
+    suspend fun aprobarEmpresa(
+        @Path("id") id: Long,
+        @Query("mensaje") mensaje: String? = null
+    ): Response<EmpresaDto>
 
     @PUT("api/empresas-pendientes/rechazar/{id}")
-    suspend fun rechazarEmpresa(@Path("id") id: Long): Response<Void>
+    suspend fun rechazarEmpresa(
+        @Path("id") id: Long,
+        @Query("mensaje") mensaje: String? = null
+    ): Response<Void>
 
 
     // ==================== GESTIÓN DE EMPRESAS ACEPTADAS ====================

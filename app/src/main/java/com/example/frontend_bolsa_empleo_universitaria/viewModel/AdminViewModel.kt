@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.frontend_bolsa_empleo_universitaria.model.*
 import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,6 +30,39 @@ class AdminViewModel(private val repository: AdminRepository) : ViewModel() {
     private val _mensaje = MutableStateFlow<String?>(null)
     val mensaje: StateFlow<String?> = _mensaje.asStateFlow()
 
+    private var isPollingActive = false
+
+    init {
+        iniciarActualizacionAutomatica()
+    }
+
+    private fun iniciarActualizacionAutomatica() {
+        if (isPollingActive) return
+        isPollingActive = true
+        
+        viewModelScope.launch {
+            while (true) {
+                actualizarDatosSilenciosamente()
+                delay(30000) 
+            }
+        }
+    }
+
+    private suspend fun actualizarDatosSilenciosamente() {
+        try {
+            val respPendientes = repository.listarEmpresasPendientes()
+            if (respPendientes.isSuccessful) {
+                _empresasPendientes.value = respPendientes.body() ?: emptyList()
+            }
+            val respAceptadas = repository.listarEmpresasAceptadas()
+            if (respAceptadas.isSuccessful) {
+                _empresasAceptadas.value = respAceptadas.body() ?: emptyList()
+            }
+        } catch (e: Exception) {
+            // Ignorar errores en segundo plano
+        }
+    }
+
     fun listarEmpresasPendientes() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -47,10 +81,11 @@ class AdminViewModel(private val repository: AdminRepository) : ViewModel() {
         }
     }
 
-    fun aprobarEmpresa(id: Long) {
+    fun aprobarEmpresa(id: Long, comentario: String? = null) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
-                val response = repository.aprobarEmpresa(id)
+                val response = repository.aprobarEmpresa(id, comentario)
                 if (response.isSuccessful) {
                     _mensaje.value = "Empresa aprobada con éxito"
                     listarEmpresasPendientes()
@@ -60,14 +95,17 @@ class AdminViewModel(private val repository: AdminRepository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _mensaje.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }
 
-    fun rechazarEmpresa(id: Long) {
+    fun rechazarEmpresa(id: Long, comentario: String? = null) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
-                val response = repository.rechazarEmpresa(id)
+                val response = repository.rechazarEmpresa(id, comentario)
                 if (response.isSuccessful) {
                     _mensaje.value = "Empresa rechazada"
                     listarEmpresasPendientes()
@@ -76,6 +114,8 @@ class AdminViewModel(private val repository: AdminRepository) : ViewModel() {
                 }
             } catch (e: Exception) {
                 _mensaje.value = "Error: ${e.message}"
+            } finally {
+                _isLoading.value = false
             }
         }
     }

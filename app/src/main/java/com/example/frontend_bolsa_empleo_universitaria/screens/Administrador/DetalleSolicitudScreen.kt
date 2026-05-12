@@ -49,11 +49,15 @@ private val ErrorRedBg = Color(0xFFFEF2F2)
 fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: AdminViewModel) {
     val empresasPendientes by viewModel.empresasPendientes.collectAsState()
     val empresa = empresasPendientes.find { it.idEmpresaPendiente == id }
-    val mensaje by viewModel.mensaje.collectAsState()
+    val mensajeGlobal by viewModel.mensaje.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    LaunchedEffect(mensaje) {
-        if (mensaje != null) {
-            if (mensaje!!.contains("éxito") || mensaje!!.contains("rechazada")) {
+    // Estado para el comentario que el admin desea enviar
+    var comentarioAdmin by remember { mutableStateOf("") }
+
+    LaunchedEffect(mensajeGlobal) {
+        if (mensajeGlobal != null) {
+            if (mensajeGlobal!!.contains("éxito") || mensajeGlobal!!.contains("rechazada")) {
                 navController.popBackStack()
                 viewModel.clearMensaje()
             }
@@ -79,130 +83,166 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
                 CircularProgressIndicator(color = AccentIndigo)
             }
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Card Principal
-                Card(
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(16.dp)),
-                    colors = CardDefaults.cardColors(containerColor = CleanWhite),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    shape = RoundedCornerShape(16.dp)
+                        .fillMaxSize()
+                        .padding(padding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        // Línea de acento lateral
-                        Box(
-                            modifier = Modifier
-                                .width(4.dp)
-                                .height(80.dp)
-                                .align(Alignment.CenterStart)
-                                .background(AccentIndigo)
-                        )
+                    // Card Principal
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp)),
+                        colors = CardDefaults.cardColors(containerColor = CleanWhite),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        shape = RoundedCornerShape(16.dp)
+                    ) {
+                        Box(modifier = Modifier.fillMaxWidth()) {
+                            // Línea de acento lateral
+                            Box(
+                                modifier = Modifier
+                                    .width(4.dp)
+                                    .height(80.dp)
+                                    .align(Alignment.CenterStart)
+                                    .background(AccentIndigo)
+                            )
 
-                        Column(modifier = Modifier.padding(24.dp)) {
-                            // Header: Icono + Nombre + Estado
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    modifier = Modifier.size(64.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFFF3F4F6),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(Icons.Default.Storefront, null, tint = Color(0xFF1E3A8A), modifier = Modifier.size(32.dp))
-                                    }
-                                }
-                                
-                                Spacer(modifier = Modifier.width(16.dp))
-                                
-                                Column {
-                                    Text(
-                                        text = empresa.nombre,
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = TextMain
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
+                            Column(modifier = Modifier.padding(24.dp)) {
+                                // Header: Icono + Nombre + Estado
+                                Row(verticalAlignment = Alignment.CenterVertically) {
                                     Surface(
-                                        color = StatusGoldBg,
-                                        shape = RoundedCornerShape(100.dp)
+                                        modifier = Modifier.size(64.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFFF3F4F6),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(Icons.Default.Storefront, null, tint = Color(0xFF1E3A8A), modifier = Modifier.size(32.dp))
+                                        }
+                                    }
+                                    
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    
+                                    Column {
+                                        Text(
+                                            text = empresa.nombre,
+                                            fontSize = 20.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextMain
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Surface(
+                                            color = StatusGoldBg,
+                                            shape = RoundedCornerShape(100.dp)
                                         ) {
-                                            Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(StatusGold))
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text("En revisión", color = StatusGold, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Box(modifier = Modifier.size(6.dp).clip(androidx.compose.foundation.shape.CircleShape).background(StatusGold))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text("En revisión", color = StatusGold, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            Spacer(modifier = Modifier.height(32.dp))
-                            HorizontalDivider(color = BorderLight, thickness = 1.dp)
-                            Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(32.dp))
+                                HorizontalDivider(color = BorderLight, thickness = 1.dp)
+                                Spacer(modifier = Modifier.height(24.dp))
 
-                            // Filas de Información
-                            InfoRow(Icons.Outlined.Mail, "Correo", empresa.email)
-                            Spacer(modifier = Modifier.height(20.dp))
-                            InfoRow(Icons.Outlined.Schedule, "Estado", "En revisión", valueColor = StatusGold)
-                            Spacer(modifier = Modifier.height(20.dp))
-                            InfoRow(Icons.Outlined.ChatBubbleOutline, "Mensaje", empresa.mensaje.ifBlank { "En revisión por el administrador" })
+                                // Filas de Información
+                                InfoRow(Icons.Outlined.Mail, "Correo", empresa.email)
+                                Spacer(modifier = Modifier.height(20.dp))
+                                InfoRow(Icons.Outlined.Schedule, "Estado", "En revisión", valueColor = StatusGold)
+                                Spacer(modifier = Modifier.height(20.dp))
+                                InfoRow(Icons.Outlined.ChatBubbleOutline, "Mensaje", empresa.mensaje.ifBlank { "En revisión por el administrador" })
 
-                            Spacer(modifier = Modifier.height(32.dp))
-                            Text(
-                                "RESOLUCIÓN", 
-                                fontSize = 11.sp, 
-                                fontWeight = FontWeight.Bold, 
-                                color = TextSecondary.copy(alpha = 0.6f),
-                                letterSpacing = 1.sp
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(32.dp))
 
-                            // Botones de Acción (Estilo Fila con Borde)
-                            ActionButton(
-                                text = "Aprobar solicitud",
-                                icon = Icons.Outlined.CheckCircle,
-                                color = SuccessGreen,
-                                bgColor = SuccessGreenBg,
-                                onClick = { viewModel.aprobarEmpresa(empresa.idEmpresaPendiente) }
-                            )
-                            
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            ActionButton(
-                                text = "Rechazar solicitud",
-                                icon = Icons.Outlined.Cancel,
-                                color = ErrorRed,
-                                bgColor = ErrorRedBg,
-                                onClick = { viewModel.rechazarEmpresa(empresa.idEmpresaPendiente) }
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-                            
-                            // Footer Note
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Info, null, tint = TextSecondary.copy(alpha = 0.4f), modifier = Modifier.size(14.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
+                                // NUEVO: Campo para que el admin escriba su comentario
                                 Text(
-                                    "Acción permanente · Solo administradores",
-                                    fontSize = 11.sp,
-                                    color = TextSecondary.copy(alpha = 0.5f)
+                                    "COMENTARIO DE RESOLUCIÓN", 
+                                    fontSize = 11.sp, 
+                                    fontWeight = FontWeight.Bold, 
+                                    color = TextSecondary.copy(alpha = 0.6f),
+                                    letterSpacing = 1.sp
                                 )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                
+                                OutlinedTextField(
+                                    value = comentarioAdmin,
+                                    onValueChange = { comentarioAdmin = it },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    placeholder = { Text("Escribe un motivo o comentario para la empresa...", fontSize = 14.sp) },
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AccentIndigo,
+                                        unfocusedBorderColor = BorderLight,
+                                        unfocusedContainerColor = Color(0xFFF9FAFB),
+                                        focusedContainerColor = Color.White
+                                    ),
+                                    maxLines = 4,
+                                    minLines = 2
+                                )
+
+                                Spacer(modifier = Modifier.height(32.dp))
+                                Text(
+                                    "RESOLUCIÓN", 
+                                    fontSize = 11.sp, 
+                                    fontWeight = FontWeight.Bold, 
+                                    color = TextSecondary.copy(alpha = 0.6f),
+                                    letterSpacing = 1.sp
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                // Botones de Acción (Ahora pasan el comentario)
+                                ActionButton(
+                                    text = "Aprobar solicitud",
+                                    icon = Icons.Outlined.CheckCircle,
+                                    color = SuccessGreen,
+                                    bgColor = SuccessGreenBg,
+                                    onClick = { viewModel.aprobarEmpresa(empresa.idEmpresaPendiente, comentarioAdmin) }
+                                )
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                ActionButton(
+                                    text = "Rechazar solicitud",
+                                    icon = Icons.Outlined.Cancel,
+                                    color = ErrorRed,
+                                    bgColor = ErrorRedBg,
+                                    onClick = { viewModel.rechazarEmpresa(empresa.idEmpresaPendiente, comentarioAdmin) }
+                                )
+
+                                Spacer(modifier = Modifier.height(24.dp))
+                                
+                                // Footer Note
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Info, null, tint = TextSecondary.copy(alpha = 0.4f), modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "Acción permanente · Solo administradores",
+                                        fontSize = 11.sp,
+                                        color = TextSecondary.copy(alpha = 0.5f)
+                                    )
+                                }
                             }
                         }
+                    }
+                }
+
+                if (isLoading) {
+                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AccentIndigo)
                     }
                 }
             }

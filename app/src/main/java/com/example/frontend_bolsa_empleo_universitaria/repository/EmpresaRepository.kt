@@ -4,6 +4,7 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.EmpresaApi
 import com.example.frontend_bolsa_empleo_universitaria.model.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import retrofit2.HttpException
 import java.io.IOException
 import java.net.SocketTimeoutException
@@ -27,7 +28,14 @@ class EmpresaRepository(
             } catch (e: IOException) {
                 Result.failure(Exception("NETWORK_ERROR: ${e.message}"))
             } catch (e: HttpException) {
-                Result.failure(Exception("HTTP_ERROR_${e.code()}: ${e.message()}"))
+                val errorBody = e.response()?.errorBody()?.string()
+                val errorMessage = try {
+                    val json = JSONObject(errorBody ?: "{}")
+                    json.optString("message", "HTTP_ERROR_${e.code()}")
+                } catch (ex: Exception) {
+                    "HTTP_ERROR_${e.code()}: ${e.message()}"
+                }
+                Result.failure(Exception(errorMessage))
             } catch (e: Exception) {
                 Result.failure(Exception("UNKNOWN_ERROR: ${e.message}"))
             }

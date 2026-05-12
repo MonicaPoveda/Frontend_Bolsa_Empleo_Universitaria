@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -56,7 +57,8 @@ fun LoginScreen(navController: NavController) {
     var isPasswordVisible by remember { mutableStateOf(false) }
     var showRecoverDialog by remember { mutableStateOf(false) }
     var showEmpresaPendienteDialog by remember { mutableStateOf(false) }
-    var empresaPendienteInfo by remember { mutableStateOf<EmpresaPendienteInfo?>(null) }
+    var showEmpresaRechazadaDialog by remember { mutableStateOf(false) }
+    var empresaStatusInfo by remember { mutableStateOf<EmpresaStatusInfo?>(null) }
 
     val uiState by viewModel.uiState.collectAsState()
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -144,16 +146,23 @@ fun LoginScreen(navController: NavController) {
                 }
             }
             is LoginUiState.Error -> {
-                val error = (uiState as LoginUiState.Error).message
-                errorMessage = error
+                val rawError = (uiState as LoginUiState.Error).message
+                // Limpiar códigos HTTP y comillas exteriores para que el error sea legible
+                val cleanError = rawError
+                    .replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "")
+                    .removeSurrounding("\"")
+                    .trim()
 
-                // Verificar si el error es por empresa pendiente
-                if (error.contains("PENDIENTE")) {
-                    empresaPendienteInfo = EmpresaPendienteInfo(
-                        email = email,
-                        mensaje = error
-                    )
+                errorMessage = cleanError
+
+                // Verificar estados específicos de la empresa
+                if (cleanError.contains("PENDIENTE", ignoreCase = true)) {
+                    empresaStatusInfo = EmpresaStatusInfo(email = email, mensaje = cleanError)
                     showEmpresaPendienteDialog = true
+                    viewModel.startStatusPolling(email, password)
+                } else if (cleanError.contains("RECHAZADA", ignoreCase = true)) {
+                    empresaStatusInfo = EmpresaStatusInfo(email = email, mensaje = cleanError)
+                    showEmpresaRechazadaDialog = true
                 }
             }
             else -> {}
@@ -167,15 +176,31 @@ fun LoginScreen(navController: NavController) {
         )
     }
 
-    if (showEmpresaPendienteDialog && empresaPendienteInfo != null) {
+    if (showEmpresaPendienteDialog && empresaStatusInfo != null) {
         EmpresaPendienteDialog(
-            info = empresaPendienteInfo!!,
+            info = EmpresaPendienteInfo(empresaStatusInfo!!.email, empresaStatusInfo!!.mensaje),
             onDismiss = {
                 showEmpresaPendienteDialog = false
-                empresaPendienteInfo = null
+                empresaStatusInfo = null
+                viewModel.stopStatusPolling()
             },
             onNavigateToRegistro = {
                 showEmpresaPendienteDialog = false
+                viewModel.stopStatusPolling()
+                navController.navigate("registro_empresa")
+            }
+        )
+    }
+
+    if (showEmpresaRechazadaDialog && empresaStatusInfo != null) {
+        EmpresaRechazadaDialog(
+            info = empresaStatusInfo!!,
+            onDismiss = {
+                showEmpresaRechazadaDialog = false
+                empresaStatusInfo = null
+            },
+            onNavigateToRegistro = {
+                showEmpresaRechazadaDialog = false
                 navController.navigate("registro_empresa")
             }
         )
@@ -284,18 +309,31 @@ fun LoginScreen(navController: NavController) {
                         errorMessage?.let {
                             Card(
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.errorContainer
+                                    containerColor = Color(0xFFFEF2F2)
                                 ),
-                                shape = RoundedCornerShape(18.dp),
-                                modifier = Modifier.padding(bottom = 16.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.padding(bottom = 16.dp).fillMaxWidth(),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFCA5A5).copy(alpha = 0.5f))
                             ) {
-                                Text(
-                                    text = it,
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.padding(12.dp)
-                                )
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.ErrorOutline,
+                                        contentDescription = null,
+                                        tint = Color(0xFFDC2626),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = it,
+                                        color = Color(0xFF991B1B),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        textAlign = TextAlign.Start,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
                             }
                         }
 
@@ -414,6 +452,51 @@ fun LoginScreen(navController: NavController) {
     }
 }
 
+data class EmpresaStatusInfo(val email: String, val mensaje: String)
+
+// Diálogo para empresas rechazadas
+@Composable
+fun EmpresaRechazadaDialog(
+    info: EmpresaStatusInfo,
+    onDismiss: () -> Unit,
+    onNavigateToRegistro: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { Icon(Icons.Default.Cancel, null, tint = Color(0xFFDC2626), modifier = Modifier.size(48.dp)) },
+        title = { Text("Solicitud Rechazada", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                Text("Tu registro no ha sido aprobado por el administrador.")
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Motivo:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Gray)
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE5E7EB))
+                ) {
+                    Text(
+                        text = info.mensaje
+                            .replace("RECHAZADA:", "", ignoreCase = true)
+                            .replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "")
+                            .removeSurrounding("\"")
+                            .trim(),
+                        modifier = Modifier.padding(16.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onNavigateToRegistro) { Text("Intentar nuevo registro") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cerrar") }
+        }
+    )
+}
+
 // Data class para información de empresa pendiente
 data class EmpresaPendienteInfo(
     val email: String,
@@ -506,6 +589,31 @@ fun EmpresaPendienteDialog(
                                     color = MaterialTheme.colorScheme.error
                                 )
                             }
+                        }
+
+                        // Mostrar el comentario detallado del administrador si existe
+                        val adminComment = info.mensaje
+                            .replace("PENDIENTE:", "", ignoreCase = true)
+                            .replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "")
+                            .removeSurrounding("\"")
+                            .trim()
+
+                        if (adminComment.isNotBlank()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            HorizontalDivider(modifier = Modifier.alpha(0.3f))
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "💬 Comentario del administrador:",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                text = adminComment,
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.padding(top = 4.dp),
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                         }
                     }
                 }

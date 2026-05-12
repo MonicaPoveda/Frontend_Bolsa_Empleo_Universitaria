@@ -33,6 +33,7 @@ import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 // Colores
@@ -80,21 +81,46 @@ fun EmpresaHomeScreen(
     val ofertas = viewModel.ofertasEmpresa.value
     val loading = viewModel.loading.value
 
+    // Estado para controlar la recarga en segundo plano
+    var backgroundRefreshTrigger by remember { mutableStateOf(0) }
+
+    // Variable para saber si es la primera carga (mostrar loading solo la primera vez)
+    var isFirstLoad by remember { mutableStateOf(true) }
+
+    // Carga inicial con indicador de carga
     LaunchedEffect(Unit) {
         if (idEmpresa > 0) {
-            println("Cargando ofertas para empresa ID: $idEmpresa")
+            println("Carga inicial de ofertas para empresa ID: $idEmpresa")
             viewModel.cargarOfertasPorEmpresa(idEmpresa)
-        } else {
-            println("⚠️ No hay ID de empresa guardado")
+            isFirstLoad = false
         }
     }
 
-    if (viewModel.error.value != null) {
-        Text(
-            text = "Error: ${viewModel.error.value}",
-            color = Color.Red,
-            modifier = Modifier.padding(16.dp)
-        )
+    // Recarga en segundo plano cada 30 segundos y cuando se dispara el trigger
+    LaunchedEffect(idEmpresa, backgroundRefreshTrigger) {
+        if (idEmpresa > 0 && !isFirstLoad) {
+            println("Recargando ofertas en segundo plano... (trigger: $backgroundRefreshTrigger)")
+            // Recargar sin mostrar loading (en segundo plano)
+            viewModel.cargarOfertasPorEmpresaSilent(idEmpresa)
+        }
+    }
+
+    // Timer para recarga automática cada 30 segundos
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            delay(30000) // 30 segundos
+            if (!isFirstLoad && idEmpresa > 0) {
+                backgroundRefreshTrigger++
+            }
+        }
+    }
+
+    // Función para forzar recarga inmediata (cuando se agrega una oferta)
+    val forceRefresh = {
+        if (idEmpresa > 0) {
+            println("Forzando recarga inmediata por nueva oferta")
+            backgroundRefreshTrigger++
+        }
     }
 
     ModalNavigationDrawer(
@@ -257,12 +283,14 @@ fun EmpresaHomeScreen(
                 0 -> EmpresaOfertasScreen(
                     padding = padding,
                     ofertas = ofertas,
-                    loading = loading,
+                    loading = isFirstLoad && loading, // Solo mostrar loading en primera carga
                     onVerDetalle = { ofertaId ->
                         navController.navigate("detalle_oferta/$ofertaId")
                     },
                     onEliminar = { ofertaId ->
                         viewModel.eliminarOferta(ofertaId, idEmpresa)
+                        // Forzar recarga después de eliminar
+                        forceRefresh()
                     },
                     navController = navController
                 )
@@ -270,8 +298,13 @@ fun EmpresaHomeScreen(
                     padding = padding,
                     idEmpresa = idEmpresa,
                     onOfertaAgregada = {
-                        viewModel.cargarOfertasPorEmpresa(idEmpresa)
-                        selectedTab = 0
+                        // Forzar recarga inmediata cuando se agrega una oferta
+                        forceRefresh()
+                        // Cambiar a la pestaña de inicio
+                        scope.launch {
+                            delay(500) // Pequeña pausa para que la oferta se guarde
+                            selectedTab = 0
+                        }
                     }
                 )
                 2 -> EmpresaPerfilScreen(padding)
@@ -280,6 +313,9 @@ fun EmpresaHomeScreen(
     }
 }
 
+// El resto de tus funciones (EmpresaOfertasScreen, FiltroCard, EmpresaJobCard, DrawerMenuItemEmpresa)
+// se mantienen igual, solo asegúrate de que en EmpresaOfertasScreen el loading
+// solo se muestre cuando realmente sea necesario
 @Composable
 fun EmpresaOfertasScreen(
     padding: PaddingValues,

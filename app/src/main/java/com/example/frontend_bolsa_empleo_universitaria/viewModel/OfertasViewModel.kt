@@ -102,6 +102,36 @@ class OfertasViewModel(
         }
     }
 
+    // ✅ NUEVO MÉTODO: Carga silenciosa (sin indicador de carga)
+    fun cargarOfertasPorEmpresaSilent(idEmpresa: Long) {
+        viewModelScope.launch {
+            // No modificamos _loading.value para no mostrar indicador de carga
+            try {
+                println("🔄 Recarga silenciosa de ofertas para empresa ID: $idEmpresa")
+                val todas = repository.listarTodas()
+                val filtradas = todas.filter { it.idEmpresa == idEmpresa }
+
+                _ofertasEmpresa.value = filtradas
+
+                // También actualizar _ofertas y _todasLasOfertas si contienen ofertas de esta empresa
+                _ofertas.value = _ofertas.value.map { oferta ->
+                    filtradas.find { it.idOferta == oferta.idOferta } ?: oferta
+                }
+                _todasLasOfertas.value = _todasLasOfertas.value.map { oferta ->
+                    filtradas.find { it.idOferta == oferta.idOferta } ?: oferta
+                }
+
+                println("✅ Recarga silenciosa completada: ${filtradas.size} ofertas")
+            } catch (e: HttpException) {
+                println("⚠️ Error en recarga silenciosa (HTTP): ${e.code()} - ${e.message()}")
+            } catch (e: IOException) {
+                println("⚠️ Error en recarga silenciosa (Red): ${e.message}")
+            } catch (e: Exception) {
+                println("⚠️ Error en recarga silenciosa: ${e.message}")
+            }
+        }
+    }
+
     fun listarTodas() {
         viewModelScope.launch {
             _loading.value = true

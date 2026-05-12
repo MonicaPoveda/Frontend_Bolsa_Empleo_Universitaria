@@ -225,30 +225,27 @@ class OfertasViewModel(
     }
 
     fun actualizarEstadoOferta(idOferta: Long, nuevoEstado: Boolean) {
+        val ofertaActual = _ofertasEmpresa.value.find { it.idOferta == idOferta } ?: return
+        val request = OfertaLaboralRequest(
+            titulo = ofertaActual.titulo,
+            descripcion = ofertaActual.descripcion,
+            area = ofertaActual.area,
+            salario = ofertaActual.salario,
+            modalidad = ofertaActual.modalidad,
+            fechaPublicacion = ofertaActual.fechaPublicacion,
+            fechaCierre = ofertaActual.fechaCierre,
+            estado = nuevoEstado,
+            idEmpresa = ofertaActual.idEmpresa
+        )
+        actualizarOferta(idOferta, request)
+    }
+
+    fun actualizarOferta(idOferta: Long, request: OfertaLaboralRequest, onResult: (OfertaLaboralResponse?) -> Unit = {}) {
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
             try {
-                val ofertaActual = _ofertasEmpresa.value.find { it.idOferta == idOferta }
-                    ?: run {
-                        _error.value = "Oferta no encontrada"
-                        return@launch
-                    }
-
-                val ofertaRequest = OfertaLaboralRequest(
-                    titulo = ofertaActual.titulo,
-                    descripcion = ofertaActual.descripcion,
-                    area = ofertaActual.area,
-                    salario = ofertaActual.salario,
-                    modalidad = ofertaActual.modalidad,
-                    fechaPublicacion = ofertaActual.fechaPublicacion,
-                    fechaCierre = ofertaActual.fechaCierre,
-                    estado = nuevoEstado,
-                    idEmpresa = ofertaActual.idEmpresa
-                )
-
-                val resultado = repository.actualizarOferta(idOferta, ofertaRequest)
-
+                val resultado = repository.actualizarOferta(idOferta, request)
                 if (resultado != null) {
                     _ofertasEmpresa.value = _ofertasEmpresa.value.map {
                         if (it.idOferta == idOferta) resultado else it
@@ -260,11 +257,14 @@ class OfertasViewModel(
                         if (it.idOferta == idOferta) resultado else it
                     }
                     aplicarFiltrosInternos()
+                    onResult(resultado)
                 } else {
                     _error.value = "Error al actualizar la oferta"
+                    onResult(null)
                 }
             } catch (e: Exception) {
                 _error.value = "Error: ${e.message}"
+                onResult(null)
             } finally {
                 _loading.value = false
             }

@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,7 +30,7 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
@@ -37,13 +38,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-// Colores
-private val BlueGradientStart = UniEmpleoColors.Navy
-private val BlueGradientEnd = UniEmpleoColors.Blue
-private val BackgroundGray = UniEmpleoColors.Background
-private val ChipHybridColor = UniEmpleoColors.SurfaceSoft
-private val ChipHybridText = UniEmpleoColors.Blue
-private val PriceColor = UniEmpleoColors.Success
+// Colores unificados con BolsaTokens
+private val BlueGradientStart = BolsaTokens.Palette.HeaderStart
+private val BlueGradientEnd = BolsaTokens.Palette.HeaderEnd
+private val BackgroundGray = BolsaTokens.Palette.Background
+private val ChipHybridColor = BolsaTokens.Palette.PrimaryLight
+private val ChipHybridText = BolsaTokens.Palette.Primary
+private val PriceColor = BolsaTokens.Palette.Success
 
 // Nav Items para Empresa
 data class NavItemEmpresa(
@@ -131,16 +132,12 @@ fun EmpresaHomeScreen(
         drawerContent = {
             ModalDrawerSheet(
                 modifier = Modifier.width(280.dp),
-                drawerContainerColor = Color.White
+                drawerContainerColor = BolsaTokens.Palette.Surface
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(BlueGradientStart, BlueGradientEnd)
-                            )
-                        )
+                        .background(BolsaTokens.headerGradientVertical)
                         .padding(vertical = 28.dp, horizontal = 20.dp)
                 ) {
                     Column {
@@ -180,7 +177,7 @@ fun EmpresaHomeScreen(
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.Gray
+                    color = BolsaTokens.Palette.TextSecondary
                 )
 
                 DrawerMenuItemEmpresa(
@@ -194,14 +191,14 @@ fun EmpresaHomeScreen(
                     selectedTab = 0
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
 
                 Text(
                     text = "CUENTA",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.Gray
+                    color = BolsaTokens.Palette.TextSecondary
                 )
 
                 DrawerMenuItemEmpresa(
@@ -215,14 +212,14 @@ fun EmpresaHomeScreen(
                     navController.navigate("editar_perfil_empresa")
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color(0xFFEEEEEE))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
 
                 DrawerMenuItemEmpresa(
                     icon = Icons.Default.Logout,
                     text = "Cerrar Sesión",
                     badge = null,
-                    iconTint = Color(0xFFE53935),
-                    textColor = Color(0xFFE53935),
+                    iconTint = BolsaTokens.Palette.Error,
+                    textColor = BolsaTokens.Palette.Error,
                     selected = false
                 ) {
                     scope.launch { drawerState.close() }
@@ -238,7 +235,16 @@ fun EmpresaHomeScreen(
             containerColor = BackgroundGray,
             topBar = {
                 TopAppBar(
-                    title = { },
+                    title = {
+                        Text(
+                            text = "UNIEMPLEO Empresas",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    },
                     navigationIcon = {
                         IconButton(
                             onClick = { scope.launch { drawerState.open() } },
@@ -260,7 +266,7 @@ fun EmpresaHomeScreen(
             },
             bottomBar = {
                 NavigationBar(
-                    containerColor = Color.White,
+                    containerColor = BolsaTokens.Palette.Surface,
                     tonalElevation = 8.dp
                 ) {
                     navItemsEmpresa.forEachIndexed { index, item ->
@@ -270,11 +276,11 @@ fun EmpresaHomeScreen(
                             icon = { Icon(item.icon, contentDescription = item.label) },
                             label = { Text(item.label) },
                             colors = NavigationBarItemDefaults.colors(
-                                selectedIconColor = BlueGradientStart,
-                                selectedTextColor = BlueGradientStart,
-                                unselectedIconColor = Color.Gray,
-                                unselectedTextColor = Color.Gray,
-                                indicatorColor = ChipHybridColor
+                                selectedIconColor = BolsaTokens.Palette.Primary,
+                                selectedTextColor = BolsaTokens.Palette.Primary,
+                                unselectedIconColor = BolsaTokens.Palette.TextSecondary,
+                                unselectedTextColor = BolsaTokens.Palette.TextSecondary,
+                                indicatorColor = BolsaTokens.Palette.PrimaryLight
                             )
                         )
                     }
@@ -371,9 +377,7 @@ fun EmpresaOfertasScreen(
                         .fillMaxWidth()
                         .height(160.dp)
                         .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(BlueGradientStart, BlueGradientEnd)
-                            ),
+                            brush = BolsaTokens.headerGradientVertical,
                             shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
                         ),
                     contentAlignment = Alignment.Center
@@ -389,6 +393,7 @@ fun EmpresaOfertasScreen(
                                 .background(Color.White.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
+                            Spacer(modifier = Modifier.height(8.dp))
                             Icon(
                                 imageVector = Icons.Default.Business,
                                 contentDescription = "Empresa",
@@ -397,24 +402,8 @@ fun EmpresaOfertasScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
 
-                        Text(
-                            text = "UNIEMPLEO Empresas",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                            fontSize = 24.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Text(
-                            text = "Gestiona tus ofertas laborales",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White.copy(alpha = 0.85f),
-                            fontSize = 14.sp
-                        )
                     }
                 }
 
@@ -422,14 +411,14 @@ fun EmpresaOfertasScreen(
             }
 
             // Card de búsqueda flotante
-            // Card de búsqueda flotante
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp)
                     .align(Alignment.BottomCenter),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface)
             ) {
                 TextField(
                     value = busqueda,
@@ -437,25 +426,22 @@ fun EmpresaOfertasScreen(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Buscar por título, área...") },
                     leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = BlueGradientStart)
+                        Icon(Icons.Default.Search, contentDescription = null, tint = BolsaTokens.Palette.Primary)
                     },
                     trailingIcon = if (busqueda.isNotEmpty()) {
                         {
                             IconButton(onClick = { busqueda = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = Color.Gray)
+                                Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = BolsaTokens.Palette.TextSecondary)
                             }
                         }
                     } else null,
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        disabledContainerColor = Color.White,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        focusedTextColor = Color.Black,        // ← AGREGAR
-                        unfocusedTextColor = Color.Black,      // ← AGREGAR
-                        focusedPlaceholderColor = Color.Gray,  // ← OPCIONAL
-                        unfocusedPlaceholderColor = Color.Gray // ← OPCIONAL
+                        focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                        unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                     ),
                     singleLine = true
                 )
@@ -594,7 +580,7 @@ fun FiltroCard(
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) color else Color.White,
+            containerColor = if (isSelected) color else BolsaTokens.Palette.Surface,
             contentColor = if (isSelected) Color.White else color
         ),
         elevation = CardDefaults.cardElevation(
@@ -611,7 +597,7 @@ fun FiltroCard(
                 text = titulo,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                color = if (isSelected) Color.White else Color.DarkGray
+                color = if (isSelected) Color.White else BolsaTokens.Palette.TextSecondary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -668,12 +654,12 @@ fun EmpresaJobCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            containerColor = Color.White,
+            containerColor = BolsaTokens.Palette.Surface,
             title = {
                 Text(
                     "Eliminar oferta",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE53935),
+                    color = BolsaTokens.Palette.Error,
                     fontSize = 20.sp
                 )
             },
@@ -681,13 +667,13 @@ fun EmpresaJobCard(
                 Column {
                     Text(
                         "¿Estás seguro de que deseas eliminar esta oferta?",
-                        color = Color.Black,
+                        color = BolsaTokens.Palette.TextPrimary,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "Esta acción no se puede deshacer.",
-                        color = Color.Gray,
+                        color = BolsaTokens.Palette.TextSecondary,
                         fontSize = 12.sp
                     )
                 }
@@ -699,7 +685,7 @@ fun EmpresaJobCard(
                         onEliminar()
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFE53935),
+                        containerColor = BolsaTokens.Palette.Error,
                         contentColor = Color.White
                     ),
                     shape = RoundedCornerShape(10.dp)
@@ -716,7 +702,7 @@ fun EmpresaJobCard(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancelar", fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Text("Cancelar", fontWeight = FontWeight.Medium, color = BolsaTokens.Palette.TextSecondary)
                 }
             },
             shape = RoundedCornerShape(16.dp)
@@ -727,8 +713,8 @@ fun EmpresaJobCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+        colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(
@@ -838,7 +824,7 @@ fun EmpresaJobCard(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = "Eliminar",
-                        tint = Color(0xFFE53935),
+                        tint = BolsaTokens.Palette.Error,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -848,7 +834,7 @@ fun EmpresaJobCard(
 
             // Botón de postulantes (ocupa todo el ancho)
             Surface(
-                color = if (postulantesCount > 0) Color(0xFFE8F5E9) else Color(0xFFF5F5F5),
+                color = if (postulantesCount > 0) BolsaTokens.Palette.PrimaryLight else BolsaTokens.Palette.Background,
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -909,19 +895,19 @@ fun DrawerMenuItemEmpresa(
     icon: ImageVector,
     text: String,
     badge: String? = null,
-    badgeColor: Color = UniEmpleoColors.Blue,
-    iconTint: Color = Color(0xFF444444),
-    textColor: Color = Color(0xFF222222),
+    badgeColor: Color = BolsaTokens.Palette.Primary,
+    iconTint: Color = BolsaTokens.Palette.TextPrimary,
+    textColor: Color = BolsaTokens.Palette.TextPrimary,
     selected: Boolean = false,
     onClick: () -> Unit
 ) {
-    val bgColor = if (selected) UniEmpleoColors.SurfaceSoft else Color.Transparent
+    val bgColor = if (selected) BolsaTokens.Palette.PrimaryLight else Color.Transparent
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(50.dp))
+            .clip(RoundedCornerShape(BolsaTokens.Dimens.chipRadius))
             .background(bgColor)
             .clickable { onClick() }
             .padding(horizontal = 12.dp, vertical = 12.dp),

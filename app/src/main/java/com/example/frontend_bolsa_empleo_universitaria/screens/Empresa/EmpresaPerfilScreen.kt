@@ -20,12 +20,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaDto
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.launch
 
-private val BlueGradientStart = UniEmpleoColors.Blue
-private val BackgroundGray = UniEmpleoColors.Background
+private val BlueGradientStart = BolsaTokens.Palette.HeaderStart
+private val BackgroundGray = BolsaTokens.Palette.Background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,9 +96,9 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = BlueGradientStart)
+                        CircularProgressIndicator(color = BolsaTokens.Palette.Primary)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Cargando perfil...", color = Color.Gray)
+                        Text("Cargando perfil...", color = BolsaTokens.Palette.TextSecondary)
                     }
                 }
             }
@@ -165,12 +165,10 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(BlueGradientStart, BlueGradientStart.copy(alpha = 0.8f))
-                            ),
-                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
+                            brush = BolsaTokens.headerGradientVertical,
+                            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
                         )
-                        .padding(32.dp)
+                        .padding(vertical = 40.dp, horizontal = 24.dp)
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -179,7 +177,7 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                         // Avatar
                         Box(
                             modifier = Modifier
-                                .size(100.dp)
+                                .size(90.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
@@ -188,17 +186,17 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                                 Icons.Default.Business,
                                 contentDescription = "Avatar",
                                 tint = Color.White,
-                                modifier = Modifier.size(56.dp)
+                                modifier = Modifier.size(50.dp)
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         // Nombre de la empresa
                         Text(
                             text = e.nombre?.takeIf { it.isNotBlank() } ?: "Sin nombre",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.ExtraBold,
                             color = Color.White
                         )
 
@@ -208,25 +206,26 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                         val sectorText = e.sector?.takeIf { it.isNotBlank() }
                         if (sectorText != null) {
                             Surface(
-                                color = Color.White.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(20.dp)
+                                color = Color.White.copy(alpha = 0.25f),
+                                shape = RoundedCornerShape(50.dp)
                             ) {
                                 Text(
                                     text = sectorText,
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    fontSize = 12.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
                                     color = Color.White
                                 )
                             }
                         } else {
                             Surface(
                                 color = Color.White.copy(alpha = 0.15f),
-                                shape = RoundedCornerShape(20.dp)
+                                shape = RoundedCornerShape(50.dp)
                             ) {
                                 Text(
                                     text = "Sector no especificado",
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                                    fontSize = 11.sp,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+                                    fontSize = 12.sp,
                                     color = Color.White.copy(alpha = 0.7f)
                                 )
                             }
@@ -237,87 +236,48 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                 // Información de la empresa
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    contentPadding = PaddingValues(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // Sección de información de contacto
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+                            colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
                             elevation = CardDefaults.cardElevation(2.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(20.dp),
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                                modifier = Modifier.padding(24.dp),
+                                verticalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 Text(
                                     "Información de Contacto",
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.Black
+                                    color = BolsaTokens.Palette.TextPrimary
                                 )
 
                                 // Email
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.Email,
-                                        contentDescription = "Email",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = BlueGradientStart
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text("Email", fontSize = 12.sp, color = Color.Gray)
-                                        Text(
-                                            e.email?.takeIf { it.isNotBlank() } ?: "No especificado",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Black
-                                        )
-                                    }
-                                }
+                                InfoRow(
+                                    icon = Icons.Default.Email,
+                                    label = "Email",
+                                    value = e.email?.takeIf { it.isNotBlank() } ?: "No especificado"
+                                )
 
                                 // Teléfono
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.Phone,
-                                        contentDescription = "Teléfono",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = BlueGradientStart
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text("Teléfono", fontSize = 12.sp, color = Color.Gray)
-                                        Text(
-                                            e.telefono?.takeIf { it.isNotBlank() } ?: "No especificado",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Black
-                                        )
-                                    }
-                                }
+                                InfoRow(
+                                    icon = Icons.Default.Phone,
+                                    label = "Teléfono",
+                                    value = e.telefono?.takeIf { it.isNotBlank() } ?: "No especificado"
+                                )
 
                                 // Ciudad
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.LocationOn,
-                                        contentDescription = "Ciudad",
-                                        modifier = Modifier.size(20.dp),
-                                        tint = BlueGradientStart
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text("Ciudad", fontSize = 12.sp, color = Color.Gray)
-                                        Text(
-                                            e.ciudad?.takeIf { it.isNotBlank() } ?: "No especificada",
-                                            fontSize = 14.sp,
-                                            fontWeight = FontWeight.Medium,
-                                            color = Color.Black
-                                        )
-                                    }
-                                }
+                                InfoRow(
+                                    icon = Icons.Default.LocationOn,
+                                    label = "Ciudad",
+                                    value = e.ciudad?.takeIf { it.isNotBlank() } ?: "No especificada"
+                                )
                             }
                         }
                     }
@@ -326,12 +286,12 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                     item {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+                            colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
                             elevation = CardDefaults.cardElevation(2.dp)
                         ) {
                             Column(
-                                modifier = Modifier.padding(20.dp),
+                                modifier = Modifier.padding(24.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -339,14 +299,14 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                                         Icons.Default.Description,
                                         contentDescription = "Descripción",
                                         modifier = Modifier.size(20.dp),
-                                        tint = BlueGradientStart
+                                        tint = BolsaTokens.Palette.Primary
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         "Descripción",
                                         fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = Color.Black
+                                        color = BolsaTokens.Palette.TextPrimary
                                     )
                                 }
 
@@ -355,14 +315,14 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                                     Text(
                                         text = descripcionText,
                                         fontSize = 14.sp,
-                                        color = Color.DarkGray,
-                                        lineHeight = 20.sp
+                                        color = BolsaTokens.Palette.TextSecondary,
+                                        lineHeight = 22.sp
                                     )
                                 } else {
                                     Text(
-                                        text = "Sin descripción",
+                                        text = "Sin descripción proporcionada",
                                         fontSize = 14.sp,
-                                        color = Color.Gray,
+                                        color = BolsaTokens.Palette.TextSecondary,
                                         fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
                                     )
                                 }
@@ -375,6 +335,40 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                     item { Spacer(modifier = Modifier.height(16.dp)) }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun InfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    value: String
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(BolsaTokens.Palette.PrimaryLight),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = BolsaTokens.Palette.Primary
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(label, fontSize = 12.sp, color = BolsaTokens.Palette.TextSecondary)
+            Text(
+                value,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = BolsaTokens.Palette.TextPrimary
+            )
         }
     }
 }

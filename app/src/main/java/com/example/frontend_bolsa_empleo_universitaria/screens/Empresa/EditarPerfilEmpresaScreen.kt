@@ -19,12 +19,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaDto
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.launch
 
-private val BlueGradientStart = UniEmpleoColors.Blue
-private val BackgroundGray = UniEmpleoColors.Background
+private val BlueGradientStart = BolsaTokens.Palette.HeaderStart
+private val BackgroundGray = BolsaTokens.Palette.Background
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,7 +84,8 @@ fun EditarPerfilEmpresaScreen(
                     Text(
                         "Editar Perfil",
                         color = Color.White,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
                     )
                 },
                 navigationIcon = {
@@ -96,7 +97,8 @@ fun EditarPerfilEmpresaScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BlueGradientStart)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                modifier = Modifier.background(BolsaTokens.headerGradientLinear)
             )
         }
     ) { padding ->
@@ -106,7 +108,7 @@ fun EditarPerfilEmpresaScreen(
                 .padding(padding)
                 .background(BackgroundGray)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
+                .padding(BolsaTokens.Dimens.screenPadding)
         ) {
             when {
                 isLoading -> {
@@ -115,9 +117,9 @@ fun EditarPerfilEmpresaScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = BlueGradientStart)
+                            CircularProgressIndicator(color = BolsaTokens.Palette.Primary)
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text("Cargando datos...", color = Color.Gray)
+                            Text("Cargando datos...", color = BolsaTokens.Palette.TextSecondary)
                         }
                     }
                 }
@@ -126,19 +128,19 @@ fun EditarPerfilEmpresaScreen(
                     // Tarjeta de información
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+                        colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
                         elevation = CardDefaults.cardElevation(2.dp)
                     ) {
                         Column(
-                            modifier = Modifier.padding(20.dp),
+                            modifier = Modifier.padding(24.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
                             Text(
-                                "Edita la información de tu empresa",
+                                "Información de la empresa",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black
+                                color = BolsaTokens.Palette.TextPrimary
                             )
 
                             // Email (solo lectura)
@@ -149,11 +151,12 @@ fun EditarPerfilEmpresaScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 enabled = false,
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueGradientStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    disabledTextColor = Color.Black,
-                                    disabledBorderColor = Color.Gray.copy(alpha = 0.5f)
+                                    disabledTextColor = BolsaTokens.Palette.TextSecondary,
+                                    disabledBorderColor = BolsaTokens.Palette.Divider,
+                                    disabledLabelColor = BolsaTokens.Palette.TextSecondary,
+                                    disabledContainerColor = BolsaTokens.Palette.Background
                                 )
                             )
 
@@ -164,11 +167,12 @@ fun EditarPerfilEmpresaScreen(
                                 label = { Text("Nombre de la empresa") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueGradientStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
 
@@ -180,11 +184,12 @@ fun EditarPerfilEmpresaScreen(
                                 placeholder = { Text("Ej: Tecnología, Comercio, etc.") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueGradientStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
 
@@ -196,11 +201,12 @@ fun EditarPerfilEmpresaScreen(
                                 placeholder = { Text("Ej: 3001234567") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueGradientStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
 
@@ -212,11 +218,12 @@ fun EditarPerfilEmpresaScreen(
                                 placeholder = { Text("Ej: Bogotá, Medellín, etc.") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueGradientStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
 
@@ -229,72 +236,76 @@ fun EditarPerfilEmpresaScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 4,
                                 maxLines = 6,
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueGradientStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     // Mensajes de error y éxito
                     if (errorMessage != null) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer
+                                containerColor = BolsaTokens.Palette.Error.copy(alpha = 0.1f)
                             ),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(16.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     Icons.Default.Error,
                                     contentDescription = "Error",
-                                    tint = MaterialTheme.colorScheme.error
+                                    tint = BolsaTokens.Palette.Error
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Text(
                                     text = errorMessage!!,
-                                    color = MaterialTheme.colorScheme.error,
+                                    color = BolsaTokens.Palette.Error,
                                     modifier = Modifier.weight(1f),
-                                    fontSize = 12.sp
+                                    fontSize = 14.sp
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
 
                     if (successMessage != null) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = BlueGradientStart.copy(alpha = 0.1f)
+                                containerColor = BolsaTokens.Palette.Success.copy(alpha = 0.1f)
                             ),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.CheckCircle,
-                                        contentDescription = "Éxito",
-                                        tint = BlueGradientStart
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = successMessage!!,
-                                        color = BlueGradientStart,
-                                        modifier = Modifier.weight(1f),
-                                        fontSize = 12.sp
-                                    )
-                                }
+                            Row(
+                                modifier = Modifier.padding(16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.CheckCircle,
+                                    contentDescription = "Éxito",
+                                    tint = BolsaTokens.Palette.Success
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = successMessage!!,
+                                    color = BolsaTokens.Palette.Success,
+                                    modifier = Modifier.weight(1f),
+                                    fontSize = 14.sp
+                                )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                     }
 
                     // Botón guardar
@@ -344,9 +355,9 @@ fun EditarPerfilEmpresaScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = BlueGradientStart),
+                            .height(56.dp),
+                        shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius),
+                        colors = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Primary),
                         enabled = !isSaving
                     ) {
                         if (isSaving) {

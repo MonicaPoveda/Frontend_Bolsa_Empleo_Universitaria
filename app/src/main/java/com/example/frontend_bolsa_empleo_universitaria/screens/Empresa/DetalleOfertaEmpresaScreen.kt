@@ -2,14 +2,13 @@ package com.example.frontend_bolsa_empleo_universitaria.screens.Empresa
 
 import android.text.format.DateFormat
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,15 +25,15 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralRequest
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 
-private val BlueStart = UniEmpleoColors.Blue
-private val BackgroundGray = UniEmpleoColors.Background
+private val BlueStart = BolsaTokens.Palette.HeaderStart
+private val BackgroundGray = BolsaTokens.Palette.Background
 
 // Función para formatear fechas
 private fun formaFecha(fecha: String): String {
@@ -154,12 +153,12 @@ fun DetalleOfertaEmpresaScreen(
     if (showCloseConfirmDialog && oferta != null && !isEditing) {
         AlertDialog(
             onDismissRequest = { showCloseConfirmDialog = false },
-            containerColor = Color.White,
+            containerColor = BolsaTokens.Palette.Surface,
             title = {
                 Text(
                     "Cerrar oferta",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFE53935),
+                    color = BolsaTokens.Palette.Error,
                     fontSize = 20.sp
                 )
             },
@@ -167,13 +166,13 @@ fun DetalleOfertaEmpresaScreen(
                 Column {
                     Text(
                         "¿Estás seguro de que deseas cerrar esta oferta?",
-                        color = Color.Black,
+                        color = BolsaTokens.Palette.TextPrimary,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "La oferta dejará de ser visible para los estudiantes.",
-                        color = Color.Gray,
+                        color = BolsaTokens.Palette.TextSecondary,
                         fontSize = 12.sp
                     )
                 }
@@ -190,42 +189,33 @@ fun DetalleOfertaEmpresaScreen(
                             area = ofertaActual.area,
                             salario = ofertaActual.salario,
                             modalidad = ofertaActual.modalidad,
-                            fechaPublicacion = getFechaActual(),  // ← Actualizar con fecha actual
+                            fechaPublicacion = getFechaActual(),
                             fechaCierre = fechaCierreSeleccionada,
                             estado = false,
                             idEmpresa = ofertaActual.idEmpresa
                         )
-                        scope.launch {
-                            val repo = com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository(
-                                com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient.ofertaLaboralApi
-                            )
-                            val resultado = repo.actualizarOferta(ofertaId, ofertaActualizada)
+                        viewModel.actualizarOferta(ofertaId, ofertaActualizada) { resultado ->
                             isSaving = false
                             if (resultado != null) {
-                                viewModel.cargarActivas()
-                                viewModel.cargarOfertasPorEmpresa(ofertaActual.idEmpresa)
                                 oferta = resultado
-                                println("✅ Oferta cerrada exitosamente")
-                            } else {
-                                println("❌ Error al cerrar la oferta")
                             }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFE53935),
+                        containerColor = BolsaTokens.Palette.Error,
                         contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius)
                 ) {
                     Text("Cerrar", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCloseConfirmDialog = false }) {
-                    Text("Cancelar", fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Text("Cancelar", fontWeight = FontWeight.Medium, color = BolsaTokens.Palette.TextSecondary)
                 }
             },
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius)
         )
     }
 
@@ -233,12 +223,12 @@ fun DetalleOfertaEmpresaScreen(
     if (showActivateConfirmDialog && oferta != null && !isEditing) {
         AlertDialog(
             onDismissRequest = { showActivateConfirmDialog = false },
-            containerColor = Color.White,
+            containerColor = BolsaTokens.Palette.Surface,
             title = {
                 Text(
                     "Activar oferta",
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFF2E7D32),
+                    color = BolsaTokens.Palette.Success,
                     fontSize = 20.sp
                 )
             },
@@ -246,13 +236,13 @@ fun DetalleOfertaEmpresaScreen(
                 Column {
                     Text(
                         "¿Estás seguro de que deseas activar esta oferta?",
-                        color = Color.Black,
+                        color = BolsaTokens.Palette.TextPrimary,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         "La oferta volverá a ser visible para los estudiantes.",
-                        color = Color.Gray,
+                        color = BolsaTokens.Palette.TextSecondary,
                         fontSize = 12.sp
                     )
                 }
@@ -269,42 +259,33 @@ fun DetalleOfertaEmpresaScreen(
                             area = ofertaActual.area,
                             salario = ofertaActual.salario,
                             modalidad = ofertaActual.modalidad,
-                            fechaPublicacion = getFechaActual(),  // ← Actualizar con fecha actual
+                            fechaPublicacion = getFechaActual(),
                             fechaCierre = fechaCierreSeleccionada,
                             estado = true,
                             idEmpresa = ofertaActual.idEmpresa
                         )
-                        scope.launch {
-                            val repo = com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository(
-                                com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient.ofertaLaboralApi
-                            )
-                            val resultado = repo.actualizarOferta(ofertaId, ofertaActualizada)
+                        viewModel.actualizarOferta(ofertaId, ofertaActualizada) { resultado ->
                             isSaving = false
                             if (resultado != null) {
-                                viewModel.cargarActivas()
-                                viewModel.cargarOfertasPorEmpresa(ofertaActual.idEmpresa)
                                 oferta = resultado
-                                println("✅ Oferta activada exitosamente")
-                            } else {
-                                println("❌ Error al activar la oferta")
                             }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2E7D32),
+                        containerColor = BolsaTokens.Palette.Success,
                         contentColor = Color.White
                     ),
-                    shape = RoundedCornerShape(10.dp)
+                    shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius)
                 ) {
                     Text("Activar", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showActivateConfirmDialog = false }) {
-                    Text("Cancelar", fontWeight = FontWeight.Medium, color = Color.Gray)
+                    Text("Cancelar", fontWeight = FontWeight.Medium, color = BolsaTokens.Palette.TextSecondary)
                 }
             },
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius)
         )
     }
 
@@ -315,7 +296,8 @@ fun DetalleOfertaEmpresaScreen(
                     Text(
                         if (isEditing) "Editar Oferta" else "Detalle de Oferta",
                         color = Color.White,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
                     )
                 },
                 navigationIcon = {
@@ -335,7 +317,7 @@ fun DetalleOfertaEmpresaScreen(
                             navController.popBackStack()
                         }
                     }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = Color.White)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
                 actions = {
@@ -345,23 +327,24 @@ fun DetalleOfertaEmpresaScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BlueStart)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
+                modifier = Modifier.background(BolsaTokens.headerGradientLinear)
             )
         }
     ) { padding ->
         when {
             isLoading -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = BlueStart)
+                    CircularProgressIndicator(color = BolsaTokens.Palette.Primary)
                 }
             }
             oferta == null -> {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(64.dp), tint = Color.Gray)
+                        Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(64.dp), tint = BolsaTokens.Palette.TextSecondary)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("No se encontró la oferta", color = Color.Gray)
-                        Button(onClick = { navController.popBackStack() }) { Text("Volver") }
+                        Text("No se encontró la oferta", color = BolsaTokens.Palette.TextSecondary)
+                        Button(onClick = { navController.popBackStack() }, shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius)) { Text("Volver") }
                     }
                 }
             }
@@ -373,35 +356,35 @@ fun DetalleOfertaEmpresaScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(padding)
-                        .background(Color.White)
+                        .background(BackgroundGray)
                 ) {
                     Column(
                         modifier = Modifier
                             .weight(1f)
                             .verticalScroll(rememberScrollState())
-                            .padding(16.dp)
+                            .padding(BolsaTokens.Dimens.screenPadding)
                     ) {
                         // Estado badge (solo en vista)
                         if (!isEditing) {
                             Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
                                 Surface(
                                     color = if (esActiva) Color(0xFFE8F5E9) else Color(0xFFFFEBEE),
-                                    shape = RoundedCornerShape(50.dp)
+                                    shape = RoundedCornerShape(BolsaTokens.Dimens.chipRadius)
                                 ) {
                                     Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Box(
                                             modifier = Modifier
                                                 .size(8.dp)
-                                                .clip(RoundedCornerShape(50.dp))
-                                                .background(if (esActiva) Color(0xFF2E7D32) else Color(0xFFE53935))
+                                                .clip(CircleShape)
+                                                .background(if (esActiva) BolsaTokens.Palette.Success else BolsaTokens.Palette.Error)
                                         )
-                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
                                         Text(
                                             text = if (esActiva) "Activa" else "Cerrada",
-                                            color = if (esActiva) Color(0xFF2E7D32) else Color(0xFFE53935),
+                                            color = if (esActiva) BolsaTokens.Palette.Success else BolsaTokens.Palette.Error,
                                             fontSize = 12.sp,
                                             fontWeight = FontWeight.Bold
                                         )
@@ -418,20 +401,19 @@ fun DetalleOfertaEmpresaScreen(
                                 onValueChange = { titulo = it },
                                 label = { Text("Título de la oferta") },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                textStyle = MaterialTheme.typography.bodyLarge.copy(color = Color.Black),
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
                         } else {
-                            Text(titulo.ifBlank { "Sin título" }, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            Text(titulo.ifBlank { "Sin título" }, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = BolsaTokens.Palette.TextPrimary)
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Área
                         if (isEditing) {
@@ -440,17 +422,16 @@ fun DetalleOfertaEmpresaScreen(
                                 onValueChange = { area = it },
                                 label = { Text("Área / Cargo") },
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
                         } else {
-                            Text(area.ifBlank { "Área no especificada" }, fontSize = 14.sp, color = Color.Gray)
+                            Text(area.ifBlank { "Área no especificada" }, fontSize = 16.sp, color = BolsaTokens.Palette.TextSecondary, fontWeight = FontWeight.Medium)
                         }
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -466,14 +447,13 @@ fun DetalleOfertaEmpresaScreen(
                                     onValueChange = { salario = it },
                                     label = { Text("Salario (USD)") },
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                     singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = BlueStart,
-                                        unfocusedBorderColor = Color.Gray,
-                                        focusedTextColor = Color.Black,
-                                        unfocusedTextColor = Color.Black
+                                        focusedBorderColor = BolsaTokens.Palette.Primary,
+                                        unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                        focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                        unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                     )
                                 )
                                 OutlinedTextField(
@@ -481,14 +461,13 @@ fun DetalleOfertaEmpresaScreen(
                                     onValueChange = { modalidad = it },
                                     label = { Text("Modalidad") },
                                     modifier = Modifier.weight(1f),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                     singleLine = true,
-                                    textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedBorderColor = BlueStart,
-                                        unfocusedBorderColor = Color.Gray,
-                                        focusedTextColor = Color.Black,
-                                        unfocusedTextColor = Color.Black
+                                        focusedBorderColor = BolsaTokens.Palette.Primary,
+                                        unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                        focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                        unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                     )
                                 )
                             } else {
@@ -507,7 +486,7 @@ fun DetalleOfertaEmpresaScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         // Fecha de publicación (solo en modo vista)
                         if (!isEditing) {
@@ -521,7 +500,7 @@ fun DetalleOfertaEmpresaScreen(
 
                         // Fecha de cierre
                         if (isEditing) {
-                            Text("Fecha de cierre", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                            Text("Fecha de cierre", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = BolsaTokens.Palette.TextPrimary)
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Row(
@@ -561,36 +540,36 @@ fun DetalleOfertaEmpresaScreen(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // Descripción
-                        Text("Descripción del puesto", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Descripción del puesto", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BolsaTokens.Palette.TextPrimary)
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         if (isEditing) {
                             OutlinedTextField(
                                 value = descripcion,
                                 onValueChange = { descripcion = it },
                                 modifier = Modifier.fillMaxWidth(),
-                                minLines = 4,
-                                shape = RoundedCornerShape(12.dp),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color.Black),
+                                minLines = 6,
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = BlueStart,
-                                    unfocusedBorderColor = Color.Gray,
-                                    focusedTextColor = Color.Black,
-                                    unfocusedTextColor = Color.Black
+                                    focusedBorderColor = BolsaTokens.Palette.Primary,
+                                    unfocusedBorderColor = BolsaTokens.Palette.Divider,
+                                    focusedTextColor = BolsaTokens.Palette.TextPrimary,
+                                    unfocusedTextColor = BolsaTokens.Palette.TextPrimary
                                 )
                             )
                         } else {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5))
+                                shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+                                colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
+                                elevation = CardDefaults.cardElevation(2.dp)
                             ) {
                                 Text(
                                     text = descripcion.ifBlank { "Sin descripción" },
-                                    modifier = Modifier.padding(16.dp),
-                                    fontSize = 14.sp,
-                                    color = Color.Black,
-                                    lineHeight = 22.sp
+                                    modifier = Modifier.padding(20.dp),
+                                    fontSize = 15.sp,
+                                    color = BolsaTokens.Palette.TextSecondary,
+                                    lineHeight = 24.sp
                                 )
                             }
                         }
@@ -599,10 +578,10 @@ fun DetalleOfertaEmpresaScreen(
                     }
 
                     // Botón fijo abajo
-                    Surface(shadowElevation = 8.dp, color = Color.White) {
-                        Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                    Surface(shadowElevation = 16.dp, color = BolsaTokens.Palette.Surface) {
+                        Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 24.dp)) {
                             if (isSaving) {
-                                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = BlueStart)
+                                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = BolsaTokens.Palette.Primary)
                             } else {
                                 Button(
                                     onClick = {
@@ -620,18 +599,11 @@ fun DetalleOfertaEmpresaScreen(
                                                 estado = ofertaActual.estado,
                                                 idEmpresa = ofertaActual.idEmpresa
                                             )
-                                            scope.launch {
-                                                val repo = com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository(
-                                                    com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient.ofertaLaboralApi
-                                                )
-                                                val resultado = repo.actualizarOferta(ofertaId, ofertaActualizada)
+                                            viewModel.actualizarOferta(ofertaId, ofertaActualizada) { resultado ->
                                                 isSaving = false
                                                 if (resultado != null) {
                                                     isEditing = false
-                                                    viewModel.cargarActivas()
-                                                    viewModel.cargarOfertasPorEmpresa(ofertaActual.idEmpresa)
                                                     oferta = resultado
-                                                    // Actualizar variables locales
                                                     titulo = resultado.titulo
                                                     descripcion = resultado.descripcion
                                                     area = resultado.area
@@ -651,9 +623,9 @@ fun DetalleOfertaEmpresaScreen(
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                                    shape = RoundedCornerShape(12.dp),
+                                    shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isEditing) BlueStart else (if (esActiva) Color(0xFFE53935) else Color(0xFF2E7D32))
+                                        containerColor = if (isEditing) BolsaTokens.Palette.Primary else (if (esActiva) BolsaTokens.Palette.Error else BolsaTokens.Palette.Success)
                                     )
                                 ) {
                                     Icon(
@@ -688,19 +660,27 @@ fun InfoChip(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-        elevation = CardDefaults.cardElevation(0.dp)
+        shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+        colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, null, tint = BlueStart, modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(BolsaTokens.Palette.PrimaryLight),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = BolsaTokens.Palette.Primary, modifier = Modifier.size(18.dp))
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(label, fontSize = 11.sp, color = Color.Gray)
-                Text(value, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                Text(label, fontSize = 11.sp, color = BolsaTokens.Palette.TextSecondary)
+                Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = BolsaTokens.Palette.TextPrimary)
             }
         }
     }
@@ -714,19 +694,27 @@ fun InfoChipFecha(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFF5F5F5)),
-        elevation = CardDefaults.cardElevation(0.dp)
+        shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
+        colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Row(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(icon, null, tint = BlueStart, modifier = Modifier.size(20.dp))
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(BolsaTokens.Palette.PrimaryLight),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(icon, null, tint = BolsaTokens.Palette.Primary, modifier = Modifier.size(18.dp))
+            }
             Spacer(modifier = Modifier.width(12.dp))
             Column {
-                Text(label, fontSize = 11.sp, color = Color.Gray)
-                Text(value, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+                Text(label, fontSize = 11.sp, color = BolsaTokens.Palette.TextSecondary)
+                Text(value, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = BolsaTokens.Palette.TextPrimary)
             }
         }
     }
@@ -748,24 +736,26 @@ fun DateSelectorDropdown(
         readOnly = true,
         placeholder = { if (label.isNotEmpty()) Text(label, fontSize = 12.sp) },
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
         trailingIcon = {
-            Icon(
-                Icons.Default.ArrowDropDown,
-                contentDescription = "Seleccionar",
-                modifier = Modifier.clickable { showDialog = true }
-            )
+            IconButton(onClick = { showDialog = true }) {
+                Icon(
+                    Icons.Default.ArrowDropDown,
+                    contentDescription = "Seleccionar",
+                    tint = BolsaTokens.Palette.Primary
+                )
+            }
         },
         textStyle = MaterialTheme.typography.bodySmall.copy(
             textAlign = TextAlign.Center,
-            color = Color.Black
+            color = BolsaTokens.Palette.TextPrimary
         ),
         singleLine = true,
         colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = BlueStart,
-            unfocusedBorderColor = Color.Gray,
-            focusedTextColor = Color.Black,
-            unfocusedTextColor = Color.Black
+            focusedBorderColor = BolsaTokens.Palette.Primary,
+            unfocusedBorderColor = BolsaTokens.Palette.Divider,
+            focusedTextColor = BolsaTokens.Palette.TextPrimary,
+            unfocusedTextColor = BolsaTokens.Palette.TextPrimary
         )
     )
 
@@ -776,7 +766,7 @@ fun DateSelectorDropdown(
                 Text(
                     "Seleccionar $label",
                     fontWeight = FontWeight.Bold,
-                    color = Color.Black
+                    color = BolsaTokens.Palette.TextPrimary
                 )
             },
             text = {
@@ -796,20 +786,21 @@ fun DateSelectorDropdown(
                             Text(
                                 text = item,
                                 fontSize = 14.sp,
-                                color = Color.Black,
+                                color = BolsaTokens.Palette.TextPrimary,
                                 modifier = Modifier.padding(8.dp)
                             )
                         }
-                        HorizontalDivider(color = Color.LightGray)
+                        HorizontalDivider(color = BolsaTokens.Palette.Divider)
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text("Cerrar", color = Color.Gray)
+                    Text("Cerrar", color = BolsaTokens.Palette.Primary)
                 }
             },
-            containerColor = Color.White
+            containerColor = BolsaTokens.Palette.Surface,
+            shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius)
         )
     }
 }

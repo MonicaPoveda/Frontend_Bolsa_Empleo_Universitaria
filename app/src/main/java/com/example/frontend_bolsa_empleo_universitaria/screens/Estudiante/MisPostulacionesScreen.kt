@@ -37,12 +37,15 @@ import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MisPostulacionesScreen(navController: NavController) {
     val context = LocalContext.current
     val tokenManager = remember { Token(context) }
+    val scope = rememberCoroutineScope()
 
     val postulacionRepository = remember {
         PostulacionRepository(
@@ -62,40 +65,48 @@ fun MisPostulacionesScreen(navController: NavController) {
         )
     )
 
-    val postulaciones      by viewModel.postulacionesEstudiante.collectAsState()
-    val loading            by viewModel.loadingEstudiante.collectAsState()
-    val error              by viewModel.errorEstudiante.collectAsState()
+    val postulaciones by viewModel.postulacionesEstudiante.collectAsState()
+    val loading       by viewModel.loadingEstudiante.collectAsState()
+    val error         by viewModel.errorEstudiante.collectAsState()
 
     var postulacionesEnriquecidas by remember { mutableStateOf<List<PostulacionEnriquecida>>(emptyList()) }
     var cargandoOfertas           by remember { mutableStateOf(false) }
+    var idsEnriquecidos           by remember { mutableStateOf<Set<Long>>(emptySet()) }
+
     val listState = rememberLazyListState()
 
-    // ── Carga periódica ───────────────────────────────────────────────────────
+    // ── Carga periódica (5 s) ─────────────────────────────────────────────────
     LaunchedEffect(Unit) {
         val userId = tokenManager.getUserId() ?: return@LaunchedEffect
         viewModel.cargarPostulacionesEstudiante(userId)
         while (true) {
-            delay(25_000)
+            delay(5_000)
             viewModel.cargarPostulacionesEstudiante(userId)
         }
     }
 
-    // ── Enriquecimiento ───────────────────────────────────────────────────────
+    // ── Enriquecimiento inteligente: solo si los IDs cambiaron ────────────────
     LaunchedEffect(postulaciones) {
+        val nuevosIds = postulaciones.map { it.idPostulacion }.toSet()
+
+        if (nuevosIds == idsEnriquecidos && postulacionesEnriquecidas.isNotEmpty()) {
+            return@LaunchedEffect
+        }
+
         if (postulaciones.isNotEmpty()) {
-            cargandoOfertas = true
+            cargandoOfertas = postulacionesEnriquecidas.isEmpty()
             try {
-                val responseOfertas = RetrofitClient.ofertaLaboralApi.listar()
+                val responseOfertas  = RetrofitClient.ofertaLaboralApi.listar()
                 val responseEmpresas = RetrofitClient.empresaApi.listar()
-                
+
                 if (responseOfertas.isSuccessful) {
-                    val ofertasMap = responseOfertas.body()?.associateBy { it.idOferta } ?: emptyMap()
+                    val ofertasMap  = responseOfertas.body()?.associateBy { it.idOferta } ?: emptyMap()
                     val empresasMap = if (responseEmpresas.isSuccessful) {
                         responseEmpresas.body()?.associateBy { it.idEmpresa } ?: emptyMap()
                     } else emptyMap()
 
                     postulacionesEnriquecidas = postulaciones.map { p ->
-                        val oferta = ofertasMap[p.idOferta]
+                        val oferta  = ofertasMap[p.idOferta]
                         val empresa = oferta?.let { empresasMap[it.idEmpresa] }
                         PostulacionEnriquecida(
                             idPostulacion    = p.idPostulacion,
@@ -121,6 +132,7 @@ fun MisPostulacionesScreen(navController: NavController) {
                         )
                     }
                 }
+                idsEnriquecidos = nuevosIds
             } catch (e: Exception) {
                 e.printStackTrace()
                 postulacionesEnriquecidas = postulaciones.map { p ->
@@ -133,11 +145,13 @@ fun MisPostulacionesScreen(navController: NavController) {
                         area = "", salario = 0.0, modalidad = "", nombreEmpresa = ""
                     )
                 }
+                idsEnriquecidos = nuevosIds
             } finally {
                 cargandoOfertas = false
             }
         } else {
             postulacionesEnriquecidas = emptyList()
+            idsEnriquecidos           = emptySet()
         }
     }
 
@@ -166,10 +180,10 @@ fun MisPostulacionesScreen(navController: NavController) {
                 }
                 else -> {
                     LazyColumn(
-                        state        = listState,
-                        contentPadding = PaddingValues(
-                            start  = 20.dp, end = 20.dp,
-                            top    = 20.dp, bottom = 32.dp
+                        state           = listState,
+                        contentPadding  = PaddingValues(
+                            start = 20.dp, end = 20.dp,
+                            top   = 20.dp, bottom = 32.dp
                         ),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -182,21 +196,35 @@ fun MisPostulacionesScreen(navController: NavController) {
                                 enter   = fadeIn() + slideInVertically(initialOffsetY = { it / 3 })
                             ) {
                                 PostulacionCardModerna(
-                                    postulacion = postulacion,
+                                    postulacion   = postulacion,
                                     navController = navController,
-                                    onEliminar = { p ->
-                                        viewModel.eliminarPostulacion(
-                                            idPostulacion = p.idPostulacion,
-                                            onSuccess = {
-                                                val userId = tokenManager.getUserId()
-                                                if (userId != null) {
-                                                    viewModel.cargarPostulacionesEstudiante(userId)
+                                    onEliminar    = { p ->
+                                        // ✅ Optimistic update: quita la card al instante
+                                        scope.launch {
+                                            val listaBackup = postulacionesEnriquecidas
+                                            val idsBackup   = idsEnriquecidos
+
+                                            postulacionesEnriquecidas = listaBackup
+                                                .filter { it.idPostulacion != p.idPostulacion }
+                                            idsEnriquecidos = postulacionesEnriquecidas
+                                                .map { it.idPostulacion }.toSet()
+
+                                            viewModel.eliminarPostulacion(
+                                                idPostulacion = p.idPostulacion,
+                                                onSuccess = {
+                                                    val userId = tokenManager.getUserId()
+                                                    if (userId != null) {
+                                                        viewModel.cargarPostulacionesEstudiante(userId)
+                                                    }
+                                                },
+                                                onError = { msg ->
+                                                    // ❌ Si falla, restaurar el elemento
+                                                    postulacionesEnriquecidas = listaBackup
+                                                    idsEnriquecidos           = idsBackup
+                                                    println("Error al eliminar: $msg")
                                                 }
-                                            },
-                                            onError = { msg ->
-                                                println("Error al eliminar: $msg")
-                                            }
-                                        )
+                                            )
+                                        }
                                     }
                                 )
                             }
@@ -223,15 +251,14 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
                 .statusBarsPadding()
                 .padding(top = 16.dp, bottom = 28.dp)
         ) {
-            // Fila: botón atrás + contador
             Row(
-                modifier = Modifier
+                modifier          = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { navController.popBackStack() },
+                    onClick  = { navController.popBackStack() },
                     modifier = Modifier
                         .size(40.dp)
                         .background(Color.White.copy(alpha = 0.15f), CircleShape)
@@ -239,7 +266,7 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
                     Icon(
                         Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Volver",
-                        tint = Color.White,
+                        tint     = Color.White,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -250,11 +277,11 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
                         color = Color.White.copy(alpha = 0.2f)
                     ) {
                         Text(
-                            text = if (count == 1) "1 postulación" else "$count postulaciones",
-                            color = Color.White,
-                            fontSize = 13.sp,
+                            text       = if (count == 1) "1 postulación" else "$count postulaciones",
+                            color      = Color.White,
+                            fontSize   = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            modifier   = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
                         )
                     }
                 }
@@ -262,15 +289,14 @@ private fun PostulacionesTopBar(navController: NavController, count: Int) {
 
             Spacer(Modifier.height(18.dp))
 
-            // Título centrado
             Text(
-                text       = "Mis Postulaciones",
-                fontSize   = 30.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color      = Color.White,
+                text          = "Mis Postulaciones",
+                fontSize      = 30.sp,
+                fontWeight    = FontWeight.ExtraBold,
+                color         = Color.White,
                 letterSpacing = (-0.5).sp,
-                textAlign  = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier   = Modifier.fillMaxWidth()
+                textAlign     = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier      = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(6.dp))
             Text(
@@ -319,10 +345,10 @@ fun PostulacionCardModerna(
     )
 
     val estilo = when (postulacion.estado) {
-        "PENDIENTE"   -> EstadoStyle(BolsaTokens.Palette.Warning,  Color(0xFFFEF3C7), "Pendiente",   Icons.Default.HourglassEmpty)
-        "EN_REVISION" -> EstadoStyle(BolsaTokens.Palette.Info,   Color(0xFFEFF6FF), "En revisión", Icons.Default.Refresh)
-        "ACEPTADA"    -> EstadoStyle(BolsaTokens.Palette.Success, Color(0xFFECFDF5), "Aceptada",    Icons.Default.CheckCircle)
-        "RECHAZADA"   -> EstadoStyle(BolsaTokens.Palette.Error, Color(0xFFFEF2F2), "Rechazada",   Icons.Default.Cancel)
+        "PENDIENTE"   -> EstadoStyle(BolsaTokens.Palette.Warning,       Color(0xFFFEF3C7), "Pendiente",   Icons.Default.HourglassEmpty)
+        "EN_REVISION" -> EstadoStyle(BolsaTokens.Palette.Info,          Color(0xFFEFF6FF), "En revisión", Icons.Default.Refresh)
+        "ACEPTADA"    -> EstadoStyle(BolsaTokens.Palette.Success,       Color(0xFFECFDF5), "Aceptada",    Icons.Default.CheckCircle)
+        "RECHAZADA"   -> EstadoStyle(BolsaTokens.Palette.Error,         Color(0xFFFEF2F2), "Rechazada",   Icons.Default.Cancel)
         else          -> EstadoStyle(BolsaTokens.Palette.TextSecondary, BolsaTokens.Palette.Divider, postulacion.estado, Icons.Default.Info)
     }
 
@@ -330,25 +356,24 @@ fun PostulacionCardModerna(
         listOf(estilo.color, estilo.color.copy(alpha = 0.4f))
     )
 
-    // Estado del diálogo de confirmación
     var mostrarDialogo by remember { mutableStateOf(false) }
 
-    // ── Diálogo de confirmación de eliminación ────────────────────────────
+    // ── Diálogo de confirmación ───────────────────────────────────────────────
     if (mostrarDialogo) {
         AlertDialog(
             onDismissRequest = { mostrarDialogo = false },
-            shape = RoundedCornerShape(20.dp),
-            containerColor = BolsaTokens.Palette.Surface,
+            shape            = RoundedCornerShape(20.dp),
+            containerColor   = BolsaTokens.Palette.Surface,
             icon = {
                 Surface(
-                    shape = CircleShape,
-                    color = Color(0xFFFEE2E2),
+                    shape    = CircleShape,
+                    color    = Color(0xFFFEE2E2),
                     modifier = Modifier.size(56.dp)
                 ) {
                     Icon(
                         Icons.Default.DeleteForever,
                         contentDescription = null,
-                        tint = BolsaTokens.Palette.Error,
+                        tint     = BolsaTokens.Palette.Error,
                         modifier = Modifier.padding(14.dp)
                     )
                 }
@@ -357,20 +382,20 @@ fun PostulacionCardModerna(
                 Text(
                     "¿Eliminar postulación?",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = BolsaTokens.Palette.TextPrimary,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    fontSize   = 18.sp,
+                    color      = BolsaTokens.Palette.TextPrimary,
+                    textAlign  = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier   = Modifier.fillMaxWidth()
                 )
             },
             text = {
                 Text(
-                    text = "Se eliminará tu postulación a \"${postulacion.tituloOferta}\". Esta acción no se puede deshacer.",
-                    fontSize = 14.sp,
-                    color = BolsaTokens.Palette.TextSecondary,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    text       = "Se eliminará tu postulación a \"${postulacion.tituloOferta}\". Esta acción no se puede deshacer.",
+                    fontSize   = 14.sp,
+                    color      = BolsaTokens.Palette.TextSecondary,
+                    textAlign  = androidx.compose.ui.text.style.TextAlign.Center,
                     lineHeight = 20.sp,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier   = Modifier.fillMaxWidth()
                 )
             },
             confirmButton = {
@@ -379,8 +404,8 @@ fun PostulacionCardModerna(
                         mostrarDialogo = false
                         onEliminar?.invoke(postulacion)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Error),
-                    shape  = RoundedCornerShape(12.dp),
+                    colors   = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Error),
+                    shape    = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -390,10 +415,10 @@ fun PostulacionCardModerna(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { mostrarDialogo = false },
-                    shape   = RoundedCornerShape(12.dp),
+                    onClick  = { mostrarDialogo = false },
+                    shape    = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
-                    border  = BorderStroke(1.dp, BolsaTokens.Palette.Divider)
+                    border   = BorderStroke(1.dp, BolsaTokens.Palette.Divider)
                 ) {
                     Text("Cancelar", color = BolsaTokens.Palette.TextSecondary, fontWeight = FontWeight.SemiBold)
                 }
@@ -418,10 +443,7 @@ fun PostulacionCardModerna(
                     .fillMaxHeight()
                     .background(
                         accentBrush,
-                        RoundedCornerShape(
-                            topStart = 20.dp,
-                            bottomStart = 20.dp
-                        )
+                        RoundedCornerShape(topStart = 20.dp, bottomStart = 20.dp)
                     )
             )
 
@@ -431,25 +453,24 @@ fun PostulacionCardModerna(
                     .padding(start = 18.dp, end = 14.dp, top = 18.dp, bottom = 16.dp)
             ) {
 
-                // ── Fila superior: chip estado + fecha + caneca ───────────
+                // ── Fila superior: chip estado + botón eliminar ───────────────
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier          = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Chip de estado
                     Surface(
                         shape = RoundedCornerShape(50.dp),
                         color = estilo.bgColor
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
+                            modifier          = Modifier.padding(horizontal = 11.dp, vertical = 6.dp)
                         ) {
                             Icon(
-                                imageVector = estilo.icon,
+                                imageVector        = estilo.icon,
                                 contentDescription = null,
-                                tint    = estilo.color,
-                                modifier = Modifier.size(14.dp)
+                                tint               = estilo.color,
+                                modifier           = Modifier.size(14.dp)
                             )
                             Spacer(Modifier.width(5.dp))
                             Text(
@@ -463,7 +484,6 @@ fun PostulacionCardModerna(
 
                     Spacer(Modifier.weight(1f))
 
-                    // Botón caneca roja eliminar
                     IconButton(
                         onClick  = { mostrarDialogo = true },
                         modifier = Modifier
@@ -481,7 +501,7 @@ fun PostulacionCardModerna(
 
                 Spacer(Modifier.height(12.dp))
 
-                // ── Título de la oferta ───────────────────────────────────
+                // ── Título de la oferta ───────────────────────────────────────
                 Text(
                     text       = postulacion.tituloOferta,
                     fontSize   = 19.sp,
@@ -492,18 +512,18 @@ fun PostulacionCardModerna(
                     lineHeight = 25.sp
                 )
 
-                // ── Nombre de la Empresa ──────────────────────────────────
+                // ── Nombre de la empresa ──────────────────────────────────────
                 if (postulacion.nombreEmpresa.isNotBlank()) {
                     Text(
-                        text     = postulacion.nombreEmpresa,
-                        fontSize = 15.sp,
+                        text       = postulacion.nombreEmpresa,
+                        fontSize   = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color    = BolsaTokens.Palette.Primary,
-                        modifier = Modifier.padding(vertical = 2.dp)
+                        color      = BolsaTokens.Palette.Primary,
+                        modifier   = Modifier.padding(vertical = 2.dp)
                     )
                 }
 
-                // ── Área ──────────────────────────────────────────────────
+                // ── Área ──────────────────────────────────────────────────────
                 if (postulacion.area.isNotBlank()) {
                     Spacer(Modifier.height(5.dp))
                     Text(
@@ -515,13 +535,13 @@ fun PostulacionCardModerna(
 
                 Spacer(Modifier.height(4.dp))
 
-                // Fecha debajo del título
+                // ── Fecha ─────────────────────────────────────────────────────
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         Icons.Default.CalendarToday,
                         contentDescription = null,
                         modifier = Modifier.size(13.dp),
-                        tint = BolsaTokens.Palette.TextSecondary.copy(alpha = 0.7f)
+                        tint     = BolsaTokens.Palette.TextSecondary.copy(alpha = 0.7f)
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
@@ -535,14 +555,14 @@ fun PostulacionCardModerna(
                 HorizontalDivider(color = BolsaTokens.Palette.Divider, thickness = 1.dp)
                 Spacer(Modifier.height(12.dp))
 
-                // ── Fila inferior: chips salario + modalidad + "Ver detalle" ─
+                // ── Fila inferior: chips + "Ver detalle" ──────────────────────
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier          = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier              = Modifier.weight(1f)
                     ) {
                         if (postulacion.salario > 0) {
                             InfoChip(
@@ -560,7 +580,6 @@ fun PostulacionCardModerna(
                         }
                     }
 
-                    // Hint de navegación
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text       = "Ver detalle",
@@ -572,7 +591,7 @@ fun PostulacionCardModerna(
                             Icons.Default.ChevronRight,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = BolsaTokens.Palette.Primary
+                            tint     = BolsaTokens.Palette.Primary
                         )
                     }
                 }
@@ -610,39 +629,48 @@ private fun LoadingState() {
                 modifier    = Modifier.size(48.dp)
             )
             Spacer(Modifier.height(16.dp))
-            Text("Cargando postulaciones…", color = BolsaTokens.Palette.TextSecondary, fontSize = 14.sp)
+            Text(
+                "Cargando postulaciones…",
+                color    = BolsaTokens.Palette.TextSecondary,
+                fontSize = 14.sp
+            )
         }
     }
 }
 
-// ── Estado: 403 ───────────────────────────────────────────────────────────────
+// ── Estado: error 403 ─────────────────────────────────────────────────────────
 @Composable
 private fun ErrorState403(navController: NavController) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier            = Modifier.padding(32.dp)
         ) {
             Surface(
-                shape = CircleShape,
-                color = Color(0xFFFFF3E0),
+                shape    = CircleShape,
+                color    = Color(0xFFFFF3E0),
                 modifier = Modifier.size(80.dp)
             ) {
                 Icon(
                     Icons.Default.Lock,
                     contentDescription = null,
-                    modifier = Modifier.padding(20.dp),
-                    tint = Color(0xFFF59E0B)
+                    modifier           = Modifier.padding(20.dp),
+                    tint               = Color(0xFFF59E0B)
                 )
             }
             Spacer(Modifier.height(20.dp))
-            Text("Acceso restringido", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BolsaTokens.Palette.TextPrimary)
+            Text(
+                "Acceso restringido",
+                fontWeight = FontWeight.Bold,
+                fontSize   = 18.sp,
+                color      = BolsaTokens.Palette.TextPrimary
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 "No se pueden cargar tus postulaciones.\nContacta al administrador.",
-                color = BolsaTokens.Palette.TextSecondary,
-                fontSize = 14.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color      = BolsaTokens.Palette.TextSecondary,
+                fontSize   = 14.sp,
+                textAlign  = androidx.compose.ui.text.style.TextAlign.Center,
                 lineHeight = 20.sp
             )
             Spacer(Modifier.height(24.dp))
@@ -663,24 +691,34 @@ private fun ErrorStateGeneral(error: String) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier            = Modifier.padding(32.dp)
         ) {
             Surface(
-                shape = CircleShape,
-                color = Color(0xFFFEF2F2),
+                shape    = CircleShape,
+                color    = Color(0xFFFEF2F2),
                 modifier = Modifier.size(80.dp)
             ) {
                 Icon(
                     Icons.Default.ErrorOutline,
                     contentDescription = null,
-                    modifier = Modifier.padding(20.dp),
-                    tint = BolsaTokens.Palette.Error
+                    modifier           = Modifier.padding(20.dp),
+                    tint               = BolsaTokens.Palette.Error
                 )
             }
             Spacer(Modifier.height(16.dp))
-            Text("Ocurrió un error", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = BolsaTokens.Palette.TextPrimary)
+            Text(
+                "Ocurrió un error",
+                fontWeight = FontWeight.Bold,
+                fontSize   = 18.sp,
+                color      = BolsaTokens.Palette.TextPrimary
+            )
             Spacer(Modifier.height(8.dp))
-            Text(error, color = BolsaTokens.Palette.TextSecondary, fontSize = 13.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+            Text(
+                error,
+                color     = BolsaTokens.Palette.TextSecondary,
+                fontSize  = 13.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }
@@ -691,20 +729,19 @@ private fun EmptyState(navController: NavController) {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(40.dp)
+            modifier            = Modifier.padding(40.dp)
         ) {
-            // Ícono con fondo degradado simulado
             Surface(
-                shape  = RoundedCornerShape(28.dp),
-                color  = BolsaTokens.Palette.PrimaryLight,
+                shape    = RoundedCornerShape(28.dp),
+                color    = BolsaTokens.Palette.PrimaryLight,
                 modifier = Modifier.size(96.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         Icons.Default.BusinessCenter,
                         contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = BolsaTokens.Palette.Primary
+                        modifier           = Modifier.size(48.dp),
+                        tint               = BolsaTokens.Palette.Primary
                     )
                 }
             }
@@ -718,16 +755,16 @@ private fun EmptyState(navController: NavController) {
             Spacer(Modifier.height(8.dp))
             Text(
                 "Explora ofertas disponibles y comienza tu búsqueda laboral.",
-                color    = BolsaTokens.Palette.TextSecondary,
-                fontSize = 14.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                color      = BolsaTokens.Palette.TextSecondary,
+                fontSize   = 14.sp,
+                textAlign  = androidx.compose.ui.text.style.TextAlign.Center,
                 lineHeight = 20.sp
             )
             Spacer(Modifier.height(28.dp))
             Button(
-                onClick = { navController.navigate("estudiante_home") },
-                colors  = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Primary),
-                shape   = RoundedCornerShape(14.dp),
+                onClick  = { navController.navigate("estudiante_home") },
+                colors   = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Primary),
+                shape    = RoundedCornerShape(14.dp),
                 modifier = Modifier.height(50.dp)
             ) {
                 Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(18.dp))

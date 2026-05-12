@@ -189,6 +189,21 @@ class PostulacionViewModel(
         }
     }
 
+    fun eliminarPostulacion(idPostulacion: Long, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = api.eliminar(idPostulacion)
+                if (response.isSuccessful) {
+                    onSuccess()
+                } else {
+                    onError("Error al eliminar la postulación: ${response.code()}")
+                }
+            } catch (e: Exception) {
+                onError("Error de conexión: ${e.message}")
+            }
+        }
+    }
+
     // Postularse a una oferta (estudiante)
     fun postularse(idUsuario: Long, idOferta: Long, onSuccess: () -> Unit, onError: (String) -> Unit) {
         viewModelScope.launch {

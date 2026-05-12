@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +21,8 @@ sealed class LoginUiState {
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val tokenManager: Token,
-    private val empresaRepository: EmpresaRepository
+    private val empresaRepository: EmpresaRepository,
+    private val adminRepository: AdminRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LoginUiState>(LoginUiState.Idle)
@@ -60,10 +62,23 @@ class LoginViewModel(
 
                 val userError = userResult.exceptionOrNull()?.message ?: ""
 
-                // El login de empresa SOLO ocurre si el usuario responde 401 o 403
-                // Esto evita el fallback automático en caso de Timeout o Errores de Red
+                // PASO PREVIO: Verificar si es una empresa pendiente ANTES de intentar el login de empresa
                 if (userError.contains("HTTP_ERROR_401") || userError.contains("HTTP_ERROR_403")) {
-                    
+                    try {
+                        val pendientesResponse = adminRepository.listarEmpresasPendientes()
+                        if (pendientesResponse.isSuccessful) {
+                            val listaPendientes = pendientesResponse.body()
+                            val esPendiente = listaPendientes?.any { it.email.equals(email, ignoreCase = true) } == true
+                            
+                            if (esPendiente) {
+                                _uiState.value = LoginUiState.Error("⏳ Su solicitud de registro está en proceso de revisión por el administrador. Por favor, espere a ser aprobado.")
+                                return@launch
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Fallback silencioso si falla la red al listar pendientes
+                    }
+
                     // 2. Intento como Empresa
                     val empresaResult = empresaRepository.login(email, password)
                     if (empresaResult.isSuccess) {
@@ -84,19 +99,18 @@ class LoginViewModel(
                         }
                     }
 
-                    // Manejo de errores de Empresa
                     val empresaError = empresaResult.exceptionOrNull()?.message ?: ""
                     val finalError = when {
-                        empresaError.contains("TIMEOUT_ERROR") -> "❌ Tiempo de espera agotado. El servidor de empresas no responde."
+                        empresaError.contains("TIMEOUT_ERROR") -> "❌ Tiempo de espera agotado."
                         else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
                     }
                     _uiState.value = LoginUiState.Error(finalError)
-                    
+
                 } else {
-                    // Manejo de errores de Usuario (Timeout, Red, etc.)
+                    // Otros errores de usuario (Red, Timeout)
                     val finalError = when {
-                        userError.contains("TIMEOUT_ERROR") -> "❌ El servidor tardó demasiado en responder. Revisa tu conexión."
-                        userError.contains("NETWORK_ERROR") -> "❌ Error de conexión. No se pudo contactar con el servidor."
+                        userError.contains("TIMEOUT_ERROR") -> "❌ El servidor tardó demasiado en responder."
+                        userError.contains("NETWORK_ERROR") -> "❌ Error de conexión. Revisa tu internet."
                         else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
                     }
                     _uiState.value = LoginUiState.Error(finalError)

@@ -20,7 +20,8 @@ object RetrofitClient {
         "/api/empresas/login",
         "/api/empresas/recuperar-password",
         "/api/empresas/guardar",
-        "/api/empresas-pendientes/enviar"
+        "/api/empresas-pendientes/enviar",
+        "/api/empresas-pendientes/listar"
     )
 
     lateinit var appContext: Context
@@ -89,6 +90,7 @@ object RetrofitClient {
     // ✅ APIs - SIN DUPLICADOS
     val usuarioApi: UsuarioApi by lazy { retrofit.create(UsuarioApi::class.java) }
     val empresaApi: EmpresaApi by lazy { retrofit.create(EmpresaApi::class.java) }
+    val adminApi: AdminApi by lazy { retrofit.create(AdminApi::class.java) }
     val perfilApi: PerfilApi by lazy { retrofit.create(PerfilApi::class.java) }
     val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
     val postulacionApi: PostulacionApi by lazy { retrofit.create(PostulacionApi::class.java) }  // ← Solo una vez

@@ -37,8 +37,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.screens.Administrador.*
 import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.*
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.*
@@ -111,6 +114,10 @@ fun AppNavigation() {
     val adminViewModel: AdminViewModel = viewModel(
         factory = AdminViewModelFactory(context)
     )
+    val adminRepo = remember { AdminRepository(context) }
+    val authRepo = remember { AuthRepository(RetrofitClient.usuarioApi) }
+    val empresaRepo = remember { EmpresaRepository(RetrofitClient.empresaApi) }
+    val token = remember { Token(context) }
 
     NavHost(
         navController = navController,

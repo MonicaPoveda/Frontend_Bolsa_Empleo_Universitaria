@@ -31,6 +31,7 @@ import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaModernDialog
@@ -50,10 +51,11 @@ fun LoginScreen(navController: NavController) {
     val token = remember { Token(context) }
     val authRepo = remember { AuthRepository(RetrofitClient.usuarioApi) }
     val empresaRepo = remember { EmpresaRepository(RetrofitClient.empresaApi) }
+    val adminRepo = remember { AdminRepository(context) }
     val perfilRepo = remember { PerfilRepository(RetrofitClient.perfilApi) }
 
     val viewModel: LoginViewModel = viewModel(
-        factory = LoginViewModelFactory(authRepo, token, empresaRepo)
+        factory = LoginViewModelFactory(authRepo, token, empresaRepo, adminRepo)
     )
 
     var email by remember { mutableStateOf("") }

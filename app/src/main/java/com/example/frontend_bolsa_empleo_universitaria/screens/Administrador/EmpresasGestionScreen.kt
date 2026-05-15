@@ -33,13 +33,53 @@ private val BackgroundGray = UniEmpleoColors.Background
 fun EmpresasGestionScreen(navController: NavController, viewModel: AdminViewModel) {
     val empresas by viewModel.empresasAceptadas.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val mensaje by viewModel.mensaje.collectAsState()
+    
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    var empresaAEliminar by remember { mutableStateOf<Long?>(null) }
+    var nombreEmpresaAEliminar by remember { mutableStateOf("") }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.listarEmpresasAceptadas()
     }
 
+    // Mostrar Snackbar cuando hay un mensaje nuevo
+    LaunchedEffect(mensaje) {
+        mensaje?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearMensaje()
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Eliminar Empresa", fontWeight = FontWeight.Bold) },
+            text = { Text("¿Estás seguro de que deseas eliminar a '$nombreEmpresaAEliminar' del directorio? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        empresaAEliminar?.let { viewModel.eliminarEmpresa(it) }
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) {
+                    Text("Eliminar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
         containerColor = BackgroundGray,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Directorio Empresarial", fontWeight = FontWeight.Bold, color = Color.White) },
@@ -61,6 +101,10 @@ fun EmpresasGestionScreen(navController: NavController, viewModel: AdminViewMode
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = AdminIndigo)
                 }
+            } else if (empresas.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text("No hay empresas registradas", color = Color.Gray)
+                }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -74,6 +118,11 @@ fun EmpresasGestionScreen(navController: NavController, viewModel: AdminViewMode
                             ciudad = empresa.ciudad ?: "N/A",
                             onClick = {
                                 navController.navigate("perfil_empresa_admin/${empresa.idEmpresa}")
+                            },
+                            onDelete = {
+                                empresaAEliminar = empresa.idEmpresa
+                                nombreEmpresaAEliminar = empresa.nombre ?: ""
+                                showDeleteDialog = true
                             }
                         )
                     }
@@ -84,7 +133,7 @@ fun EmpresasGestionScreen(navController: NavController, viewModel: AdminViewMode
 }
 
 @Composable
-fun AdminEnterpriseCard(nombre: String, sector: String, ciudad: String, onClick: () -> Unit) {
+fun AdminEnterpriseCard(nombre: String, sector: String, ciudad: String, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -132,6 +181,20 @@ fun AdminEnterpriseCard(nombre: String, sector: String, ciudad: String, onClick:
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(text = ciudad, style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                 }
+            }
+
+            // Botón de eliminar con superficie de clic propia
+            IconButton(
+                onClick = { 
+                    // No llamamos a onClick() de la tarjeta
+                    onDelete() 
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Eliminar",
+                    tint = Color.Red.copy(alpha = 0.8f)
+                )
             }
 
             Icon(

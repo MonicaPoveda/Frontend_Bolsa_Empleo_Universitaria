@@ -33,9 +33,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
@@ -114,26 +116,10 @@ fun AppNavigation() {
     val adminViewModel: AdminViewModel = viewModel(
         factory = AdminViewModelFactory(context)
     )
-    val adminRepo = remember { AdminRepository(context) }
-    val authRepo = remember { AuthRepository(RetrofitClient.usuarioApi) }
-    val empresaRepo = remember { EmpresaRepository(RetrofitClient.empresaApi) }
-    val token = remember { Token(context) }
 
     NavHost(
         navController = navController,
-        startDestination = "splash",
-        enterTransition = {
-            fadeIn(animationSpec = tween(280)) + slideInHorizontally(animationSpec = tween(320)) { it / 26 }
-        },
-        exitTransition = {
-            fadeOut(animationSpec = tween(220))
-        },
-        popEnterTransition = {
-            fadeIn(tween(280)) + slideInHorizontally(tween(320)) { -it / 26 }
-        },
-        popExitTransition = {
-            fadeOut(tween(220)) + slideOutHorizontally(tween(280)) { it / 26 }
-        }
+        startDestination = "splash"
     ) {
         composable("splash") { SplashScreen(navController = navController) }
         composable("login") { LoginScreen(navController = navController) }
@@ -145,7 +131,11 @@ fun AppNavigation() {
         }
 
         composable("registro_estudiante") { RegistroEstudianteScreen(navController = navController) }
-        composable("registro_empresa") { RegistroEmpresaScreen(navController = navController) }
+        
+        composable("registro_empresa") { 
+            RegistroEmpresaScreen(navController = navController) 
+        }
+
         composable("editar_perfil_empresa") { EditarPerfilEmpresaScreen(navController = navController) }
         composable("mensaje_alerta_crear_perfil") { MensajeAlertaCrearPerfilScreen(navController) }
         composable("crear_perfil_estudiante") { CrearPerfilEstudianteScreen(navController) }
@@ -168,8 +158,6 @@ fun AppNavigation() {
             EmpresasGestionScreen(navController = navController, viewModel = adminViewModel)
         }
 
-        class FakePerfilEmpresaAdminScreen // Placeholder for potentially missing imports or symbols if any, though imports seem fine
-
         composable("perfil_empresa_admin/{idEmpresa}") { backStackEntry: NavBackStackEntry ->
             val id = backStackEntry.arguments?.getString("idEmpresa")?.toLongOrNull() ?: 0L
             PerfilEmpresaAdminScreen(idEmpresa = id, navController = navController, viewModel = adminViewModel)
@@ -182,24 +170,9 @@ fun AppNavigation() {
         }
 
         composable("admin_ofertas") {
-            AdminPlaceholderScreen(
-                titulo = "Gestión global de ofertas",
-                descripcion = "Estamos preparando esta sección. Mientras tanto, usa el listado de empresas y ofertas desde el panel principal."
-            )
+            AdminPlaceholderScreen(titulo = "Gestión global de ofertas", descripcion = "Próximamente...")
         }
-        composable("admin_usuarios") {
-            AdminPlaceholderScreen(
-                titulo = "Gestión de usuarios",
-                descripcion = "Próximamente podrás administrar cuentas desde aquí con la misma línea visual del resto de la app."
-            )
-        }
-        composable("admin_reportes") {
-            AdminPlaceholderScreen(
-                titulo = "Reportes y estadísticas",
-                descripcion = "Esta área mostrará indicadores clave cuando el backend esté disponible."
-            )
-        }
-
+        
         composable("detalle_oferta/{ofertaId}") { backStackEntry: NavBackStackEntry ->
             val id = backStackEntry.arguments?.getString("ofertaId")?.toLongOrNull() ?: 0L
             val empresaEntry = remember(backStackEntry) { navController.getBackStackEntry("empresa_home") }
@@ -226,10 +199,7 @@ fun AppNavigation() {
 
         composable("perfil_estudiante_empresa/{idUsuario}") { backStackEntry ->
             val idUsuario = backStackEntry.arguments?.getString("idUsuario")?.toLongOrNull() ?: 0L
-            PerfilEstudianteEmpresaScreen(
-                idUsuario = idUsuario,
-                navController = navController
-            )
+            PerfilEstudianteEmpresaScreen(idUsuario = idUsuario, navController = navController)
         }
         composable("mis_postulaciones") { MisPostulacionesScreen(navController = navController) }
         composable("mi_perfil") { MiPerfilScreen(navController = navController) }

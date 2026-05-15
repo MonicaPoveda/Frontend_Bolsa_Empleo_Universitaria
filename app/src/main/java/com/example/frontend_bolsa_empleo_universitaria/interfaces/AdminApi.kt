@@ -6,8 +6,6 @@ import retrofit2.http.*
 
 interface AdminApi {
 
-    // ==================== GESTIÓN DE EMPRESAS PENDIENTES ====================
-
     @GET("api/empresas-pendientes/listar")
     suspend fun listarEmpresasPendientes(): Response<List<EmpresaPendiente>>
 
@@ -23,14 +21,16 @@ interface AdminApi {
         @Query("mensaje") mensaje: String? = null
     ): Response<Void>
 
-
-    // ==================== GESTIÓN DE EMPRESAS ACEPTADAS ====================
+    // ✅ Nuevo: Endpoint de eliminación para el 3er rechazo (según tu Swagger)
+    @DELETE("api/empresas-pendientes/{id}")
+    suspend fun eliminarSolicitud(@Path("id") id: Long): Response<Void>
 
     @GET("api/empresas/listar")
     suspend fun listarEmpresasAceptadas(): Response<List<EmpresaDto>>
 
-
-    // ==================== GESTIÓN DE OFERTAS Y POSTULACIONES ====================
+    // ✅ Nuevo: Eliminar empresa aceptada del directorio
+    @DELETE("api/empresas/eliminar/{id}")
+    suspend fun eliminarEmpresa(@Path("id") id: Long): Response<Void>
 
     @GET("api/ofertas/empresa/{idEmpresa}")
     suspend fun listarOfertasPorEmpresa(@Path("idEmpresa") idEmpresa: Long): Response<List<OfertaLaboralResponse>>

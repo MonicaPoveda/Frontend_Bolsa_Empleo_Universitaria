@@ -19,13 +19,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
-// Paleta de colores Premium Clean (Estilo Notion/Stripe)
 private val CleanWhite = UniEmpleoColors.Surface
 private val CleanBackground = UniEmpleoColors.Background
 private val AccentIndigo = UniEmpleoColors.Blue
@@ -34,13 +34,26 @@ private val TextSecondary = UniEmpleoColors.Muted
 private val BorderLight = Color(0xFFE5E7EB)
 private val StatusGold = Color(0xFFB45309)
 private val StatusGoldBg = Color(0xFFFEF3C7)
+private val StatusRed = Color(0xFFDC2626)
+private val StatusRedBg = Color(0xFFFEF2F2)
+private val SuccessGreen = Color(0xFF059669)
+private val SuccessGreenBg = Color(0xFFECFDF5)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EmpresasPendientesScreen(navController: NavController, viewModel: AdminViewModel) {
-    val todasLasEmpresas by viewModel.empresasPendientes.collectAsState()
-    val empresasPendientes = todasLasEmpresas.filter { it.estado == "PENDIENTE" }
+    val todasLasSolicitudes by viewModel.empresasPendientes.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    
+    // Estado para controlar la pestaña seleccionada
+    var selectedTabIndex by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Pendientes", "Rechazadas")
+
+    // Separación de listas por estado
+    val listaPendientes = todasLasSolicitudes.filter { it.estado.equals("PENDIENTE", ignoreCase = true) }
+    val listaRechazadas = todasLasSolicitudes.filter { it.estado.equals("RECHAZADA", ignoreCase = true) }
+    
+    val listaAMostrar = if (selectedTabIndex == 0) listaPendientes else listaRechazadas
 
     LaunchedEffect(Unit) {
         viewModel.listarEmpresasPendientes()
@@ -49,15 +62,53 @@ fun EmpresasPendientesScreen(navController: NavController, viewModel: AdminViewM
     Scaffold(
         containerColor = CleanBackground,
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Solicitudes de Registro", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextMain) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextSecondary, modifier = Modifier.size(20.dp))
+            Column(modifier = Modifier.background(CleanWhite)) {
+                CenterAlignedTopAppBar(
+                    title = { Text("Solicitudes de Registro", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextMain) },
+                    navigationIcon = {
+                        IconButton(onClick = { navController.popBackStack() }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextSecondary, modifier = Modifier.size(20.dp))
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = CleanWhite)
+                )
+                
+                // Pestañas Organizadoras
+                SecondaryTabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = CleanWhite,
+                    contentColor = AccentIndigo,
+                    divider = { HorizontalDivider(color = BorderLight) }
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        val count = if (index == 0) listaPendientes.size else listaRechazadas.size
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { 
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(text = title, fontSize = 13.sp, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Medium)
+                                    if (count > 0) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Surface(
+                                            color = if (selectedTabIndex == index) AccentIndigo else Color.LightGray.copy(0.4f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                text = count.toString(),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                                fontSize = 10.sp,
+                                                color = if (selectedTabIndex == index) Color.White else TextSecondary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = CleanWhite)
-            )
+                }
+            }
         }
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -65,31 +116,39 @@ fun EmpresasPendientesScreen(navController: NavController, viewModel: AdminViewM
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = AccentIndigo)
                 }
-            } else if (empresasPendientes.isEmpty()) {
+            } else if (listaAMostrar.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Surface(
-                            modifier = Modifier.size(80.dp),
-                            shape = CircleShape,
-                            color = Color(0xFFF3F4F6)
-                        ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+                        Surface(modifier = Modifier.size(72.dp), shape = CircleShape, color = Color(0xFFF3F4F6)) {
                             Box(contentAlignment = Alignment.Center) {
-                                Icon(Icons.Default.DoneAll, null, modifier = Modifier.size(40.dp), tint = TextSecondary.copy(alpha = 0.5f))
+                                Icon(
+                                    if (selectedTabIndex == 0) Icons.Default.CheckCircleOutline else Icons.Default.Info, 
+                                    null, 
+                                    modifier = Modifier.size(32.dp), 
+                                    tint = TextSecondary.copy(alpha = 0.4f)
+                                )
                             }
                         }
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Text("¡Todo al día!", fontWeight = FontWeight.Bold, color = TextMain, fontSize = 18.sp)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("No hay solicitudes pendientes de revisión", fontSize = 14.sp, color = TextSecondary)
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = if (selectedTabIndex == 0) "¡Bandeja limpia!" else "Sin rechazadas",
+                            fontWeight = FontWeight.Bold, color = TextMain, fontSize = 16.sp
+                        )
+                        Text(
+                            text = if (selectedTabIndex == 0) "No hay solicitudes esperando revisión en este momento." else "Las empresas que rechaces aparecerán en esta sección.",
+                            fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center
+                        )
                     }
                 }
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(empresasPendientes) { empresa ->
+                    items(listaAMostrar) { empresa ->
+                        val esRechazada = empresa.estado.equals("RECHAZADA", ignoreCase = true)
+                        
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -100,62 +159,58 @@ fun EmpresasPendientesScreen(navController: NavController, viewModel: AdminViewM
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(12.dp))) {
-                                // Línea de acento lateral
                                 Box(
                                     modifier = Modifier
                                         .width(4.dp)
                                         .height(48.dp)
                                         .align(Alignment.CenterStart)
-                                        .background(AccentIndigo)
+                                        .background(if (esRechazada) StatusRed else if (empresa.actualizada) SuccessGreen else AccentIndigo)
                                 )
 
                                 Row(
-                                    modifier = Modifier.padding(16.dp),
+                                    modifier = Modifier.padding(14.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Surface(
-                                        modifier = Modifier.size(48.dp),
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = Color(0xFFF3F4F6),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
+                                        modifier = Modifier.size(44.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = Color(0xFFF9FAFB)
                                     ) {
                                         Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.Business, null, tint = Color(0xFF1E3A8A), modifier = Modifier.size(24.dp))
+                                            Icon(Icons.Default.Business, null, tint = Color(0xFF475569), modifier = Modifier.size(22.dp))
                                         }
                                     }
                                     
-                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Spacer(modifier = Modifier.width(12.dp))
                                     
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = empresa.nombre,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextMain,
-                                            fontSize = 15.sp
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = empresa.email,
-                                            fontSize = 12.sp,
-                                            color = TextSecondary
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(text = empresa.nombre, fontWeight = FontWeight.Bold, color = TextMain, fontSize = 14.sp)
+                                            if (empresa.actualizada && !esRechazada) {
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Surface(color = SuccessGreenBg, shape = RoundedCornerShape(4.dp)) {
+                                                    Text("ACTUALIZADA", color = SuccessGreen, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                                }
+                                            }
+                                        }
+                                        Text(text = empresa.email, fontSize = 11.sp, color = TextSecondary)
                                     }
 
                                     Surface(
-                                        color = StatusGoldBg,
+                                        color = if (esRechazada) StatusRedBg else StatusGoldBg,
                                         shape = RoundedCornerShape(100.dp)
                                     ) {
                                         Text(
-                                            "Pendiente",
-                                            color = StatusGold,
+                                            text = if (esRechazada) "${empresa.rechazos}/3" else "Pendiente",
+                                            color = if (esRechazada) StatusRed else StatusGold,
                                             fontSize = 10.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            fontWeight = FontWeight.ExtraBold,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                         )
                                     }
                                     
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = TextSecondary.copy(alpha = 0.5f), modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }

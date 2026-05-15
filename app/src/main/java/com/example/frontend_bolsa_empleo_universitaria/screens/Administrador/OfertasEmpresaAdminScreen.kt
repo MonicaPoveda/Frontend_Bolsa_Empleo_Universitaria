@@ -12,6 +12,8 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.model.*
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
@@ -30,7 +33,8 @@ private val BackgroundGray = UniEmpleoColors.Background
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OfertasEmpresaAdminScreen(idEmpresa: Long, nombreEmpresa: String, navController: NavController, viewModel: AdminViewModel) {
-    val ofertas by viewModel.ofertasEmpresa.collectAsState()
+    // Especificamos el valor inicial para ayudar a la inferencia de tipos
+    val ofertas by viewModel.ofertasEmpresa.collectAsState(initial = emptyList())
     val isLoading by viewModel.isLoading.collectAsState()
     val nombreMostrar = remember(nombreEmpresa) { Uri.decode(nombreEmpresa) }
 
@@ -102,7 +106,7 @@ fun AdminJobCard(titulo: String, modalidad: String, salario: String, onClick: ()
             }
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text(titulo, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Black)
                 Text(modalidad, color = AdminIndigoLight, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             Column(horizontalAlignment = Alignment.End) {

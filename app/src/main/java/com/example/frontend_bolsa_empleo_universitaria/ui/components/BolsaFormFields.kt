@@ -28,6 +28,7 @@ fun BolsaOutlinedFormField(
     minLines: Int = 1,
     maxLines: Int = 1,
     enabled: Boolean = true,
+    readOnly: Boolean = false, // ✅ Parámetro habilitado
     isError: Boolean = false,
     supportingText: (@Composable () -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
@@ -42,6 +43,7 @@ fun BolsaOutlinedFormField(
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth(),
         enabled = enabled,
+        readOnly = readOnly, // ✅ Propagación correcta
         singleLine = effectiveSingleLine,
         minLines = minLines,
         maxLines = maxOf(minLines, maxLines),

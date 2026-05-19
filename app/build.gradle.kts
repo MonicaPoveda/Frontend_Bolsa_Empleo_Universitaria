@@ -74,6 +74,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.monitor)
 
     // Tests
     testImplementation(libs.junit)

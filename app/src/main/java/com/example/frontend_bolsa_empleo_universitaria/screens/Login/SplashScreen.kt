@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.navigation.resolvePostSplashRoute
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.delay
@@ -130,27 +131,20 @@ fun SplashScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Box(
+            UniEmpleoLogo(
                 modifier = Modifier
                     .size(120.dp)
                     .offset(y = logoLift.dp)
-                    .scale(logoScale)
-                    .background(Color.White.copy(alpha = 0.18f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.WorkOutline,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(64.dp)
-                )
-            }
+                    .scale(logoScale),
+                containerColor = Color.White.copy(alpha = 0.18f),
+                cornerRadius = 30.dp
+            )
             Spacer(Modifier.height(32.dp))
             Text(
                 text = "UNIEMPLEO",
                 style = MaterialTheme.typography.displaySmall.copy(
                     fontSize = 36.sp,
-                    letterSpacing = 1.2.sp
+                    letterSpacing = 0.sp
                 ),
                 fontWeight = FontWeight.Black,
                 color = Color.White,

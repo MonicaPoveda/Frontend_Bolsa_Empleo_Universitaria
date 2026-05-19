@@ -373,7 +373,7 @@ fun EditarPerfilEmpresaScreen(
                                 tint = Color.White
                             )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Guardar Cambios", color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("Guardar cambios", color = Color.White, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

@@ -636,7 +636,7 @@ fun DetalleOfertaEmpresaScreen(
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = if (isEditing) "Guardar Cambios" else (if (esActiva) "Cerrar Oferta" else "Activar Oferta"),
+                                        text = if (isEditing) "Guardar cambios" else (if (esActiva) "Cerrar oferta" else "Activar oferta"),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White

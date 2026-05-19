@@ -5,9 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,20 +14,24 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import androidx.test.platform.app.InstrumentationRegistry
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
@@ -38,20 +40,13 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-// Colores unificados con BolsaTokens
 private val BlueGradientStart = BolsaTokens.Palette.HeaderStart
-private val BlueGradientEnd = BolsaTokens.Palette.HeaderEnd
 private val BackgroundGray = BolsaTokens.Palette.Background
 private val ChipHybridColor = BolsaTokens.Palette.PrimaryLight
 private val ChipHybridText = BolsaTokens.Palette.Primary
 private val PriceColor = BolsaTokens.Palette.Success
 
-// Nav Items para Empresa
-data class NavItemEmpresa(
-    val label: String,
-    val icon: ImageVector,
-    val route: String
-)
+data class NavItemEmpresa(val label: String, val icon: ImageVector, val route: String)
 
 val navItemsEmpresa = listOf(
     NavItemEmpresa("Inicio", Icons.Default.Home, "inicio"),
@@ -61,9 +56,7 @@ val navItemsEmpresa = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EmpresaHomeScreen(
-    navController: NavController
-) {
+fun EmpresaHomeScreen(navController: NavController) {
     val context = LocalContext.current
     val token = remember { Token(context) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -84,44 +77,33 @@ fun EmpresaHomeScreen(
     val ofertas = viewModel.ofertasEmpresa.value
     val loading = viewModel.loading.value
 
-    // Estado para controlar la recarga en segundo plano
     var backgroundRefreshTrigger by remember { mutableStateOf(0) }
-
-    // Variable para saber si es la primera carga (mostrar loading solo la primera vez)
     var isFirstLoad by remember { mutableStateOf(true) }
 
-    // Carga inicial con indicador de carga
     LaunchedEffect(Unit) {
         if (idEmpresa > 0) {
-            println("Carga inicial de ofertas para empresa ID: $idEmpresa")
             viewModel.cargarOfertasPorEmpresa(idEmpresa)
             isFirstLoad = false
         }
     }
 
-    // Recarga en segundo plano cada 30 segundos y cuando se dispara el trigger
     LaunchedEffect(idEmpresa, backgroundRefreshTrigger) {
         if (idEmpresa > 0 && !isFirstLoad) {
-            println("Recargando ofertas en segundo plano... (trigger: $backgroundRefreshTrigger)")
-            // Recargar sin mostrar loading (en segundo plano)
             viewModel.cargarOfertasPorEmpresaSilent(idEmpresa)
         }
     }
 
-    // Timer para recarga automática cada 30 segundos
     LaunchedEffect(Unit) {
         while (isActive) {
-            delay(30000) // 30 segundos
+            delay(30000)
             if (!isFirstLoad && idEmpresa > 0) {
                 backgroundRefreshTrigger++
             }
         }
     }
 
-    // Función para forzar recarga inmediata (cuando se agrega una oferta)
     val forceRefresh = {
         if (idEmpresa > 0) {
-            println("Forzando recarga inmediata por nueva oferta")
             backgroundRefreshTrigger++
         }
     }
@@ -141,92 +123,47 @@ fun EmpresaHomeScreen(
                         .padding(vertical = 28.dp, horizontal = 20.dp)
                 ) {
                     Column {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.3f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Business,
-                                contentDescription = "Avatar",
-                                tint = Color.White,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
+                        UniEmpleoLogo(
+                            modifier = Modifier.size(64.dp),
+                            containerColor = Color.White.copy(alpha = 0.3f),
+                            cornerRadius = 18.dp
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = nombreEmpresa,
-                            color = Color.White,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = token.getUserEmail() ?: "empresa@email.com",
-                            color = Color.White.copy(alpha = 0.75f),
-                            fontSize = 12.sp
-                        )
+                        Text(text = nombreEmpresa, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(text = token.getUserEmail() ?: "empresa@email.com", color = Color.White.copy(alpha = 0.75f), fontSize = 12.sp)
                     }
                 }
-
                 Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "MENÚ",
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = BolsaTokens.Palette.TextSecondary
-                )
-
-                DrawerMenuItemEmpresa(
-                    icon = Icons.Default.Home,
-                    text = "Inicio",
-                    badge = null,
-                    selected = selectedDrawerItem == "inicio"
-                ) {
+                Text(text = "Menú", modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = BolsaTokens.Palette.TextSecondary)
+                DrawerMenuItemEmpresa(icon = Icons.Default.Home, text = "Inicio", selected = selectedDrawerItem == "inicio") {
                     selectedDrawerItem = "inicio"
                     scope.launch { drawerState.close() }
                     selectedTab = 0
                 }
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
-
-                Text(
-                    text = "CUENTA",
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = BolsaTokens.Palette.TextSecondary
-                )
-
-                DrawerMenuItemEmpresa(
-                    icon = Icons.Default.Settings,
-                    text = "Configuración de Cuenta",
-                    badge = null,
-                    selected = selectedDrawerItem == "configuracion"
-                ) {
+                Text(text = "Cuenta", modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = BolsaTokens.Palette.TextSecondary)
+                DrawerMenuItemEmpresa(icon = Icons.Default.Settings, text = "Configuración de cuenta", selected = selectedDrawerItem == "configuracion") {
                     selectedDrawerItem = "configuracion"
                     scope.launch { drawerState.close() }
                     navController.navigate("editar_perfil_empresa")
                 }
-
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
-
+                DrawerMenuItemEmpresa(icon = Icons.Default.Info, text = "Sobre nosotros", selected = selectedDrawerItem == "sobre_nosotros") {
+                    selectedDrawerItem = "sobre_nosotros"
+                    scope.launch { drawerState.close() }
+                    navController.navigate("sobre_nosotros")
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
                 DrawerMenuItemEmpresa(
                     icon = Icons.Default.Logout,
-                    text = "Cerrar Sesión",
-                    badge = null,
+                    text = "Cerrar sesión",
                     iconTint = BolsaTokens.Palette.Error,
                     textColor = BolsaTokens.Palette.Error,
                     selected = false
                 ) {
                     scope.launch { drawerState.close() }
                     token.clearSession()
-                    navController.navigate("login") {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigate("login") { popUpTo(0) { inclusive = true } }
                 }
             }
         }
@@ -234,35 +171,38 @@ fun EmpresaHomeScreen(
         Scaffold(
             containerColor = BackgroundGray,
             topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "UNIEMPLEO Empresas",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(130.dp)
+                        .background(
+                            brush = BolsaTokens.headerGradientVertical,
+                            shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
                         )
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = { scope.launch { drawerState.open() } },
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                Icons.Default.Menu,
-                                contentDescription = "Menú",
-                                tint = Color.White,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = BlueGradientStart
-                    ),
-                    modifier = Modifier.height(56.dp)
-                )
+                ) {
+                    IconButton(
+                        onClick = { scope.launch { drawerState.open() } },
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 12.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Menú",
+                            tint = Color.White,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    Text(
+                        text = "UNIEMPLEO Empresas",
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 22.sp,
+                        letterSpacing = 1.sp
+                    )
+                }
             },
             bottomBar = {
                 NavigationBar(
@@ -291,28 +231,17 @@ fun EmpresaHomeScreen(
                 0 -> EmpresaOfertasScreen(
                     padding = padding,
                     ofertas = ofertas,
-                    loading = isFirstLoad && loading, // Solo mostrar loading en primera carga
-                    onVerDetalle = { ofertaId ->
-                        navController.navigate("detalle_oferta/$ofertaId")
-                    },
-                    onEliminar = { ofertaId ->
-                        viewModel.eliminarOferta(ofertaId, idEmpresa)
-                        // Forzar recarga después de eliminar
-                        forceRefresh()
-                    },
+                    loading = isFirstLoad && loading,
+                    onVerDetalle = { navController.navigate("detalle_oferta/$it") },
+                    onEliminar = { viewModel.eliminarOferta(it, idEmpresa); forceRefresh() },
                     navController = navController
                 )
                 1 -> AgregarOfertaScreen(
                     padding = padding,
                     idEmpresa = idEmpresa,
                     onOfertaAgregada = {
-                        // Forzar recarga inmediata cuando se agrega una oferta
                         forceRefresh()
-                        // Cambiar a la pestaña de inicio
-                        scope.launch {
-                            delay(500) // Pequeña pausa para que la oferta se guarde
-                            selectedTab = 0
-                        }
+                        scope.launch { delay(500); selectedTab = 0 }
                     }
                 )
                 2 -> EmpresaPerfilScreen(padding)
@@ -321,9 +250,13 @@ fun EmpresaHomeScreen(
     }
 }
 
-// El resto de tus funciones (EmpresaOfertasScreen, FiltroCard, EmpresaJobCard, DrawerMenuItemEmpresa)
-// se mantienen igual, solo asegúrate de que en EmpresaOfertasScreen el loading
-// solo se muestre cuando realmente sea necesario
+// ======================== RESTO DE FUNCIONES ========================
+// (Se mantienen igual que en tu código original: EmpresaOfertasScreen, FiltroCard, EmpresaJobCard, DrawerMenuItemEmpresa)
+// Por brevedad no los repito aquí, pero asegúrate de incluirlos.
+// Si necesitas que los incluya de nuevo, dímelo.
+
+// ======================== COMPONENTES AUXILIARES ========================
+
 @Composable
 fun EmpresaOfertasScreen(
     padding: PaddingValues,
@@ -333,25 +266,19 @@ fun EmpresaOfertasScreen(
     onEliminar: (Long) -> Unit,
     navController: NavController
 ) {
-    // Estado para el filtro seleccionado
     var filtroSeleccionado by remember { mutableStateOf("Todas") }
-
-    // Estado para la búsqueda
     var busqueda by remember { mutableStateOf("") }
 
-    // Calcular estadísticas
     val totalOfertas = ofertas.size
     val activas = ofertas.count { it.estado }
     val inactivas = ofertas.count { !it.estado }
 
-    // Filtrar por estado primero
     val ofertasPorEstado = when (filtroSeleccionado) {
         "Activas" -> ofertas.filter { it.estado }
         "Inactivas" -> ofertas.filter { !it.estado }
         else -> ofertas
     }
 
-    // Filtrar por búsqueda (título o área)
     val ofertasFiltradas = if (busqueda.isNotBlank()) {
         ofertasPorEstado.filter { oferta ->
             oferta.titulo.contains(busqueda, ignoreCase = true) ||
@@ -369,55 +296,15 @@ fun EmpresaOfertasScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight()
+                .padding(top = 16.dp)
         ) {
-            Column {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(160.dp)
-                        .background(
-                            brush = BolsaTokens.headerGradientVertical,
-                            shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(Color.White.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.Business,
-                                contentDescription = "Empresa",
-                                tint = Color.White,
-                                modifier = Modifier.size(50.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-            }
-
-            // Card de búsqueda flotante
+            // Card de búsqueda sin offset negativo para evitar tapar el header
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .align(Alignment.BottomCenter),
+                    .padding(horizontal = 24.dp),
                 shape = RoundedCornerShape(BolsaTokens.Dimens.fieldRadius),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 15.dp),
                 colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface)
             ) {
                 TextField(
@@ -448,7 +335,7 @@ fun EmpresaOfertasScreen(
             }
         }
 
-        // Filtros en tarjetas
+        // Filtros
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -463,7 +350,6 @@ fun EmpresaOfertasScreen(
                 isSelected = filtroSeleccionado == "Todas",
                 onClick = { filtroSeleccionado = "Todas" }
             )
-
             FiltroCard(
                 modifier = Modifier.weight(1f),
                 titulo = "Activas",
@@ -472,7 +358,6 @@ fun EmpresaOfertasScreen(
                 isSelected = filtroSeleccionado == "Activas",
                 onClick = { filtroSeleccionado = "Activas" }
             )
-
             FiltroCard(
                 modifier = Modifier.weight(1f),
                 titulo = "Inactivas",
@@ -576,21 +461,16 @@ fun FiltroCard(
     onClick: () -> Unit
 ) {
     Card(
-        modifier = modifier
-            .clickable { onClick() },
+        modifier = modifier.clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) color else BolsaTokens.Palette.Surface,
             contentColor = if (isSelected) Color.White else color
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 4.dp else 2.dp
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 2.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
@@ -624,14 +504,8 @@ fun EmpresaJobCard(
     val fechaPublicacionStr = oferta.fechaPublicacion?.let { fecha ->
         try {
             val partes = fecha.split("-")
-            if (partes.size == 3) {
-                "${partes[2]}/${partes[1]}/${partes[0]}"
-            } else {
-                fecha
-            }
-        } catch (e: Exception) {
-            fecha
-        }
+            if (partes.size == 3) "${partes[2]}/${partes[1]}/${partes[0]}" else fecha
+        } catch (e: Exception) { fecha }
     } ?: "Fecha no disponible"
 
     LaunchedEffect(oferta.idOferta) {
@@ -641,7 +515,6 @@ fun EmpresaJobCard(
             val response = api.listarPorOferta(oferta.idOferta)
             if (response.isSuccessful) {
                 postulantesCount = response.body()?.size ?: 0
-                println("Postulantes para oferta ${oferta.idOferta}: $postulantesCount")
             }
         } catch (e: Exception) {
             println("Error al contar postulantes: ${e.message}")
@@ -650,52 +523,27 @@ fun EmpresaJobCard(
         }
     }
 
-    // Diálogo de confirmación para eliminar
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
             containerColor = BolsaTokens.Palette.Surface,
             title = {
-                Text(
-                    "Eliminar oferta",
-                    fontWeight = FontWeight.Bold,
-                    color = BolsaTokens.Palette.Error,
-                    fontSize = 20.sp
-                )
+                Text("Eliminar oferta", fontWeight = FontWeight.Bold, color = BolsaTokens.Palette.Error, fontSize = 20.sp)
             },
             text = {
                 Column {
-                    Text(
-                        "¿Estás seguro de que deseas eliminar esta oferta?",
-                        color = BolsaTokens.Palette.TextPrimary,
-                        fontSize = 14.sp
-                    )
+                    Text("¿Estás seguro de que deseas eliminar esta oferta?", color = BolsaTokens.Palette.TextPrimary, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Esta acción no se puede deshacer.",
-                        color = BolsaTokens.Palette.TextSecondary,
-                        fontSize = 12.sp
-                    )
+                    Text("Esta acción no se puede deshacer.", color = BolsaTokens.Palette.TextSecondary, fontSize = 12.sp)
                 }
             },
             confirmButton = {
                 Button(
-                    onClick = {
-                        showDeleteDialog = false
-                        onEliminar()
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = BolsaTokens.Palette.Error,
-                        contentColor = Color.White
-                    ),
+                    onClick = { showDeleteDialog = false; onEliminar() },
+                    colors = ButtonDefaults.buttonColors(containerColor = BolsaTokens.Palette.Error, contentColor = Color.White),
                     shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        modifier = Modifier.size(18.dp),
-                        tint = Color.White
-                    )
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", modifier = Modifier.size(18.dp), tint = Color.White)
                     Spacer(modifier = Modifier.width(6.dp))
                     Text("Eliminar", fontWeight = FontWeight.Bold)
                 }
@@ -710,34 +558,20 @@ fun EmpresaJobCard(
     }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = Modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(BolsaTokens.Dimens.cardRadius),
         colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // Fila con icono, contenido y botón eliminar
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.Top
             ) {
-                // Icono y contenido principal
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(BackgroundGray),
+                        modifier = Modifier.size(54.dp).clip(RoundedCornerShape(12.dp)).background(BackgroundGray),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -753,33 +587,13 @@ fun EmpresaJobCard(
                             modifier = Modifier.size(28.dp)
                         )
                     }
-
                     Spacer(modifier = Modifier.width(16.dp))
-
                     Column {
-                        Text(
-                            text = oferta.titulo,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black,
-                            maxLines = 1
-                        )
-                        Text(
-                            text = oferta.area,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
-
+                        Text(text = oferta.titulo, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black, maxLines = 1)
+                        Text(text = oferta.area, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Surface(
-                                color = ChipHybridColor,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(color = ChipHybridColor, shape = RoundedCornerShape(8.dp)) {
                                 Text(
                                     text = if (oferta.modalidad.isNotBlank()) oferta.modalidad else "Presencial",
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -788,102 +602,45 @@ fun EmpresaJobCard(
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                            Text(
-                                text = "• $fechaPublicacionStr",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color.Gray
-                            )
+                            Text(text = "• $fechaPublicacionStr", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
                         }
-
                         Spacer(modifier = Modifier.height(8.dp))
-
-                        // Salario debajo de modalidad y fecha
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.AttachMoney,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = PriceColor
-                            )
+                            Icon(Icons.Default.AttachMoney, contentDescription = null, modifier = Modifier.size(16.dp), tint = PriceColor)
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "$${oferta.salario.toInt()} / mes",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = PriceColor
-                            )
+                            Text(text = "$${oferta.salario.toInt()} / mes", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = PriceColor)
                         }
                     }
                 }
-
-                // Botón de eliminar (solo ícono)
-                IconButton(
-                    onClick = { showDeleteDialog = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = "Eliminar",
-                        tint = BolsaTokens.Palette.Error,
-                        modifier = Modifier.size(20.dp)
-                    )
+                IconButton(onClick = { showDeleteDialog = true }, modifier = Modifier.size(32.dp)) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = BolsaTokens.Palette.Error, modifier = Modifier.size(20.dp))
                 }
             }
-
             Spacer(modifier = Modifier.height(12.dp))
-
-            // Botón de postulantes (ocupa todo el ancho)
             Surface(
                 color = if (postulantesCount > 0) BolsaTokens.Palette.PrimaryLight else BolsaTokens.Palette.Background,
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onVerPostulantes() }
+                modifier = Modifier.fillMaxWidth().clickable { onVerPostulantes() }
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (isLoadingCount) {
                             Box(modifier = Modifier.size(16.dp)) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(14.dp),
-                                    strokeWidth = 1.5.dp,
-                                    color = BlueGradientStart
-                                )
+                                CircularProgressIndicator(modifier = Modifier.size(14.dp), strokeWidth = 1.5.dp, color = BlueGradientStart)
                             }
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Cargando postulantes...",
-                                fontSize = 13.sp,
-                                color = Color.Gray
-                            )
+                            Text(text = "Cargando postulantes...", fontSize = 13.sp, color = Color.Gray)
                         } else {
-                            Icon(
-                                Icons.Default.People,
-                                contentDescription = "Postulantes",
-                                modifier = Modifier.size(20.dp),
-                                tint = BlueGradientStart
-                            )
+                            Icon(Icons.Default.People, contentDescription = "Postulantes", modifier = Modifier.size(20.dp), tint = BlueGradientStart)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "$postulantesCount postulante${if (postulantesCount != 1) "s" else ""}",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = BlueGradientStart
-                            )
+                            Text(text = "$postulantesCount postulante${if (postulantesCount != 1) "s" else ""}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = BlueGradientStart)
                         }
                     }
-                    Icon(
-                        Icons.Default.ChevronRight,
-                        contentDescription = "Ver postulantes",
-                        modifier = Modifier.size(20.dp),
-                        tint = BlueGradientStart
-                    )
+                    Icon(Icons.Default.ChevronRight, contentDescription = "Ver postulantes", modifier = Modifier.size(20.dp), tint = BlueGradientStart)
                 }
             }
         }
@@ -942,4 +699,11 @@ fun DrawerMenuItemEmpresa(
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewEmpresaHomeScreen() {
+    val navController = rememberNavController()
+    EmpresaHomeScreen(navController = navController)
 }

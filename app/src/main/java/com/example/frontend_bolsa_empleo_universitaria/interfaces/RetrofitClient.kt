@@ -3,6 +3,7 @@ package com.example.frontend_bolsa_empleo_universitaria.interfaces
 import android.content.Context
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.google.gson.GsonBuilder
+import okhttp3.ConnectionPool
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -32,7 +33,7 @@ object RetrofitClient {
     private val retrofit: Retrofit by lazy {
 
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = HttpLoggingInterceptor.Level.BASIC
         }
 
         val authInterceptor = okhttp3.Interceptor { chain ->
@@ -67,12 +68,14 @@ object RetrofitClient {
         }
 
         val okHttpClient = OkHttpClient.Builder()
+            .connectionPool(ConnectionPool(5, 5, TimeUnit.MINUTES))
             .addInterceptor(authInterceptor)
             .addInterceptor(contentTypeInterceptor)
             .addInterceptor(logging)
-            .connectTimeout(60, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .writeTimeout(60, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(25, TimeUnit.SECONDS)
+            .writeTimeout(25, TimeUnit.SECONDS)
+            .callTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
 

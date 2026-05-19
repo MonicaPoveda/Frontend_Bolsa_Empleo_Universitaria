@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.model.*
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaOutlinedFormField
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
@@ -83,9 +84,11 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                         .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
                 ) {
                     Column {
-                        Box(modifier = Modifier.size(56.dp).clip(CircleShape).background(Color.White.copy(0.2f)), contentAlignment = Alignment.Center) {
-                            Icon(Icons.Outlined.Shield, null, tint = Color.White, modifier = Modifier.size(28.dp))
-                        }
+                        UniEmpleoLogo(
+                            modifier = Modifier.size(64.dp),
+                            containerColor = Color.White.copy(0.2f),
+                            cornerRadius = 18.dp
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("Administrador", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Text(token.getUserEmail() ?: "admin@sistema.com", color = Color.White.copy(0.7f), fontSize = 13.sp)
@@ -93,12 +96,15 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                 }
 
                 Column(modifier = Modifier.padding(16.dp)) {
-                    AdminDrawerItem(Icons.Outlined.GridView, "Panel principal", selected = true) { scope.launch { drawerState.close() } }
+                    AdminDrawerItem(Icons.Outlined.GridView, "Inicio", selected = true) { scope.launch { drawerState.close() } }
                     AdminDrawerItem(Icons.Outlined.Business, "Empresas", badge = empresasAceptadas.size.toString()) { 
                         scope.launch { drawerState.close(); navController.navigate("admin_empresas") }
                     }
-                    AdminDrawerItem(Icons.Outlined.Description, "Solicitudes", badge = if(pendingCount > 0) "$pendingCount" else null) { 
+                    AdminDrawerItem(Icons.Outlined.Description, "Notificaciones", badge = if(pendingCount > 0) "$pendingCount" else null) { 
                         scope.launch { drawerState.close(); navController.navigate("notificaciones") }
+                    }
+                    AdminDrawerItem(Icons.Default.Info, "Sobre nosotros") {
+                        scope.launch { drawerState.close(); navController.navigate("sobre_nosotros") }
                     }
                 }
 

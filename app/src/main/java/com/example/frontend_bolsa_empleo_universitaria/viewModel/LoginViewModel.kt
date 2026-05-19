@@ -2,16 +2,16 @@ package com.example.frontend_bolsa_empleo_universitaria.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
+import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
-import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 sealed class LoginUiState {
     object Idle : LoginUiState()
@@ -32,23 +32,28 @@ class LoginViewModel(
 
     private var pollingJob: Job? = null
 
+    private companion object {
+        const val CREDENTIALS_ERROR = "Usuario o contraseña incorrecta. Por favor verifique sus datos."
+        const val CONNECTION_ERROR = "No se pudo conectar con el servidor. Intenta nuevamente en unos minutos."
+        const val TIMEOUT_ERROR = "El servidor tardó demasiado en responder. Intenta nuevamente."
+    }
+
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _uiState.value = LoginUiState.Loading
             try {
-                // 1. Intento como Usuario (Estudiantes y Admins)
                 val userResult = authRepository.login(email, password)
-                
+
                 if (userResult.isSuccess) {
                     val response = userResult.getOrNull()
                     response?.let {
                         val rolBackend = it.usuario.tipoUsuario
-                        val rolApp = when(rolBackend) {
+                        val rolApp = when (rolBackend) {
                             "ADMIN" -> "ADMIN"
                             "EMPR" -> "EMPRESA"
                             else -> "ESTUDIANTE"
                         }
-                        
+
                         tokenManager.saveToken(
                             token = it.token,
                             email = email,
@@ -67,8 +72,12 @@ class LoginViewModel(
 
                 val userError = userResult.exceptionOrNull()?.message ?: ""
 
-                // PASO PREVIO: Verificar si es una empresa pendiente ANTES de intentar el login de empresa
-                if (userError.contains("401") || userError.contains("403") || userError.contains("PENDIENTE") || userError.contains("RECHAZADA")){
+                if (
+                    userError.contains("401") ||
+                    userError.contains("403") ||
+                    userError.contains("PENDIENTE") ||
+                    userError.contains("RECHAZADA")
+                ) {
                     try {
                         val pendientesResponse = adminRepository.listarEmpresasPendientes()
                         if (pendientesResponse.isSuccessful) {
@@ -76,15 +85,14 @@ class LoginViewModel(
                             val esPendiente = listaPendientes?.any { it.email.equals(email, ignoreCase = true) } == true
 
                             if (esPendiente) {
-                                _uiState.value = LoginUiState.Error("⏳ Su solicitud de registro está en proceso de revisión por el administrador. Por favor, espere a ser aprobado.")
+                                _uiState.value = LoginUiState.Error("PENDIENTE: Su solicitud de registro está en proceso de revisión por el administrador. Por favor, espere a ser aprobado.")
                                 return@launch
                             }
                         }
                     } catch (e: Exception) {
-                        // Fallback silencioso si falla la red al listar pendientes
+                        // Si no se puede consultar el estado administrativo, continúa con el login de empresa.
                     }
 
-                    // 2. Intento como Empresa
                     val empresaResult = empresaRepository.login(email, password)
                     if (empresaResult.isSuccess) {
                         val response = empresaResult.getOrNull()
@@ -105,32 +113,24 @@ class LoginViewModel(
                         }
                     }
 
-                    // Manejo de errores de Empresa
                     val empresaError = empresaResult.exceptionOrNull()?.message ?: ""
-                    val finalError = when {
-                        empresaError.contains("TIMEOUT_ERROR") -> "❌ Tiempo de espera agotado. El servidor no responde."
-                        empresaError.contains("NETWORK_ERROR") -> "❌ Error de conexión. Revisa tu internet."
-                        empresaError.contains("PENDIENTE") || empresaError.contains("RECHAZADA") -> empresaError
-                        empresaError.isNotBlank() && !empresaError.contains("HTTP_ERROR") -> empresaError
-                        else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
-                    }
-                    _uiState.value = LoginUiState.Error(finalError)
-                    
+                    _uiState.value = LoginUiState.Error(loginErrorMessage(empresaError))
                 } else {
-                    // Manejo de errores de Usuario
-                    val finalError = when {
-                        userError.contains("TIMEOUT_ERROR") -> "❌ El servidor tardó demasiado en responder."
-                        userError.contains("NETWORK_ERROR") -> "❌ Error de conexión. No se pudo contactar con el servidor."
-                        userError.contains("PENDIENTE") || userError.contains("RECHAZADA") -> userError
-                        userError.isNotBlank() && !userError.contains("HTTP_ERROR") -> userError
-                        else -> "❌ Usuario o contraseña incorrectos. Por favor, verifique sus datos."
-                    }
-                    _uiState.value = LoginUiState.Error(finalError)
+                    _uiState.value = LoginUiState.Error(loginErrorMessage(userError))
                 }
-
             } catch (e: Exception) {
-                _uiState.value = LoginUiState.Error("Error inesperado: ${e.message}")
+                _uiState.value = LoginUiState.Error(CONNECTION_ERROR)
             }
+        }
+    }
+
+    private fun loginErrorMessage(error: String): String {
+        return when {
+            error.contains("TIMEOUT_ERROR", ignoreCase = true) -> TIMEOUT_ERROR
+            error.contains("NETWORK_ERROR", ignoreCase = true) -> CONNECTION_ERROR
+            error.contains("SERVER_ERROR", ignoreCase = true) || error.contains("HTTP_ERROR_5", ignoreCase = true) -> TIMEOUT_ERROR
+            error.contains("PENDIENTE", ignoreCase = true) || error.contains("RECHAZADA", ignoreCase = true) -> error
+            else -> CREDENTIALS_ERROR
         }
     }
 
@@ -139,14 +139,13 @@ class LoginViewModel(
 
         pollingJob = viewModelScope.launch {
             while (true) {
-                delay(5000) // Revisa cada 5 segundos (más corto como pediste)
+                delay(5000)
                 val userResult = authRepository.login(email, pass)
                 if (userResult.isSuccess) {
-                    login(email, pass) // Si ya no da error, hace el login completo
+                    login(email, pass)
                     break
                 } else {
                     val error = userResult.exceptionOrNull()?.message ?: ""
-                    // Si el error ya no es PENDIENTE (ej: ahora es RECHAZADA o SUCCESS), actualizamos
                     if (!error.contains("PENDIENTE", ignoreCase = true)) {
                         login(email, pass)
                         break

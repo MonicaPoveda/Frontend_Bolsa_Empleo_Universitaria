@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Palette
@@ -85,6 +86,7 @@ import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaEmptyS
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaFilterTextField
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaFilterToggleRow
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaPrimarySearchBar
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
@@ -166,20 +168,11 @@ fun EstudianteHomeScreen(
                         .padding(vertical = 28.dp, horizontal = 22.dp)
                 ) {
                     Column {
-                        Box(
-                            modifier = Modifier
-                                .size(68.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.22f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Person,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(38.dp)
-                            )
-                        }
+                        UniEmpleoLogo(
+                            modifier = Modifier.size(68.dp),
+                            containerColor = Color.White.copy(alpha = 0.22f),
+                            cornerRadius = 18.dp
+                        )
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(
                             text = nombreUsuario,
@@ -225,13 +218,26 @@ fun EstudianteHomeScreen(
 
                 DrawerMenuItemGmail(
                     icon = Icons.Default.Settings,
-                    text = "Configuración de la cuenta",
+                    text = "Configuración de cuenta",
                     badge = null,
                     selected = selectedDrawerItem == "configuracion"
                 ) {
                     selectedDrawerItem = "configuracion"
                     scope.launch { drawerState.close() }
                     navController.navigate("configuracion_cuenta")
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
+
+                DrawerMenuItemGmail(
+                    icon = Icons.Default.Info,
+                    text = "Sobre nosotros",
+                    badge = null,
+                    selected = selectedDrawerItem == "sobre_nosotros"
+                ) {
+                    selectedDrawerItem = "sobre_nosotros"
+                    scope.launch { drawerState.close() }
+                    navController.navigate("sobre_nosotros")
                 }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)

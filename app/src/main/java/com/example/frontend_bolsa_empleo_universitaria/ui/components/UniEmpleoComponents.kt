@@ -1,5 +1,6 @@
 package com.example.frontend_bolsa_empleo_universitaria.ui.components
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,13 +32,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.frontend_bolsa_empleo_universitaria.R
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 
 /** @deprecated Usar [BolsaTokens.Palette]; se mantiene por compatibilidad con imports existentes. */
@@ -64,6 +71,32 @@ object UniEmpleoDimens {
 }
 
 val UniEmpleoGradient: Brush get() = BolsaTokens.headerGradientVertical
+
+@Composable
+fun UniEmpleoLogo(
+    modifier: Modifier = Modifier,
+    containerColor: Color = Color.Transparent,
+    cornerRadius: Dp = 18.dp,
+    imageScale: Float = 1.22f
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(containerColor)
+            .padding(2.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+            contentDescription = "UNIEMPLEO",
+            modifier = Modifier
+                .fillMaxWidth()
+                .scale(imageScale)
+                .alpha(0.96f),
+            contentScale = ContentScale.Crop
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

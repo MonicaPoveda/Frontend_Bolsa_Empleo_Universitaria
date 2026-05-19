@@ -28,6 +28,7 @@ import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepositor
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
@@ -150,15 +151,11 @@ fun LoginScreen(navController: NavController) {
                         .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        modifier = Modifier.size(72.dp),
-                        shape = RoundedCornerShape(22.dp),
-                        color = BolsaTokens.Palette.Primary.copy(alpha = 0.12f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.School, null, tint = BolsaTokens.Palette.Primary, modifier = Modifier.size(40.dp))
-                        }
-                    }
+                    UniEmpleoLogo(
+                        modifier = Modifier.size(78.dp),
+                        containerColor = BolsaTokens.Palette.Primary.copy(alpha = 0.10f),
+                        cornerRadius = 22.dp
+                    )
                     
                     Spacer(modifier = Modifier.height(14.dp))
                     

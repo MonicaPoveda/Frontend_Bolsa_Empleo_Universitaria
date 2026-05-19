@@ -49,6 +49,7 @@ import com.example.frontend_bolsa_empleo_universitaria.screens.Empresa.*
 import com.example.frontend_bolsa_empleo_universitaria.screens.Estudiante.*
 import com.example.frontend_bolsa_empleo_universitaria.screens.Login.LoginScreen
 import com.example.frontend_bolsa_empleo_universitaria.screens.Login.SplashScreen
+import com.example.frontend_bolsa_empleo_universitaria.screens.SobreNosotrosScreen
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.Frontend_Bolsa_Empleo_UniversitariaTheme
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.*
@@ -204,5 +205,6 @@ fun AppNavigation() {
         composable("mis_postulaciones") { MisPostulacionesScreen(navController = navController) }
         composable("mi_perfil") { MiPerfilScreen(navController = navController) }
         composable("configuracion_cuenta") { ConfiguracionCuentaScreen(navController = navController) }
+        composable("sobre_nosotros") { SobreNosotrosScreen(navController = navController) }
     }
 }

@@ -9,7 +9,7 @@ interface EmpresaApi {
     // ==================== AUTENTICACIÓN ====================
 
     @POST("api/empresas/login")
-    suspend fun login(@Body request: LoginRequest): LoginResponseEmpresa
+    suspend fun login(@Body request: LoginRequest): Response<LoginResponseEmpresa>
 
 
     // ==================== REGISTRO ====================

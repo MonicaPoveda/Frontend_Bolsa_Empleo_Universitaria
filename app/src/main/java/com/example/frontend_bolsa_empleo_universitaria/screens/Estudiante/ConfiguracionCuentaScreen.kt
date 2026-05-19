@@ -96,7 +96,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Configuración de Cuenta", fontWeight = FontWeight.Bold) },
+                title = { Text("Configuración de cuenta", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
@@ -166,7 +166,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                         OutlinedTextField(
                             value = password,
                             onValueChange = { password = it },
-                            label = { Text("Nueva Contraseña (opcional)") },
+                            label = { Text("Nueva contraseña (opcional)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -193,7 +193,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                             OutlinedTextField(
                                 value = confirmPassword,
                                 onValueChange = { confirmPassword = it },
-                                label = { Text("Confirmar Contraseña") },
+                                label = { Text("Confirmar contraseña") },
                                 modifier = Modifier.fillMaxWidth(),
                                 singleLine = true,
                                 visualTransformation = if (mostrarPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -244,7 +244,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                 readOnly = true,
                                 label = { Text("Semestre") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedSemestre) },
-                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                             )
                             DropdownMenu(
                                 expanded = expandedSemestre,
@@ -274,7 +274,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                         OutlinedTextField(
                             value = habilidadActual,
                             onValueChange = { habilidadActual = it },
-                            label = { Text("Agregar Habilidades (Enter para añadir)") },
+                            label = { Text("Agregar habilidades (Enter para añadir)") },
                             modifier = Modifier.fillMaxWidth(),
                             singleLine = true,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Done),
@@ -344,7 +344,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                 readOnly = true,
                                 label = { Text("Disponibilidad") },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                modifier = Modifier.fillMaxWidth().menuAnchor()
+                                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, true)
                             )
                             DropdownMenu(
                                 expanded = expanded,
@@ -453,7 +453,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                             perfilActualizado,
                                             onSuccess = {
                                                 scope.launch {
-                                                    successMessage = "Perfil actualizado exitosamente"
+                                                    successMessage = "Perfil actualizado correctamente"
                                                     errorMessage = null
                                                     // ✅ Actualizar token con todos los campos (incluido teléfono)
                                                     tokenManager.saveToken(
@@ -511,7 +511,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     enabled = !isLoadingSave && !isLoadingViewModel
                 ) {
                     if (isLoadingSave) CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
-                    else Text("Guardar Cambios", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    else Text("Guardar cambios", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }

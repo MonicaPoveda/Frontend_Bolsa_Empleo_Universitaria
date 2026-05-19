@@ -49,7 +49,7 @@ fun BolsaPrimarySearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Buscar ofertas, palabras clave…",
+    placeholder: String = "Buscar ofertas o palabras clave...",
     onSearch: () -> Unit = {}
 ) {
     OutlinedTextField(

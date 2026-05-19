@@ -10,7 +10,7 @@ interface UsuarioApi {
     // ==================== AUTENTICACIÓN ====================
 
     @POST("api/usuarios/login")
-    suspend fun login(@Body request: LoginRequest): LoginResponse
+    suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
     @POST("api/usuarios/recuperar-password")
     suspend fun recuperarPassword(@Query("email") email: String): Response<RecuperarPassResponse>

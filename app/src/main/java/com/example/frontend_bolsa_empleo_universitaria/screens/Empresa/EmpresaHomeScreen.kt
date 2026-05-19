@@ -10,6 +10,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -30,6 +32,7 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
@@ -141,20 +144,11 @@ fun EmpresaHomeScreen(
                         .padding(vertical = 28.dp, horizontal = 20.dp)
                 ) {
                     Column {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.3f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Business,
-                                contentDescription = "Avatar",
-                                tint = Color.White,
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
+                        UniEmpleoLogo(
+                            modifier = Modifier.size(64.dp),
+                            containerColor = Color.White.copy(alpha = 0.3f),
+                            cornerRadius = 18.dp
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = nombreEmpresa,
@@ -173,7 +167,7 @@ fun EmpresaHomeScreen(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "MENÚ",
+                    text = "Menú",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -194,7 +188,7 @@ fun EmpresaHomeScreen(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
 
                 Text(
-                    text = "CUENTA",
+                    text = "Cuenta",
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -203,7 +197,7 @@ fun EmpresaHomeScreen(
 
                 DrawerMenuItemEmpresa(
                     icon = Icons.Default.Settings,
-                    text = "Configuración de Cuenta",
+                    text = "Configuración de cuenta",
                     badge = null,
                     selected = selectedDrawerItem == "configuracion"
                 ) {
@@ -215,8 +209,21 @@ fun EmpresaHomeScreen(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
 
                 DrawerMenuItemEmpresa(
-                    icon = Icons.Default.Logout,
-                    text = "Cerrar Sesión",
+                    icon = Icons.Default.Info,
+                    text = "Sobre nosotros",
+                    badge = null,
+                    selected = selectedDrawerItem == "sobre_nosotros"
+                ) {
+                    selectedDrawerItem = "sobre_nosotros"
+                    scope.launch { drawerState.close() }
+                    navController.navigate("sobre_nosotros")
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = BolsaTokens.Palette.Divider)
+
+                DrawerMenuItemEmpresa(
+                    icon = Icons.AutoMirrored.Filled.Logout,
+                    text = "Cerrar sesión",
                     badge = null,
                     iconTint = BolsaTokens.Palette.Error,
                     textColor = BolsaTokens.Palette.Error,
@@ -393,12 +400,10 @@ fun EmpresaOfertasScreen(
                                 .background(Color.White.copy(alpha = 0.2f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.Business,
-                                contentDescription = "Empresa",
-                                tint = Color.White,
-                                modifier = Modifier.size(50.dp)
+                            UniEmpleoLogo(
+                                modifier = Modifier.size(64.dp),
+                                containerColor = Color.White.copy(alpha = 0.18f),
+                                cornerRadius = 18.dp
                             )
                         }
 
@@ -744,7 +749,7 @@ fun EmpresaJobCard(
                             imageVector = when (oferta.area.lowercase()) {
                                 "diseño" -> Icons.Default.Palette
                                 "desarrollo", "ti" -> Icons.Default.Code
-                                "ventas" -> Icons.Default.TrendingUp
+                                "ventas" -> Icons.AutoMirrored.Filled.TrendingUp
                                 "marketing" -> Icons.Default.Campaign
                                 else -> Icons.Default.Business
                             },

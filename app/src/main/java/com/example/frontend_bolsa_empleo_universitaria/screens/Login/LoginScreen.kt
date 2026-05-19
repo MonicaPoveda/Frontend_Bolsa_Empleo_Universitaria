@@ -1,14 +1,53 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Login
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.ErrorOutline
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -19,8 +58,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
@@ -28,10 +65,11 @@ import com.example.frontend_bolsa_empleo_universitaria.repository.AdminRepositor
 import com.example.frontend_bolsa_empleo_universitaria.repository.AuthRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
-import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginUiState
+import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModelFactory
 
 @Composable
@@ -87,11 +125,13 @@ fun LoginScreen(navController: NavController) {
                 }
             }
             is LoginUiState.Error -> {
-                val rawError = (uiState as LoginUiState.Error).message
-                val cleanError = rawError.replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "").removeSurrounding("\"").trim()
+                val cleanError = (uiState as LoginUiState.Error).message
+                    .replace(Regex("\\d{3}\\s+[A-Z]+\\s*"), "")
+                    .removeSurrounding("\"")
+                    .trim()
                 errorMessage = cleanError
 
-                if (cleanError.contains("PENDIENTE", ignoreCase = true)) {
+                if (cleanError.contains("PENDIENTE", ignoreCase = true) || cleanError.contains("revisión", ignoreCase = true)) {
                     empresaStatusInfo = EmpresaStatusInfo(email = email, mensaje = cleanError)
                     showEmpresaPendienteDialog = true
                     viewModel.startStatusPolling(email, password)
@@ -150,18 +190,14 @@ fun LoginScreen(navController: NavController) {
                         .padding(32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Surface(
-                        modifier = Modifier.size(72.dp),
-                        shape = RoundedCornerShape(22.dp),
-                        color = BolsaTokens.Palette.Primary.copy(alpha = 0.12f)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.School, null, tint = BolsaTokens.Palette.Primary, modifier = Modifier.size(40.dp))
-                        }
-                    }
-                    
+                    UniEmpleoLogo(
+                        modifier = Modifier.size(78.dp),
+                        containerColor = BolsaTokens.Palette.Primary.copy(alpha = 0.10f),
+                        cornerRadius = 22.dp
+                    )
+
                     Spacer(modifier = Modifier.height(14.dp))
-                    
+
                     Text(
                         "UNIEMPLEO",
                         style = MaterialTheme.typography.headlineLarge,
@@ -174,9 +210,9 @@ fun LoginScreen(navController: NavController) {
                         color = Color.Gray,
                         textAlign = TextAlign.Center
                     )
-                    
+
                     Spacer(modifier = Modifier.height(24.dp))
-                    
+
                     errorMessage?.let {
                         Card(
                             colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.Error.copy(0.05f)),
@@ -189,18 +225,18 @@ fun LoginScreen(navController: NavController) {
                             }
                         }
                     }
-                    
+
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it; errorMessage = null },
-                        label = { Text("Email") },
+                        label = { Text("Correo electrónico") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         leadingIcon = { Icon(Icons.Default.Email, null) }
                     )
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it; errorMessage = null },
@@ -215,16 +251,16 @@ fun LoginScreen(navController: NavController) {
                             }
                         }
                     )
-                    
+
                     TextButton(
                         onClick = { showRecoverDialog = true },
                         modifier = Modifier.align(Alignment.End)
                     ) {
                         Text("¿Olvidaste tu contraseña?")
                     }
-                    
+
                     Spacer(modifier = Modifier.height(16.dp))
-                    
+
                     Button(
                         onClick = { viewModel.login(email, password) },
                         modifier = Modifier.fillMaxWidth().height(54.dp),
@@ -236,18 +272,18 @@ fun LoginScreen(navController: NavController) {
                             Text("Ingresar")
                         }
                     }
-                    
+
                     Spacer(modifier = Modifier.height(24.dp))
-                    
+
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                    
+
                     Text(
                         "¿No tienes una cuenta?",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray,
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
-                    
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -282,7 +318,7 @@ fun EmpresaRechazadaDialog(info: EmpresaStatusInfo, onDismiss: () -> Unit, onNav
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFDC2626), modifier = Modifier.size(48.dp)) },
-        title = { Text("Solicitud Rechazada", fontWeight = FontWeight.Bold) },
+        title = { Text("Solicitud rechazada", fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 Text("Tu registro no ha sido aprobado por el administrador.")
@@ -295,7 +331,7 @@ fun EmpresaRechazadaDialog(info: EmpresaStatusInfo, onDismiss: () -> Unit, onNav
                 Text("Haz clic abajo para completar los documentos solicitados.")
             }
         },
-        confirmButton = { Button(onClick = onNavigateToRegistro) { Text("Corregir y Reenviar") } },
+        confirmButton = { Button(onClick = onNavigateToRegistro) { Text("Corregir y reenviar") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } }
     )
 }
@@ -307,15 +343,15 @@ fun EmpresaPendienteDialog(info: EmpresaPendienteInfo, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Schedule, null, tint = Color(0xFFB45309), modifier = Modifier.size(48.dp)) },
-        title = { Text("Solicitud en Revisión", fontWeight = FontWeight.Bold) },
+        title = { Text("Solicitud en revisión", fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 Text("Tu solicitud de registro está siendo analizada por el administrador.")
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)), modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("📧 Correo: ${info.email}", style = MaterialTheme.typography.bodySmall)
-                        Text("📊 Estado: PENDIENTE", color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
+                        Text("Correo: ${info.email}", style = MaterialTheme.typography.bodySmall)
+                        Text("Estado: Pendiente", color = Color(0xFFB45309), fontWeight = FontWeight.Bold)
                     }
                 }
                 Spacer(modifier = Modifier.height(12.dp))
@@ -331,7 +367,7 @@ fun RecoverPasswordDialog(onDismiss: () -> Unit, snackbarHostState: SnackbarHost
     var email by remember { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Recuperar Contraseña") },
+        title = { Text("Recuperar contraseña") },
         text = {
             Column {
                 Text("Ingresa tu correo para recibir instrucciones de recuperación.")
@@ -339,17 +375,17 @@ fun RecoverPasswordDialog(onDismiss: () -> Unit, snackbarHostState: SnackbarHost
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
+                    label = { Text("Correo electrónico") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
             }
         },
-        confirmButton = { 
-            Button(onClick = onDismiss, enabled = email.isNotBlank()) { Text("Enviar") } 
+        confirmButton = {
+            Button(onClick = onDismiss, enabled = email.isNotBlank()) { Text("Enviar") }
         },
-        dismissButton = { 
-            TextButton(onClick = onDismiss) { Text("Cancelar") } 
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
         }
     )
 }

@@ -1,11 +1,14 @@
 package com.example.frontend_bolsa_empleo_universitaria.repository
 
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.EmpresaApi
-import com.example.frontend_bolsa_empleo_universitaria.model.*
+import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaDto
+import com.example.frontend_bolsa_empleo_universitaria.model.LoginRequest
+import com.example.frontend_bolsa_empleo_universitaria.model.LoginResponseEmpresa
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 import java.net.SocketTimeoutException
 
@@ -13,36 +16,58 @@ class EmpresaRepository(
     private val empresaApi: EmpresaApi
 ) {
 
-    // Login de empresa
     suspend fun login(email: String, password: String): Result<LoginResponseEmpresa> {
-        return login(LoginRequest(email, password))
+        return login(LoginRequest(email.trim(), password))
     }
 
     suspend fun login(loginRequest: LoginRequest): Result<LoginResponseEmpresa> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = empresaApi.login(loginRequest)
-                Result.success(response)
+                if (response.isSuccessful) {
+                    response.body()?.let { Result.success(it) }
+                        ?: Result.failure(Exception("EMPTY_RESPONSE"))
+                } else {
+                    Result.failure(Exception(parseHttpError(response)))
+                }
             } catch (e: SocketTimeoutException) {
-                Result.failure(Exception("TIMEOUT_ERROR: El servidor tardó demasiado en responder."))
+                Result.failure(Exception("TIMEOUT_ERROR"))
             } catch (e: IOException) {
                 Result.failure(Exception("NETWORK_ERROR: ${e.message}"))
             } catch (e: HttpException) {
-                val errorBody = e.response()?.errorBody()?.string()
-                val errorMessage = try {
-                    val json = JSONObject(errorBody ?: "{}")
-                    json.optString("message", "HTTP_ERROR_${e.code()}")
-                } catch (ex: Exception) {
-                    "HTTP_ERROR_${e.code()}: ${e.message()}"
-                }
-                Result.failure(Exception(errorMessage))
+                Result.failure(Exception(httpExceptionCode(e)))
             } catch (e: Exception) {
                 Result.failure(Exception("UNKNOWN_ERROR: ${e.message}"))
             }
         }
     }
 
-    // Listar todas las empresas
+    suspend fun existeEmail(email: String): Result<Boolean> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = empresaApi.listar()
+                when {
+                    response.isSuccessful -> {
+                        val exists = response.body()
+                            ?.any { it.email.equals(email.trim(), ignoreCase = true) }
+                            ?: false
+                        Result.success(exists)
+                    }
+                    response.code() == 404 -> Result.success(false)
+                    response.code() == 401 || response.code() == 403 -> Result.failure(Exception("LOOKUP_UNAVAILABLE_${response.code()}"))
+                    response.code() in 500..599 -> Result.failure(Exception("SERVER_ERROR_${response.code()}"))
+                    else -> Result.success(false)
+                }
+            } catch (e: SocketTimeoutException) {
+                Result.failure(Exception("TIMEOUT_ERROR"))
+            } catch (e: IOException) {
+                Result.failure(Exception("NETWORK_ERROR: ${e.message}"))
+            } catch (e: Exception) {
+                Result.failure(Exception("UNKNOWN_ERROR: ${e.message}"))
+            }
+        }
+    }
+
     suspend fun listarEmpresas(): List<EmpresaDto> {
         return withContext(Dispatchers.IO) {
             try {
@@ -60,7 +85,6 @@ class EmpresaRepository(
         }
     }
 
-    // Guardar nueva empresa (registro directo)
     suspend fun guardarEmpresa(empresa: EmpresaDto): EmpresaDto? {
         return withContext(Dispatchers.IO) {
             try {
@@ -78,7 +102,6 @@ class EmpresaRepository(
         }
     }
 
-    // Actualizar empresa
     suspend fun actualizarEmpresa(id: Long, empresa: EmpresaDto): EmpresaDto? {
         return withContext(Dispatchers.IO) {
             try {
@@ -96,7 +119,6 @@ class EmpresaRepository(
         }
     }
 
-    // Eliminar empresa
     suspend fun eliminarEmpresa(id: Long): Boolean {
         return withContext(Dispatchers.IO) {
             try {
@@ -109,7 +131,6 @@ class EmpresaRepository(
         }
     }
 
-    // Listar top empresas (con más ofertas)
     suspend fun listarTopEmpresas(): List<EmpresaDto> {
         return withContext(Dispatchers.IO) {
             try {
@@ -127,20 +148,43 @@ class EmpresaRepository(
         }
     }
 
-    // Obtener empresa por email (filtro local)
     suspend fun getEmpresaByEmail(email: String): EmpresaDto? {
         val empresas = listarEmpresas()
-        return empresas.find { it.email == email }
+        return empresas.find { it.email.equals(email, ignoreCase = true) }
     }
 
-    // Obtener empresa por ID (filtro local)
     suspend fun getEmpresaById(id: Long): EmpresaDto? {
         val empresas = listarEmpresas()
         return empresas.find { it.idEmpresa == id }
     }
 
-    // Obtener nombre de empresa por ID
     suspend fun getNombreEmpresa(idEmpresa: Long): String {
         return getEmpresaById(idEmpresa)?.nombre ?: "Empresa no disponible"
+    }
+
+    private fun parseHttpError(response: Response<*>): String {
+        val code = response.code()
+        val fallback = "HTTP_ERROR_$code"
+        val message = try {
+            val errorBody = response.errorBody()?.string()
+            val json = JSONObject(errorBody ?: "{}")
+            json.optString("message", fallback).ifBlank { fallback }
+        } catch (ex: Exception) {
+            fallback
+        }
+
+        return when (code) {
+            401, 403, 404 -> "INVALID_CREDENTIALS_$code"
+            in 500..599 -> "SERVER_ERROR_$code: $message"
+            else -> "$fallback: $message"
+        }
+    }
+
+    private fun httpExceptionCode(e: HttpException): String {
+        return when (e.code()) {
+            401, 403, 404 -> "INVALID_CREDENTIALS_${e.code()}"
+            in 500..599 -> "SERVER_ERROR_${e.code()}"
+            else -> "HTTP_ERROR_${e.code()}"
+        }
     }
 }

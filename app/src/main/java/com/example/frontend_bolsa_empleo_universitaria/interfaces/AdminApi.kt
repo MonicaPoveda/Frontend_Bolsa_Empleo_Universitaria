@@ -21,7 +21,6 @@ interface AdminApi {
         @Query("mensaje") mensaje: String? = null
     ): Response<Void>
 
-    // ✅ Nuevo: Endpoint de eliminación para el 3er rechazo (según tu Swagger)
     @DELETE("api/empresas-pendientes/{id}")
     suspend fun eliminarSolicitud(@Path("id") id: Long): Response<Void>
 
@@ -37,15 +36,4 @@ interface AdminApi {
 
     @GET("api/postulaciones/oferta/{idOferta}")
     suspend fun listarPostulacionesPorOferta(@Path("idOferta") idOferta: Long): Response<List<PostulacionDto>>
-
-    // En tu interfaz EmpresaApi (o donde tengas los endpoints)
-
-    @GET("api/empresas-pendientes/listar")
-    suspend fun listarSolicitudesPendientes(): Response<List<SolicitudRegistroEmpresa>>
-
-    @PUT("api/empresas-pendientes/actualizar")
-    suspend fun actualizarSolicitud(@Body solicitud: SolicitudRegistroEmpresa): Response<Void>
-
-
-
 }

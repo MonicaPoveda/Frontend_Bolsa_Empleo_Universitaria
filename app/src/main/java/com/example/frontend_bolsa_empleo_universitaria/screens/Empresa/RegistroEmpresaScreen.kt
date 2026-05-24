@@ -1,5 +1,6 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Empresa
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -105,7 +106,7 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
         }
     }
 
-  fun persistDraft() {
+    fun persistDraft() {
         if (email.isBlank()) return
         solicitudCache.save(
             EmpresaSolicitudDraft(
@@ -147,10 +148,7 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
         }
     ) { padding ->
         if (isLoading || !cacheLoaded) {
-            Box(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(color = BolsaTokens.Palette.Primary)
                     Spacer(modifier = Modifier.height(12.dp))
@@ -167,118 +165,55 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 StepIndicator(step = 1, active = pasoActual >= 1)
-                Box(
-                    modifier = Modifier
-                        .width(40.dp)
-                        .height(2.dp)
-                        .background(if (pasoActual == 2) BolsaTokens.Palette.Primary else Color.LightGray)
-                )
+                Box(modifier = Modifier.width(40.dp).height(2.dp).background(if (pasoActual == 2) BolsaTokens.Palette.Primary else Color.LightGray))
                 StepIndicator(step = 2, active = pasoActual == 2)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            if (esModoEdicion && sinDatosLocales) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                ) {
-                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, null, tint = Color(0xFFB45309))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            "No encontramos un borrador local. Completa los datos de perfil para reenviar tu solicitud.",
-                            fontSize = 13.sp,
-                            color = Color(0xFF92400E)
-                        )
-                    }
-                }
-            }
-
-            if (esModoEdicion) {
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("Solicitud rechazada", fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            "Puedes corregir los datos de texto y reenviar. Los archivos (foto/documentos) estarán disponibles cuando tu cuenta sea aprobada.",
-                            fontSize = 13.sp,
-                            color = Color(0xFF991B1B)
-                        )
-                    }
-                }
-            }
-
             if (pasoActual == 1) {
-                Text(
-                    text = if (esModoEdicion) "Corregir solicitud de registro" else "Crea tu cuenta empresarial",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                if (esModoEdicion) {
-                    Text(
-                        "El correo y la contraseña no se modifican. Puedes actualizar el nombre y los datos del perfil en el siguiente paso.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
+                Text(text = if (esModoEdicion) "Corregir solicitud de registro" else "Crea tu cuenta empresarial", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(24.dp))
 
                 BolsaOutlinedFormField(
                     value = nombre,
                     onValueChange = { nombre = it },
                     label = "Nombre de la empresa",
-                    isError = nombre.length < 3,
-                    supportingText = if (nombre.length < 3) {
-                        { Text("Mínimo 3 caracteres", color = BolsaTokens.Palette.Error) }
+                    isError = nombre.isBlank(),
+                    supportingText = if (nombre.isBlank()) {
+                        { Text("El nombre es obligatorio", color = BolsaTokens.Palette.Error) }
                     } else null,
                     leadingIcon = { Icon(Icons.Default.Business, null, tint = BolsaTokens.Palette.Primary) }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                val emailErr = if (esModoEdicion) null else validarEmail(email)
                 BolsaOutlinedFormField(
                     value = email,
-                    onValueChange = { if (!esModoEdicion) email = it.lowercase() },
+                    onValueChange = { email = it },
                     label = "Correo corporativo",
                     enabled = !esModoEdicion,
-                    isError = emailErr != null,
-                    supportingText = if (emailErr != null) {
-                        { Text(emailErr, color = BolsaTokens.Palette.Error) }
-                    } else null,
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Email,
-                            null,
-                            tint = if (esModoEdicion) Color.Gray else BolsaTokens.Palette.Primary
-                        )
-                    }
+                    isError = validarEmail(email) != null,
+                    supportingText = validarEmail(email)?.let {
+                        { Text(it, color = BolsaTokens.Palette.Error) }
+                    },
+                    leadingIcon = { Icon(Icons.Default.Email, null, tint = BolsaTokens.Palette.Primary) }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 if (!esModoEdicion) {
-                    val passErr = validarPassword(password)
                     BolsaOutlinedFormField(
                         value = password,
                         onValueChange = { password = it },
                         label = "Contraseña",
+                        isError = validarPassword(password) != null,
+                        supportingText = validarPassword(password)?.let {
+                            { Text(it, color = BolsaTokens.Palette.Error) }
+                        },
                         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        isError = passErr != null,
-                        supportingText = if (passErr != null) {
-                            { Text(passErr, color = BolsaTokens.Palette.Error) }
-                        } else null,
                         leadingIcon = { Icon(Icons.Default.Lock, null, tint = BolsaTokens.Palette.Primary) },
                         trailingIcon = {
                             IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
@@ -300,134 +235,49 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         leadingIcon = { Icon(Icons.Default.LockClock, null, tint = BolsaTokens.Palette.Primary) }
                     )
-                } else {
-                    BolsaOutlinedFormField(
-                        value = "********",
-                        onValueChange = {},
-                        label = "Contraseña",
-                        enabled = false,
-                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color.Gray) }
-                    )
                 }
-
                 Spacer(modifier = Modifier.height(32.dp))
-                Button(
-                    onClick = {
-                        persistDraft()
-                        pasoActual = 2
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                    shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius),
-                    enabled = if (esModoEdicion) {
-                        nombre.length >= 3
-                    } else {
-                        nombre.length >= 3 &&
-                            validarEmail(email) == null &&
-                            validarPassword(password) == null &&
-                            password == confirmPassword
-                    }
-                ) {
+                Button(onClick = { persistDraft(); pasoActual = 2 }, modifier = Modifier.fillMaxWidth().height(56.dp), shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius), enabled = if (esModoEdicion) nombre.length >= 3 else nombre.length >= 3 && validarEmail(email) == null && validarPassword(password) == null && password == confirmPassword) {
                     Text("Siguiente: Datos de perfil", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     Icon(Icons.Default.ChevronRight, null)
                 }
             } else {
                 Text("Completa el perfil de la empresa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 Spacer(modifier = Modifier.height(24.dp))
-
-                BolsaOutlinedFormField(
-                    value = sector,
-                    onValueChange = { sector = it },
-                    label = "Sector económico",
-                    placeholder = "Ej: Tecnología, Salud...",
-                    isError = sector.length < 3,
-                    supportingText = if (sector.length < 3) {
-                        { Text("Mínimo 3 caracteres", color = BolsaTokens.Palette.Error) }
-                    } else null,
-                    leadingIcon = { Icon(Icons.Default.Category, null, tint = BolsaTokens.Palette.Primary) }
-                )
-
+                BolsaOutlinedFormField(value = sector, onValueChange = { sector = it }, label = "Sector económico")
                 Spacer(modifier = Modifier.height(16.dp))
-
-                BolsaOutlinedFormField(
-                    value = telefono,
-                    onValueChange = { if (it.length <= 10) telefono = it.filter { c -> c.isDigit() } },
-                    label = "Teléfono de contacto",
-                    placeholder = "10 dígitos",
-                    isError = telefono.length != 10,
-                    supportingText = if (telefono.length != 10) {
-                        { Text("Deben ser 10 dígitos", color = BolsaTokens.Palette.Error) }
-                    } else null,
-                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = BolsaTokens.Palette.Primary) }
-                )
-
+                BolsaOutlinedFormField(value = telefono, onValueChange = { if (it.length <= 10) telefono = it.filter { c -> c.isDigit() } }, label = "Teléfono")
                 Spacer(modifier = Modifier.height(16.dp))
-
-                BolsaOutlinedFormField(
-                    value = ciudad,
-                    onValueChange = { ciudad = it },
-                    label = "Ciudad / Ubicación",
-                    isError = ciudad.length < 3,
-                    supportingText = if (ciudad.length < 3) {
-                        { Text("Mínimo 3 caracteres", color = BolsaTokens.Palette.Error) }
-                    } else null,
-                    leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = BolsaTokens.Palette.Primary) }
-                )
-
+                BolsaOutlinedFormField(value = ciudad, onValueChange = { ciudad = it }, label = "Ciudad")
                 Spacer(modifier = Modifier.height(16.dp))
-
-                BolsaOutlinedFormField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = "Descripción de la empresa",
-                    placeholder = "Mínimo 20 caracteres sobre tu empresa...",
-                    singleLine = false,
-                    modifier = Modifier.height(120.dp),
-                    isError = descripcion.length < 20,
-                    supportingText = if (descripcion.length < 20) {
-                        { Text("${descripcion.length}/20 caracteres mínimos", color = BolsaTokens.Palette.Error) }
-                    } else null
-                )
-
+                BolsaOutlinedFormField(value = descripcion, onValueChange = { descripcion = it }, label = "Descripción", singleLine = false, modifier = Modifier.height(120.dp))
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Sección de Documentos - Solo disponible si ya hay un ID (Registro inicial exitoso o modo edición)
                 if (idEmpresaPendiente != null) {
                     EmpresaDocumentSection(
                         editable = true,
-                        hasDocument = false, // Podríamos consultar el estado si fuera necesario
+                        hasDocument = false,
                         onUpload = { uri, isReplace ->
-                            archivoRepository.subirDocumentoEmpresa(idEmpresaPendiente!!, uri, isReplace)
+                            val result = archivoRepository.subirDocumentoEmpresaPendiente(idEmpresaPendiente!!, uri, isReplace)
+                            if (result.isSuccess) showSuccess = true
+                            result
                         },
-                        onViewDocument = {
-                            archivoRepository.descargarYAbrirDocumentoEmpresa(idEmpresaPendiente!!)
-                        }
+                        onViewDocument = { archivoRepository.descargarYAbrirDocumentoEmpresaPendiente(idEmpresaPendiente!!) }
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 } else {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.PrimaryLight.copy(alpha = 0.1f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+                    Card(colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.PrimaryLight.copy(alpha = 0.1f)), modifier = Modifier.fillMaxWidth()) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Info, null, tint = BolsaTokens.Palette.Primary)
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Podrás subir el documento PDF después de enviar la solicitud por primera vez.",
-                                fontSize = 12.sp,
-                                color = BolsaTokens.Palette.Primary
-                            )
+                            Text("Primero registra tus datos para habilitar la subida del PDF.", fontSize = 12.sp, color = BolsaTokens.Palette.Primary)
                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
                 if (showError) {
-                    Text(
-                        errorMessage,
-                        color = BolsaTokens.Palette.Error,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    Text(errorMessage, color = BolsaTokens.Palette.Error, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -438,50 +288,28 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                         scope.launch {
                             try {
                                 persistDraft()
-                                val request = SolicitudRegistroEmpresa(
-                                    idEmpresaPendiente = idEmpresaPendiente,
-                                    nombre = nombre.trim(),
-                                    email = email.trim().lowercase(),
-                                    password = if (esModoEdicion) null else password,
-                                    sector = sector.trim(),
-                                    telefono = telefono.trim(),
-                                    ciudad = ciudad.trim(),
-                                    descripcion = descripcion.trim()
-                                )
+                                val request = SolicitudRegistroEmpresa(idEmpresaPendiente = idEmpresaPendiente, nombre = nombre.trim(), email = email.trim().lowercase(), password = if (esModoEdicion) null else password, sector = sector.trim(), telefono = telefono.trim(), ciudad = ciudad.trim(), descripcion = descripcion.trim())
                                 val response = RetrofitClient.empresaApi.enviarSolicitudEmpresa(request)
                                 if (response.isSuccessful) {
                                     val body = response.body()
                                     idEmpresaPendiente = body?.idEmpresaPendiente ?: idEmpresaPendiente
                                     persistDraft()
-                                    showSuccess = true
                                 } else {
                                     errorMessage = HttpErrorParser.fromResponse(response)
                                     showError = true
                                 }
-                            } catch (e: Exception) {
-                                errorMessage = "Error de conexión: ${e.message ?: "Intenta más tarde"}"
-                                showError = true
-                            } finally {
-                                isLoading = false
-                            }
+                            } catch (e: Exception) { errorMessage = "Error de conexión: ${e.message ?: "Intenta más tarde"}"; showError = true }
+                            finally { isLoading = false }
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(56.dp),
-                    enabled = !isLoading &&
-                        sector.length >= 3 &&
-                        telefono.length == 10 &&
-                        ciudad.length >= 3 &&
-                        descripcion.length >= 20,
+                    enabled = !isLoading && sector.length >= 3 && telefono.length == 10 && ciudad.length >= 3 && descripcion.length >= 20,
                     shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius)
                 ) {
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
-                        Text(
-                            if (esModoEdicion) "Reenviar solicitud corregida" else "Enviar solicitud de registro",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(if (idEmpresaPendiente != null) "Actualizar Información" else "Enviar Solicitud", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -490,21 +318,9 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
         if (showSuccess) {
             AlertDialog(
                 onDismissRequest = { navController.navigate("login") { popUpTo("login") { inclusive = true } } },
-                confirmButton = {
-                    Button(onClick = { navController.navigate("login") { popUpTo("login") { inclusive = true } } }) {
-                        Text("Entendido")
-                    }
-                },
+                confirmButton = { Button(onClick = { navController.navigate("login") { popUpTo("login") { inclusive = true } } }) { Text("Entendido") } },
                 title = { Text(if (esModoEdicion) "¡Solicitud reenviada!" else "¡Solicitud enviada!") },
-                text = {
-                    Text(
-                        if (esModoEdicion) {
-                            "Tu solicitud corregida fue reenviada. El administrador la revisará nuevamente."
-                        } else {
-                            "Tu solicitud fue enviada. El administrador revisará tu perfil empresarial."
-                        }
-                    )
-                }
+                text = { Text(if (esModoEdicion) "Tu solicitud corregida fue reenviada. El administrador la revisará nuevamente." else "Tu información y documentos han sido recibidos. El administrador revisará tu perfil empresarial pronto.") }
             )
         }
     }
@@ -512,11 +328,7 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
 
 @Composable
 fun StepIndicator(step: Int, active: Boolean) {
-    Surface(
-        color = if (active) BolsaTokens.Palette.Primary else Color.LightGray,
-        shape = CircleShape,
-        modifier = Modifier.size(32.dp)
-    ) {
+    Surface(color = if (active) BolsaTokens.Palette.Primary else Color.LightGray, shape = CircleShape, modifier = Modifier.size(32.dp)) {
         Box(contentAlignment = Alignment.Center) {
             Text(step.toString(), color = Color.White, fontWeight = FontWeight.Bold)
         }

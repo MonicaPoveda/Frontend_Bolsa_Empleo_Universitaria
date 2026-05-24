@@ -54,4 +54,24 @@ interface ArchivoApi {
     suspend fun obtenerDocumentoEmpresa(
         @Path("id") id: Long
     ): Response<ResponseBody>
+
+    @Multipart
+    @POST("api/archivos/documento/empresa-pendiente/{id}")
+    suspend fun subirDocumentoEmpresaPendiente(
+        @Path("id") id: Long,
+        @Part archivo: MultipartBody.Part
+    ): Response<Map<String, String>>
+
+    @Multipart
+    @PUT("api/archivos/documento/empresa-pendiente/{id}")
+    suspend fun actualizarDocumentoEmpresaPendiente(
+        @Path("id") id: Long,
+        @Part archivo: MultipartBody.Part
+    ): Response<Map<String, String>>
+
+    @GET("api/archivos/documento/empresa-pendiente/{id}")
+    @Streaming
+    suspend fun obtenerDocumentoEmpresaPendiente(
+        @Path("id") id: Long
+    ): Response<ResponseBody>
 }

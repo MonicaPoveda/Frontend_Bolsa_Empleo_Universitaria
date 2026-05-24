@@ -2,7 +2,6 @@ package com.example.frontend_bolsa_empleo_universitaria.screens.Administrador
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,22 +12,29 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue // ✅ Necesario para el delegado 'by'
+import androidx.compose.runtime.setValue // ✅ Necesario para el delegado 'by'
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaPendiente
+import com.example.frontend_bolsa_empleo_universitaria.repository.ArchivoRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.AdminMessageBanner
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.AdminMessageState
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.AdminMessageType
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
+import kotlinx.coroutines.launch
 
 private val CleanWhite = UniEmpleoColors.Surface
 private val CleanBackground = UniEmpleoColors.Background
@@ -49,6 +55,12 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
     val todasLasEmpresas by viewModel.empresasPendientes.collectAsState()
     val adminMessage by viewModel.adminMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val archivoRepository = remember { ArchivoRepository(RetrofitClient.archivoApi, context) }
+    var errorArchivo by remember { mutableStateOf<String?>(null) }
+    var cargandoArchivo by remember { mutableStateOf(false) }
 
     // Mantenemos una referencia local para que no desaparezca la info al aprobar/rechazar
     var empresaLocal by remember { mutableStateOf<EmpresaPendiente?>(null) }
@@ -166,15 +178,34 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
                             HorizontalDivider(color = BorderLight)
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Documentos (Si hubiera una URL o indicador)
+                            // ✅ SECCIÓN DE DOCUMENTOS CORREGIDA
                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                                 Icon(Icons.Outlined.Description, null, tint = AccentIndigo, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Text("Documentación Adjunta", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextMain)
                                 Spacer(modifier = Modifier.weight(1f))
-                                TextButton(onClick = { /* Lógica para ver PDF/Docs */ }) {
-                                    Text("VER ARCHIVOS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AccentIndigo)
+                                TextButton(
+                                    onClick = {
+                                        scope.launch {
+                                            cargandoArchivo = true
+                                            errorArchivo = null
+                                            val result = archivoRepository.descargarYAbrirDocumentoEmpresaPendiente(empresa.idEmpresaPendiente)
+                                            result.onFailure { errorArchivo = it.message }
+                                            cargandoArchivo = false
+                                        }
+                                    },
+                                    enabled = !cargandoArchivo
+                                ) {
+                                    if (cargandoArchivo) {
+                                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = AccentIndigo)
+                                    } else {
+                                        Text("VER ARCHIVOS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AccentIndigo)
+                                    }
                                 }
+                            }
+                            errorArchivo?.let {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(it, color = ErrorRed, fontSize = 12.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.End)
                             }
 
                             Spacer(modifier = Modifier.height(32.dp))
@@ -202,7 +233,6 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
                             // Botones de Acción
                             Button(
                                 onClick = {
-                                    // APROBACIÓN: No requiere comentario obligatorio
                                     viewModel.aprobarEmpresa(empresa.idEmpresaPendiente, comentarioAdmin)
                                     comentarioAdmin = ""
                                 },
@@ -219,7 +249,6 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
 
                             OutlinedButton(
                                 onClick = {
-                                    // RECHAZO: Sí requiere comentario obligatorio
                                     if (comentarioAdmin.isBlank()) {
                                         viewModel.showAdminMessage("Debes ingresar el motivo del rechazo.", AdminMessageType.WARNING)
                                     } else {
@@ -244,7 +273,7 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
                 }
             }
 
-            // Banner de Mensaje - CORREGIDO: Ahora considera el padding para ser visible arriba
+            // Banner de Mensaje
             AdminMessageBanner(
                 state = adminMessage,
                 onDismiss = { viewModel.dismissAdminMessage() },

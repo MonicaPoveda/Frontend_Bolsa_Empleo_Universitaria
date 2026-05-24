@@ -10,8 +10,10 @@ import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import org.json.JSONObject
 import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 
 class ArchivoRepository(
@@ -55,6 +57,31 @@ class ArchivoRepository(
             }
         }
 
+    // ✅ Nuevo: Subir documento para empresa en estado pendiente
+    suspend fun subirDocumentoEmpresaPendiente(idEmpresaPendiente: Long, uri: Uri, replaceExisting: Boolean = false): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                FileValidation.validatePdf(context, uri).getOrElse { return@withContext Result.failure(it) }
+                val part = createPdfPart(uri)
+                val response = if (replaceExisting) {
+                    api.actualizarDocumentoEmpresaPendiente(idEmpresaPendiente, part)
+                } else {
+                    api.subirDocumentoEmpresaPendiente(idEmpresaPendiente, part)
+                }
+                if (response.isSuccessful) {
+                    Result.success(Unit)
+                } else {
+                    Result.failure(Exception(httpErrorMessage(response.code(), response.errorBody()?.string())))
+                }
+            } catch (e: HttpException) {
+                Result.failure(Exception(httpErrorMessage(e.code(), e.response()?.errorBody()?.string())))
+            } catch (e: IOException) {
+                Result.failure(Exception("Error de red al subir documento: ${e.message}"))
+            } catch (e: Exception) {
+                Result.failure(Exception(e.message ?: "Error al subir documento"))
+            }
+        }
+
     suspend fun descargarYAbrirDocumentoEmpresa(idEmpresa: Long): Result<Unit> =
         withContext(Dispatchers.IO) {
             try {
@@ -75,6 +102,25 @@ class ArchivoRepository(
                 Result.failure(Exception(httpErrorMessage(e.code(), e.response()?.errorBody()?.string())))
             } catch (e: IOException) {
                 Result.failure(Exception("Error de red al descargar documento: ${e.message}"))
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+
+    // ✅ Nuevo: Descargar documento de empresa pendiente
+    suspend fun descargarYAbrirDocumentoEmpresaPendiente(idEmpresaPendiente: Long): Result<Unit> =
+        withContext(Dispatchers.IO) {
+            try {
+                val response = api.obtenerDocumentoEmpresaPendiente(idEmpresaPendiente)
+                if (!response.isSuccessful) {
+                    return@withContext Result.failure(
+                        Exception(httpErrorMessage(response.code(), response.errorBody()?.string()))
+                    )
+                }
+                val bytes = response.body()?.bytes()
+                    ?: return@withContext Result.failure(Exception("El documento está vacío o no existe."))
+                val file = PdfOpener.saveToCache(context, bytes, "documento_pendiente_$idEmpresaPendiente.pdf")
+                PdfOpener.openPdfFile(context, file)
             } catch (e: Exception) {
                 Result.failure(e)
             }

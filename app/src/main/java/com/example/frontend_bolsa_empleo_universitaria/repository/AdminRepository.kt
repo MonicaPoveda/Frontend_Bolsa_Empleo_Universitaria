@@ -5,26 +5,52 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.AdminApi
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.*
 import retrofit2.Response
+import com.google.gson.GsonBuilder
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import java.util.concurrent.TimeUnit
+import com.example.frontend_bolsa_empleo_universitaria.utils.Token
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 
 class AdminRepository(private val context: Context) {
 
-    init {
-        // Aseguramos que el cliente global esté inicializado con el contexto
-        RetrofitClient.init(context)
+    private val api: AdminApi by lazy {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+        val tokenManager = Token(context)
+        val authInterceptor = okhttp3.Interceptor { chain ->
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
+            tokenManager.getToken()?.let { token ->
+                requestBuilder.header("Authorization", "Bearer $token")
+            }
+            chain.proceed(requestBuilder.build())
+        }
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(logging)
+            .connectTimeout(60, TimeUnit.SECONDS) // Aumentado a 60s
+            .build()
+        val gson = GsonBuilder().setDateFormat("yyyy-MM-dd").create()
+        Retrofit.Builder()
+            .baseUrl("https://backend-sistema-empleo-universitario.onrender.com/")
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(AdminApi::class.java)
     }
 
-    private val api: AdminApi = RetrofitClient.adminApi
-
     suspend fun listarEmpresasPendientes(): Response<List<EmpresaPendiente>> = api.listarEmpresasPendientes()
-    
     suspend fun aprobarEmpresa(id: Long, mensaje: String? = null): Response<EmpresaDto> = api.aprobarEmpresa(id, mensaje)
-    
     suspend fun rechazarEmpresa(id: Long, mensaje: String? = null): Response<Void> = api.rechazarEmpresa(id, mensaje)
     
     suspend fun eliminarSolicitud(id: Long): Response<Void> = api.eliminarSolicitud(id)
 
     suspend fun listarEmpresasAceptadas(): Response<List<EmpresaDto>> = api.listarEmpresasAceptadas()
     
+    // ✅ Función para eliminar del directorio (sin afectar solicitudes)
     suspend fun eliminarEmpresa(id: Long): Response<Void> = api.eliminarEmpresa(id)
     
     suspend fun listarOfertasPorEmpresa(idEmpresa: Long): Response<List<OfertaLaboralResponse>> {
@@ -34,7 +60,7 @@ class AdminRepository(private val context: Context) {
                 val filtradas = (response.body() ?: emptyList()).filter { it.idEmpresa == idEmpresa }
                 Response.success(filtradas)
             } else {
-                api.listarOfertasPorEmpresa(idEmpresa)
+                response
             }
         } catch (e: Exception) {
             api.listarOfertasPorEmpresa(idEmpresa)

@@ -23,6 +23,8 @@ import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
 import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 
 
@@ -41,6 +43,11 @@ fun MiPerfilScreen(navController: NavController) {
     val email = tokenManager.getUserEmail() ?: ""
     val telefono = tokenManager.getUserTelefono()
     val telefonoMostrar = if (telefono.isNotBlank()) telefono else "No disponible"
+    val userId = tokenManager.getUserId()
+    val cacheBuster = remember { System.currentTimeMillis() }
+    val nombreCompleto = remember(nombre, apellido) {
+        listOf(nombre, apellido).filter { it.isNotBlank() }.joinToString(" ")
+    }
 
 
     // Cargar perfil profesional (mi-perfil + fallback listar)
@@ -102,14 +109,34 @@ fun MiPerfilScreen(navController: NavController) {
                     .padding(24.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
+                    if (userId != null) {
+                        ProfilePhotoDisplay(
+                            photoUrl = ArchivoUrls.fotoUsuario(userId),
+                            cacheBuster = cacheBuster,
+                            size = 88,
+                            placeholderIcon = Icons.Default.Person,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.25f))
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .size(88.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = nombre, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text(text = nombreCompleto, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
                     Text(text = email, color = Color.White.copy(alpha = 0.85f), fontSize = 14.sp)
                 }
             }

@@ -22,11 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoGradient
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoScaffold
-import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
+import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 
 
@@ -45,61 +41,72 @@ fun MiPerfilScreen(navController: NavController) {
     val email = tokenManager.getUserEmail() ?: ""
     val telefono = tokenManager.getUserTelefono()
     val telefonoMostrar = if (telefono.isNotBlank()) telefono else "No disponible"
-    val userId = tokenManager.getUserId()
 
-    // Cargar solo el perfil profesional
+
+    // Cargar perfil profesional (mi-perfil + fallback listar)
     LaunchedEffect(Unit) {
         isLoading = true
+        errorMessage = null
+        RetrofitClient.init(context)
+
         val token = tokenManager.getToken()
-        val uid = tokenManager.getUserId()
-        if (token != null && uid != null) {
-            try {
-                // Obtener perfil profesional directo por ID de usuario
-                val response = RetrofitClient.perfilApi.obtenerPerfilPorUsuario(uid)
-                if (response.isSuccessful) {
-                    perfil = response.body()
-                } else {
-                    errorMessage = "Error al cargar perfil: ${response.code()}"
-                }
-            } catch (e: Exception) {
-                errorMessage = e.message
-            }
+        val userId = tokenManager.getUserId()
+
+        if (token.isNullOrBlank() || userId == null) {
+            errorMessage = "Sesión no válida. Inicia sesión nuevamente."
+            isLoading = false
+            return@LaunchedEffect
         }
-        isLoading = false
+
+        try {
+            val perfilRepo = PerfilRepository(RetrofitClient.perfilApi)
+            val perfilCargado = perfilRepo.cargarPerfilEstudiante(userId)
+            perfilRepo.sincronizarEstadoLocal(tokenManager, perfilCargado)
+            perfil = perfilCargado
+        } catch (e: Exception) {
+            errorMessage = e.message ?: "Error al cargar el perfil"
+        } finally {
+            isLoading = false
+        }
     }
 
-    UniEmpleoScaffold(
-        title = "Mi perfil",
-        onBack = { navController.popBackStack() }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Mi Perfil", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color(0xFF0056D2),
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
+                )
+            )
+        }
     ) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .background(UniEmpleoColors.Background)
+                .background(Color(0xFFF5F5F5))
         ) {
             // Header
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(UniEmpleoGradient)
+                    .background(Brush.verticalGradient(listOf(Color(0xFF0056D2), Color(0xFF007BFF))))
                     .padding(24.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    if (userId != null && userId > 0L) {
-                        ProfilePhotoDisplay(
-                            photoUrl = ArchivoUrls.fotoUsuario(userId),
-                            placeholderIcon = Icons.Default.Person,
-                            size = 80
-                        )
-                    } else {
-                        Box(
-                            modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
-                        }
+                    Box(
+                        modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = nombre, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -117,7 +124,7 @@ fun MiPerfilScreen(navController: NavController) {
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Datos personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UniEmpleoColors.Blue)
+                    Text("Datos Personales", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
                     Spacer(modifier = Modifier.height(12.dp))
                     PersonalInfoRow(icon = Icons.Default.Person, label = "Nombre", value = nombre)
                     PersonalInfoRow(icon = Icons.Default.Person, label = "Apellido", value = apellido)
@@ -135,10 +142,10 @@ fun MiPerfilScreen(navController: NavController) {
                 elevation = CardDefaults.cardElevation(2.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Perfil profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = UniEmpleoColors.Blue)
+                    Text("Perfil Profesional", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0056D2))
                     Spacer(modifier = Modifier.height(12.dp))
                     when {
-                        isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = UniEmpleoColors.Blue)
+                        isLoading -> CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally), color = Color(0xFF0056D2))
                         errorMessage != null -> Text("Error: $errorMessage", color = Color.Red)
                         perfil == null -> {
                             Text("No has creado tu perfil profesional aún.", color = Color.Gray)
@@ -149,30 +156,18 @@ fun MiPerfilScreen(navController: NavController) {
                         }
                         else -> {
                             val p = perfil!!
+                            val semestreLabel = when {
+                                p.semestre.isNullOrBlank() -> "N/A"
+                                p.semestre!!.uppercase().contains("GRADUAD") ||
+                                    p.semestre!!.uppercase().contains("EGRESAD") -> "Egresado / Titulado"
+                                else -> p.semestre!!
+                            }
                             PersonalInfoRow(icon = Icons.Default.School, label = "Carrera", value = p.carrera)
                             PersonalInfoRow(icon = Icons.Default.Business, label = "Universidad", value = p.universidad)
-                            PersonalInfoRow(icon = Icons.Default.Numbers, label = "Semestre", value = p.semestre ?: "N/A")
+                            PersonalInfoRow(icon = Icons.Default.Numbers, label = "Situación académica", value = semestreLabel)
                             PersonalInfoRow(icon = Icons.Default.Code, label = "Habilidades", value = p.habilidades, multiline = true)
                             PersonalInfoRow(icon = Icons.Default.Work, label = "Experiencia", value = p.experiencia ?: "Sin experiencia previa", multiline = true)
                             PersonalInfoRow(icon = Icons.Default.AccessTime, label = "Disponibilidad", value = p.disponibilidad)
-
-                            p.cvUrl?.let { cv ->
-                                if (cv.isNotBlank()) {
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        "Currículum Vitae (Enlace)",
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = UniEmpleoColors.Blue
-                                    )
-                                    Text(
-                                        text = cv,
-                                        fontSize = 13.sp,
-                                        color = Color.Blue,
-                                        modifier = Modifier.padding(top = 4.dp)
-                                    )
-                                }
-                            }
                         }
                     }
                 }
@@ -185,7 +180,7 @@ fun MiPerfilScreen(navController: NavController) {
 @Composable
 fun PersonalInfoRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, value: String, multiline: Boolean = false) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = UniEmpleoColors.Blue)
+        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = Color(0xFF0056D2))
         Spacer(modifier = Modifier.width(12.dp))
         Column {
             Text(label, fontSize = 12.sp, color = Color.Gray)

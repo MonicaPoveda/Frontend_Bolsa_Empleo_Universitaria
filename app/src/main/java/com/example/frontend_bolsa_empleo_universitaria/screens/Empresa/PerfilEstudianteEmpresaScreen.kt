@@ -57,9 +57,9 @@ fun PerfilEstudianteEmpresaScreen(
             }
 
             // 2. CARGAR PERFIL PROFESIONAL (PUEDE FALLAR 404 SI NO ESTÁ CREADO)
-            val responsePerfil = RetrofitClient.perfilApi.obtenerPerfilPorUsuario(idUsuario)
+            val responsePerfil = RetrofitClient.perfilApi.listarPerfiles()
             if (responsePerfil.isSuccessful) {
-                perfil = responsePerfil.body()
+                perfil = responsePerfil.body()?.find { it.idUsuario == idUsuario }
             } else if (responsePerfil.code() == 403) {
                 messageState = AdminMessageState("No tienes permisos para ver el perfil profesional.", AdminMessageType.WARNING, true)
             }

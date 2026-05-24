@@ -24,6 +24,7 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarPerfilUsuario
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarUsuario
 import com.example.frontend_bolsa_empleo_universitaria.repository.ArchivoRepository
+import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoSection
 import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
@@ -40,7 +41,10 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
 
     val viewModel: PerfilViewModel = viewModel(
-        factory = PerfilViewModelFactory(RetrofitClient.usuarioApi, RetrofitClient.perfilApi)
+        factory = PerfilViewModelFactory(
+            RetrofitClient.usuarioApi,
+            PerfilRepository(RetrofitClient.perfilApi)
+        )
     )
 
     val perfilState by viewModel.perfil.collectAsState()
@@ -76,6 +80,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
 
     // ✅ Inicializar campos personales usando getters específicos del Token
     LaunchedEffect(Unit) {
+        RetrofitClient.init(context)
         val userId = tokenManager.getUserId()
         if (userId != null) {
             viewModel.cargarSoloPerfil(userId)

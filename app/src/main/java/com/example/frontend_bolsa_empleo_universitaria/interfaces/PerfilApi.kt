@@ -16,10 +16,8 @@ interface PerfilApi {
     @GET("api/perfiles/listar")
     suspend fun listarPerfiles(): Response<List<Perfil>>
 
-    @GET("api/perfiles/usuario/{idUsuario}")
-    suspend fun obtenerPerfilPorUsuario(
-        @Path("idUsuario") idUsuario: Long
-    ): Response<Perfil>
+    @GET("api/perfiles/mi-perfil")
+    suspend fun obtenerMiPerfil(): Response<Perfil>
 
     @PATCH("api/perfiles/actualizar/{id}")
     suspend fun actualizarPerfil(

@@ -44,7 +44,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.navigation.resolvePostSplashRoute
+import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
@@ -97,6 +99,19 @@ fun SplashScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         playIntro = true
         delay(2600)
+        RetrofitClient.init(context)
+
+        if (token.isEstudiante() && token.isLoggedIn()) {
+            val userId = token.getUserId()
+            if (userId != null) {
+                val perfilRepo = PerfilRepository(RetrofitClient.perfilApi)
+                val perfil = perfilRepo.cargarPerfilEstudiante(userId)
+                perfilRepo.sincronizarEstadoLocal(token, perfil)
+            } else {
+                token.setProfileCreated(false)
+            }
+        }
+
         val dest = resolvePostSplashRoute(token)
         navController.navigate(dest) {
             popUpTo("splash") { inclusive = true }

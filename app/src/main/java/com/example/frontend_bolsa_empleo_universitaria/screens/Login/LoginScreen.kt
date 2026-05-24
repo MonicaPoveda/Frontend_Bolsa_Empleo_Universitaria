@@ -38,6 +38,7 @@ import com.example.frontend_bolsa_empleo_universitaria.viewModel.LoginViewModelF
 @Composable
 fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
+    RetrofitClient.init(context)
     val token = remember { Token(context) }
     val authRepo = remember { AuthRepository(RetrofitClient.usuarioApi) }
     val empresaRepo = remember { EmpresaRepository(RetrofitClient.empresaApi) }
@@ -64,21 +65,24 @@ fun LoginScreen(navController: NavController) {
         when (uiState) {
             is LoginUiState.Success -> {
                 val successState = uiState as LoginUiState.Success
-                if (successState.rol == "ESTUDIANTE") {
+                if (successState.rol == "ESTUDIANTE" || successState.rol == "EGRESADO") {
                     try {
                         val userId = token.getUserId()
                         if (userId != null) {
-                            val perfil = perfilRepo.obtenerPerfilPorUsuario(userId)
+                            val perfil = perfilRepo.cargarPerfilEstudiante(userId)
+                            perfilRepo.sincronizarEstadoLocal(token, perfil)
                             if (perfil != null) {
-                                token.setProfileCreated(true)
                                 navController.navigate("estudiante_home") { popUpTo("login") { inclusive = true } }
                             } else {
-                                token.setProfileCreated(false)
                                 navController.navigate("mensaje_alerta_crear_perfil") { popUpTo("login") { inclusive = true } }
                             }
+                        } else {
+                            token.setProfileCreated(false)
+                            navController.navigate("mensaje_alerta_crear_perfil") { popUpTo("login") { inclusive = true } }
                         }
                     } catch (e: Exception) {
-                        navController.navigate("estudiante_home") { popUpTo("login") { inclusive = true } }
+                        token.setProfileCreated(false)
+                        navController.navigate("mensaje_alerta_crear_perfil") { popUpTo("login") { inclusive = true } }
                     }
                 } else {
                     when (successState.rol) {

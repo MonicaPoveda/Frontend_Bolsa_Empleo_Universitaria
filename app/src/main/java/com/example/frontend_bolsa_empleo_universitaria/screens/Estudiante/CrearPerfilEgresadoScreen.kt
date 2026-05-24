@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.PerfilRequest
+import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
+import com.example.frontend_bolsa_empleo_universitaria.utils.HttpErrorParser
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
@@ -326,10 +328,11 @@ fun CrearPerfilEgresadoScreen(
                         errorMessage = null
 
                         try {
+                            RetrofitClient.init(context)
                             val token = tokenManager.getToken()
                             val userId = tokenManager.getUserId()
 
-                            if (token == null || userId == null) {
+                            if (token.isNullOrBlank() || userId == null || userId <= 0L) {
                                 errorMessage = "Error de sesión. Por favor inicia sesión nuevamente"
                                 isLoading = false
                                 return@launch
@@ -339,7 +342,7 @@ fun CrearPerfilEgresadoScreen(
                             val perfilRequest = PerfilRequest(
                                 carrera = titulo,
                                 universidad = universidad,
-                                semestre = "Graduado",  // Los egresados no tienen semestre
+                                semestre = "EGRESADO",
                                 habilidades = habilidades,
                                 experiencia = if (tieneExperiencia) experienciaDetalle else "",
                                 cvUrl = if (tieneExperiencia) cvUrl else "",
@@ -356,9 +359,9 @@ fun CrearPerfilEgresadoScreen(
                                 if (perfilCreado != null && perfilCreado.idPerfil > 0) {
                                     successMessage = "Perfil creado exitosamente"
                                     errorMessage = null
-                                    
-                                    // Guardar en SharedPreferences que ya tiene perfil
-                                    tokenManager.setProfileCreated(true)
+
+                                    PerfilRepository(RetrofitClient.perfilApi)
+                                        .sincronizarEstadoLocal(tokenManager, perfilCreado)
                                     tokenManager.setUserType("EGRESADO")
 
                                     // Esperar un momento para mostrar el mensaje de éxito
@@ -374,23 +377,22 @@ fun CrearPerfilEgresadoScreen(
                                     errorMessage = "Error: La respuesta del servidor no contiene datos válidos"
                                 }
                             } else {
-                                // Error HTTP
                                 val errorCode = response.code()
-                                val errorBody = response.errorBody()?.string()
+                                val parsedError = HttpErrorParser.fromResponse(response)
 
-                                errorMessage = when {
-                                    errorCode == 401 -> {
-                                        tokenManager.clearSession()
-                                        navController.navigate("login") {
-                                            popUpTo(0) { inclusive = true }
-                                        }
-                                        "Error de autenticación. Por favor inicia sesión nuevamente."
+                                errorMessage = when (errorCode) {
+                                    401 -> "Tu sesión expiró. Inicia sesión nuevamente."
+                                    403 -> "No se pudo guardar el perfil: sesión inválida o expirada. Cierra sesión, vuelve a entrar e intenta de nuevo."
+                                    400 -> parsedError.ifBlank { "Datos inválidos. Verifica la información ingresada." }
+                                    in 500..599 -> "Error interno del servidor. Intenta más tarde."
+                                    else -> parsedError.ifBlank { "Error al guardar perfil: código $errorCode" }
+                                }
+
+                                if (errorCode == 401 || errorCode == 403) {
+                                    tokenManager.clearSession()
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
                                     }
-                                    errorCode == 403 -> "No tienes permisos para realizar esta acción."
-                                    !errorBody.isNullOrBlank() -> errorBody
-                                    errorCode == 400 -> "Datos inválidos. Verifica la información ingresada."
-                                    errorCode == 500 -> "Error interno del servidor. Intenta más tarde."
-                                    else -> "Error al guardar perfil: Código $errorCode"
                                 }
                             }
                         } catch (e: HttpException) {

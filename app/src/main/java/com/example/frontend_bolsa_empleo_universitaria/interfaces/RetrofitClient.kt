@@ -40,8 +40,9 @@ object RetrofitClient {
             val original = chain.request()
             val requestBuilder = original.newBuilder()
 
-            if (shouldAddAuthorizationHeader(original.url.encodedPath)) {
-                tokenManager?.getToken()
+            val path = normalizePath(original.url.encodedPath)
+            if (shouldAddAuthorizationHeader(path)) {
+                tokenManager?.getToken()?.trim()
                     ?.takeIf { it.isNotBlank() }
                     ?.let { token ->
                         requestBuilder.header("Authorization", "Bearer $token")
@@ -56,16 +57,16 @@ object RetrofitClient {
 
         val contentTypeInterceptor = okhttp3.Interceptor { chain ->
             val original = chain.request()
+            val newRequestBuilder = original.newBuilder()
+                .header("Accept", "application/json")
+
+            // Si tiene cuerpo y no es multipart, forzar application/json
             val body = original.body
             if (body != null && body !is MultipartBody) {
-                val newRequest = original.newBuilder()
-                    .header("Content-Type", "application/json")
-                    .header("Accept", "application/json")
-                    .build()
-                chain.proceed(newRequest)
-            } else {
-                chain.proceed(original)
+                newRequestBuilder.header("Content-Type", "application/json")
             }
+
+            chain.proceed(newRequestBuilder.build())
         }
 
         val okHttpClient = OkHttpClient.Builder()
@@ -108,5 +109,14 @@ object RetrofitClient {
 
     private fun shouldAddAuthorizationHeader(path: String): Boolean {
         return path !in publicAuthPaths
+    }
+
+    private fun normalizePath(path: String): String {
+        val trimmed = path.trim()
+        return if (trimmed.endsWith("/") && trimmed.length > 1) {
+            trimmed.dropLast(1)
+        } else {
+            trimmed
+        }
     }
 }

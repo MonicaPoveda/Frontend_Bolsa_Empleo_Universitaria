@@ -10,7 +10,9 @@ class Token(context: Context) {
         prefs.edit().putString("jwt_token", token).apply()
     }
 
-    fun getToken(): String? = prefs.getString("jwt_token", null)
+    fun getToken(): String? =
+        prefs.getString("jwt_token", null)?.takeIf { it.isNotBlank() }
+            ?: prefs.getString("auth_token", null)?.takeIf { it.isNotBlank() }
 
     fun saveUserEmail(email: String) {
         prefs.edit().putString("user_email", email).apply()
@@ -22,7 +24,11 @@ class Token(context: Context) {
         prefs.edit().putLong("user_id", id).apply()
     }
 
-    fun getUserId(): Long? = if (prefs.contains("user_id")) prefs.getLong("user_id", -1) else null
+    fun getUserId(): Long? {
+        if (!prefs.contains("user_id")) return null
+        val id = prefs.getLong("user_id", -1)
+        return id.takeIf { it > 0L }
+    }
     fun getUserTelefono(): String = prefs.getString("user_telefono", "") ?: ""
     fun saveUserName(nombre: String, apellido: String) {
         prefs.edit()
@@ -40,7 +46,7 @@ class Token(context: Context) {
 
     // Métodos para el perfil
     fun setProfileCreated(created: Boolean) {
-        prefs.edit().putBoolean("profile_created", created).apply()
+        prefs.edit().putBoolean("profile_created", created).commit()
     }
 
     fun isProfileCreated(): Boolean = prefs.getBoolean("profile_created", false)
@@ -69,7 +75,7 @@ class Token(context: Context) {
             putString("user_nombre", nombre)
             putString("user_apellido", apellido)
             putString("user_telefono", telefono)
-            apply()
+            commit()
         }
     }
 
@@ -86,7 +92,9 @@ class Token(context: Context) {
 
     fun isEstudiante(): Boolean {
         val role = getUserRole()
-        return role == "ESTUDIANTE" || role == "EGRESADO"
+        val userType = getUserType()
+        return role == "ESTUDIANTE" || role == "EGRESADO" ||
+            userType == "ESTUDIANTE" || userType == "EGRESADO"
     }
 
     fun isEmpresa(): Boolean = getUserRole() == "EMPRESA"

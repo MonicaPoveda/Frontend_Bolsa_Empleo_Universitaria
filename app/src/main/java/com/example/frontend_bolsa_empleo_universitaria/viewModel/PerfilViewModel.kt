@@ -2,19 +2,19 @@ package com.example.frontend_bolsa_empleo_universitaria.viewModel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.frontend_bolsa_empleo_universitaria.interfaces.PerfilApi
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.UsuarioApi
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarPerfilUsuario
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarUsuario
 import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
 import com.example.frontend_bolsa_empleo_universitaria.model.UsuarioDTO
+import com.example.frontend_bolsa_empleo_universitaria.repository.PerfilRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PerfilViewModel(
     private val usuarioApi: UsuarioApi,
-    private val perfilApi: PerfilApi
+    private val perfilRepository: PerfilRepository
 ) : ViewModel() {
 
     private val _usuario = MutableStateFlow<UsuarioDTO?>(null)
@@ -30,41 +30,20 @@ class PerfilViewModel(
     val error: StateFlow<String?> = _error
 
     fun cargarTodo(email: String, idUsuario: Long) {
-        viewModelScope.launch {
-            _loading.value = true
-            _error.value = null
-            try {
-
-
-
-                // 2. Cargar perfil usando listar y filtrar
-                val responsePerfil = perfilApi.listarPerfiles() // ✅ usa listar
-                if (responsePerfil.isSuccessful) {
-                    val perfiles = responsePerfil.body() ?: emptyList()
-                    val miPerfil = perfiles.find { it.idUsuario == idUsuario }
-                    _perfil.value = miPerfil
-                } else {
-                    _error.value = "Error al obtener perfil: ${responsePerfil.code()}"
-                }
-            } catch (e: Exception) {
-                _error.value = "Fallo de conexión: ${e.message}"
-            } finally {
-                _loading.value = false
-            }
-        }
+        cargarSoloPerfil(idUsuario)
     }
+
     fun cargarSoloPerfil(idUsuario: Long) {
         viewModelScope.launch {
             _loading.value = true
             _error.value = null
             try {
-                val response = perfilApi.listarPerfiles()
-                if (response.isSuccessful) {
-                    val perfiles = response.body() ?: emptyList()
-                    _perfil.value = perfiles.find { it.idUsuario == idUsuario }
-                } else {
-                    _error.value = "Error al obtener perfil: ${response.code()}"
+                if (idUsuario <= 0L) {
+                    _error.value = "Sesión no válida"
+                    _perfil.value = null
+                    return@launch
                 }
+                _perfil.value = perfilRepository.cargarPerfilEstudiante(idUsuario)
             } catch (e: Exception) {
                 _error.value = "Fallo de conexión: ${e.message}"
             } finally {
@@ -97,13 +76,12 @@ class PerfilViewModel(
         viewModelScope.launch {
             _loading.value = true
             try {
-                val response = perfilApi.actualizarPerfil(idPerfil, request)
-                if (response.isSuccessful) {
-                    _perfil.value = response.body()
+                val perfilActualizado = perfilRepository.actualizarPerfil(idPerfil, request)
+                if (perfilActualizado != null) {
+                    _perfil.value = perfilActualizado
                     onSuccess()
                 } else {
-                    val errorMsg = response.errorBody()?.string() ?: "Error ${response.code()}"
-                    onError(errorMsg)
+                    onError("Error al actualizar el perfil")
                 }
             } catch (e: Exception) {
                 onError(e.message ?: "Error de red")

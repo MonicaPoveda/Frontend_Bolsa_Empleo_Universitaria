@@ -5,6 +5,7 @@ data class Perfil(
     val carrera: String,
     val universidad: String,
     val semestre: String?,
+    val estadoAcademico: String?, // ACTIVO, EGRESADO
     val habilidades: String,
     val experiencia: String?,
     val cvUrl: String?,

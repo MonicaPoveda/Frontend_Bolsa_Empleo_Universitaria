@@ -10,12 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Mail
-import androidx.compose.material.icons.outlined.Schedule
-import androidx.compose.material.icons.outlined.ChatBubbleOutline
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Cancel
-import androidx.compose.material.icons.outlined.Warning
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +23,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaPendiente
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.AdminMessageBanner
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.AdminMessageType
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
@@ -47,19 +46,19 @@ private val ErrorRedBg = Color(0xFFFEF2F2)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: AdminViewModel) {
-    val empresasPendientes by viewModel.empresasPendientes.collectAsState()
-    val empresa = empresasPendientes.find { it.idEmpresaPendiente == id }
-    val mensajeGlobal by viewModel.mensaje.collectAsState()
+    val todasLasEmpresas by viewModel.empresasPendientes.collectAsState()
+    val adminMessage by viewModel.adminMessage.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    // Mantenemos una referencia local para que no desaparezca la info al aprobar/rechazar
+    var empresaLocal by remember { mutableStateOf<EmpresaPendiente?>(null) }
     var comentarioAdmin by remember { mutableStateOf("") }
 
-    LaunchedEffect(mensajeGlobal) {
-        if (mensajeGlobal != null) {
-            if (mensajeGlobal!!.contains("éxito") || mensajeGlobal!!.contains("rechazada") || mensajeGlobal!!.contains("eliminada")) {
-                navController.popBackStack()
-                viewModel.clearMensaje()
-            }
+    // Actualizar la referencia local solo cuando se carga inicialmente
+    LaunchedEffect(todasLasEmpresas) {
+        val encontrada = todasLasEmpresas.find { it.idEmpresaPendiente == id }
+        if (encontrada != null) {
+            empresaLocal = encontrada
         }
     }
 
@@ -67,7 +66,7 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
         containerColor = CleanBackground,
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Detalle de solicitud", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextMain) },
+                title = { Text("Detalle de la Empresa", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = TextMain) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = TextSecondary, modifier = Modifier.size(20.dp))
@@ -77,12 +76,13 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
             )
         }
     ) { padding ->
-        if (empresa == null) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(color = AccentIndigo)
-            }
-        } else {
-            Box(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (empresaLocal == null && isLoading) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = AccentIndigo)
+                }
+            } else if (empresaLocal != null) {
+                val empresa = empresaLocal!!
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -96,160 +96,190 @@ fun DetalleSolicitudScreen(id: Long, navController: NavController, viewModel: Ad
                         colors = CardDefaults.cardColors(containerColor = CleanWhite),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                     ) {
-                        Box(modifier = Modifier.fillMaxWidth()) {
-                            Box(
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            // Cabecera con Foto y Nombre
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                ProfilePhotoDisplay(
+                                    photoUrl = "https://backend-sistema-empleo-universitario.onrender.com/api/archivos/foto/empresa/${empresa.idEmpresaPendiente}",
+                                    size = 72,
+                                    modifier = Modifier.clip(RoundedCornerShape(14.dp))
+                                )
+                                
+                                Spacer(modifier = Modifier.width(16.dp))
+                                
+                                Column {
+                                    Text(text = empresa.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextMain)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Surface(color = if (empresa.estado == "RECHAZADA") ErrorRedBg else StatusGoldBg, shape = RoundedCornerShape(100.dp)) {
+                                            Text(
+                                                text = if (empresa.estado == "RECHAZADA") "Rechazada" else "Pendiente",
+                                                color = if (empresa.estado == "RECHAZADA") ErrorRed else StatusGold,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                        if (empresa.actualizada) {
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Surface(color = SuccessGreenBg, shape = RoundedCornerShape(100.dp)) {
+                                                Text("ACTUALIZADA", color = SuccessGreen, fontSize = 9.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider(color = BorderLight)
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Información de Contacto
+                            InfoRow(Icons.Outlined.Mail, "Correo", empresa.email)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InfoRow(Icons.Outlined.Phone, "Teléfono", empresa.telefono ?: "No registrado")
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InfoRow(Icons.Outlined.LocationOn, "Ciudad", empresa.ciudad ?: "No especificada")
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InfoRow(Icons.Outlined.Category, "Sector", empresa.sector ?: "No especificado")
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                            
+                            // Descripción
+                            Column(
                                 modifier = Modifier
-                                    .width(4.dp)
-                                    .height(80.dp)
-                                    .align(Alignment.CenterStart)
-                                    .background(if (empresa.actualizada) SuccessGreen else AccentIndigo)
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(Color(0xFFF9FAFB))
+                                    .border(1.dp, BorderLight, RoundedCornerShape(12.dp))
+                                    .padding(16.dp)
+                            ) {
+                                Text("Descripción de la empresa", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = empresa.descripcion ?: "Sin descripción proporcionada.",
+                                    color = TextMain, fontSize = 14.sp, lineHeight = 20.sp
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+                            HorizontalDivider(color = BorderLight)
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Documentos (Si hubiera una URL o indicador)
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Icon(Icons.Outlined.Description, null, tint = AccentIndigo, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Documentación Adjunta", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextMain)
+                                Spacer(modifier = Modifier.weight(1f))
+                                TextButton(onClick = { /* Lógica para ver PDF/Docs */ }) {
+                                    Text("VER ARCHIVOS", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = AccentIndigo)
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(32.dp))
+
+                            // Sección de Resolución
+                            Text("MOTIVO DE LA DECISIÓN", fontSize = 11.sp, fontWeight = FontWeight.Black, color = TextSecondary)
+                            Text("(OBLIGATORIO SOLO PARA RECHAZO)", fontSize = 9.sp, fontWeight = FontWeight.Medium, color = TextSecondary.copy(alpha = 0.7f))
+                            Spacer(modifier = Modifier.height(12.dp))
+                            OutlinedTextField(
+                                value = comentarioAdmin,
+                                onValueChange = { comentarioAdmin = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                placeholder = { Text("Escribe aquí el comentario para la empresa...", fontSize = 14.sp) },
+                                shape = RoundedCornerShape(12.dp),
+                                maxLines = 4,
+                                minLines = 3,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = AccentIndigo,
+                                    unfocusedBorderColor = BorderLight
+                                )
                             )
 
-                            Column(modifier = Modifier.padding(24.dp)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        modifier = Modifier.size(64.dp),
-                                        shape = RoundedCornerShape(12.dp),
-                                        color = Color(0xFFF3F4F6),
-                                        border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.Storefront, null, tint = Color(0xFF1E3A8A), modifier = Modifier.size(32.dp))
-                                        }
+                            Spacer(modifier = Modifier.height(32.dp))
+
+                            // Botones de Acción
+                            Button(
+                                onClick = {
+                                    // APROBACIÓN: No requiere comentario obligatorio
+                                    viewModel.aprobarEmpresa(empresa.idEmpresaPendiente, comentarioAdmin)
+                                    comentarioAdmin = ""
+                                },
+                                modifier = Modifier.fillMaxWidth().height(54.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen)
+                            ) {
+                                Icon(Icons.Default.Check, null)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Aprobar Registro", fontWeight = FontWeight.Bold)
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            OutlinedButton(
+                                onClick = {
+                                    // RECHAZO: Sí requiere comentario obligatorio
+                                    if (comentarioAdmin.isBlank()) {
+                                        viewModel.showAdminMessage("Debes ingresar el motivo del rechazo.", AdminMessageType.WARNING)
+                                    } else {
+                                        viewModel.rechazarEmpresa(empresa, comentarioAdmin)
+                                        comentarioAdmin = ""
                                     }
-                                    
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    
-                                    Column {
-                                        Text(text = empresa.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = TextMain)
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Surface(color = if (empresa.estado == "RECHAZADA") ErrorRedBg else StatusGoldBg, shape = RoundedCornerShape(100.dp)) {
-                                                Text(
-                                                    text = if (empresa.estado == "RECHAZADA") "Rechazada" else "En revisión",
-                                                    color = if (empresa.estado == "RECHAZADA") ErrorRed else StatusGold,
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                                )
-                                            }
-                                            if (empresa.actualizada) {
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Surface(color = SuccessGreenBg, shape = RoundedCornerShape(100.dp)) {
-                                                    Text("ACTUALIZADA", color = SuccessGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(32.dp))
-                                HorizontalDivider(color = BorderLight)
-                                Spacer(modifier = Modifier.height(24.dp))
-
-                                InfoRow(Icons.Outlined.Mail, "Correo", empresa.email)
-                                Spacer(modifier = Modifier.height(20.dp))
-                                
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Outlined.Warning, null, tint = if (empresa.rechazos > 0) ErrorRed else TextSecondary, modifier = Modifier.size(20.dp))
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text("Intentos", color = TextSecondary, fontSize = 14.sp, modifier = Modifier.width(80.dp))
-                                    Text(
-                                        text = "${empresa.rechazos} de 3 rechazos",
-                                        color = if (empresa.rechazos >= 2) ErrorRed else TextMain,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                        modifier = Modifier.weight(1f),
-                                        textAlign = TextAlign.End
-                                    )
-                                }
-                                
-                                Spacer(modifier = Modifier.height(20.dp))
-                                InfoRow(Icons.Outlined.ChatBubbleOutline, "Mensaje", empresa.mensaje.ifBlank { "Revisión de credenciales" })
-
-                                Spacer(modifier = Modifier.height(32.dp))
-
-                                Text("COMENTARIO DE RESOLUCIÓN", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TextSecondary.copy(alpha = 0.6f))
-                                Spacer(modifier = Modifier.height(12.dp))
-                                OutlinedTextField(
-                                    value = comentarioAdmin,
-                                    onValueChange = { comentarioAdmin = it },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    placeholder = { Text("Motivo de la decisión...", fontSize = 14.sp) },
-                                    shape = RoundedCornerShape(12.dp),
-                                    maxLines = 4,
-                                    minLines = 2
-                                )
-
-                                Spacer(modifier = Modifier.height(32.dp))
-
-                                ActionButton(
-                                    text = "Aprobar solicitud",
-                                    icon = Icons.Outlined.CheckCircle,
-                                    color = SuccessGreen,
-                                    bgColor = SuccessGreenBg,
-                                    onClick = { viewModel.aprobarEmpresa(empresa.idEmpresaPendiente, comentarioAdmin) }
-                                )
-                                
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                // ✅ SE CORRIGE LA LLAMADA PASANDO EL OBJETO 'empresa' COMPLETO
-                                ActionButton(
-                                    text = if (empresa.rechazos >= 2) "Rechazar y Eliminar" else "Rechazar solicitud",
-                                    icon = Icons.Outlined.Cancel,
-                                    color = ErrorRed,
-                                    bgColor = ErrorRedBg,
-                                    onClick = { viewModel.rechazarEmpresa(empresa, comentarioAdmin) }
-                                )
-
-                                Spacer(modifier = Modifier.height(24.dp))
-                                
+                                },
+                                modifier = Modifier.fillMaxWidth().height(54.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                border = androidx.compose.foundation.BorderStroke(1.dp, ErrorRed),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed)
+                            ) {
+                                Icon(Icons.Default.Close, null)
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = if (empresa.rechazos >= 2) "⚠️ Esta acción eliminará a la empresa permanentemente" 
-                                           else "La empresa podrá corregir y reenviar datos",
-                                    fontSize = 11.sp,
-                                    color = TextSecondary.copy(alpha = 0.5f),
-                                    textAlign = TextAlign.Center,
-                                    modifier = Modifier.fillMaxWidth()
+                                    if (empresa.rechazos >= 2) "Rechazar y Eliminar Definitivamente" else "Rechazar Solicitud",
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
                     }
                 }
+            }
 
-                if (isLoading) {
-                    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = AccentIndigo)
-                    }
-                }
+            // Banner de Mensaje - CORREGIDO: Ahora considera el padding para ser visible arriba
+            AdminMessageBanner(
+                state = adminMessage,
+                onDismiss = { viewModel.dismissAdminMessage() },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = padding.calculateTopPadding() + 12.dp)
+            )
+
+            if (isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(top = padding.calculateTopPadding()),
+                    color = AccentIndigo,
+                    trackColor = Color.Transparent
+                )
             }
         }
     }
 }
 
 @Composable
-fun InfoRow(icon: ImageVector, label: String, value: String, valueColor: Color = TextMain) {
+private fun InfoRow(icon: ImageVector, label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Icon(icon, null, tint = TextSecondary, modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(12.dp))
         Text(label, color = TextSecondary, fontSize = 14.sp, modifier = Modifier.width(80.dp))
-        Text(text = value, color = valueColor, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-    }
-}
-
-@Composable
-fun ActionButton(text: String, icon: ImageVector, color: Color, bgColor: Color, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(12.dp),
-        color = bgColor,
-        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.2f))
-    ) {
-        Row(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = color, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(text, color = color, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Icon(Icons.Default.ArrowForward, null, tint = color.copy(alpha = 0.3f), modifier = Modifier.size(16.dp))
-        }
+        Text(
+            text = value,
+            color = TextMain,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.End
+        )
     }
 }

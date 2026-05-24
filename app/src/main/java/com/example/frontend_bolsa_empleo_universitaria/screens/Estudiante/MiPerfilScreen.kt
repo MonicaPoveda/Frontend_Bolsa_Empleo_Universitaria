@@ -22,9 +22,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoGradient
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoScaffold
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 
 
@@ -43,19 +45,19 @@ fun MiPerfilScreen(navController: NavController) {
     val email = tokenManager.getUserEmail() ?: ""
     val telefono = tokenManager.getUserTelefono()
     val telefonoMostrar = if (telefono.isNotBlank()) telefono else "No disponible"
-
+    val userId = tokenManager.getUserId()
 
     // Cargar solo el perfil profesional
     LaunchedEffect(Unit) {
         isLoading = true
         val token = tokenManager.getToken()
-        val userId = tokenManager.getUserId()
-        if (token != null && userId != null) {
+        val uid = tokenManager.getUserId()
+        if (token != null && uid != null) {
             try {
-                val response = RetrofitClient.perfilApi.listarPerfiles()
+                // Obtener perfil profesional directo por ID de usuario
+                val response = RetrofitClient.perfilApi.obtenerPerfilPorUsuario(uid)
                 if (response.isSuccessful) {
-                    val perfiles = response.body() ?: emptyList()
-                    perfil = perfiles.find { it.idUsuario == userId }
+                    perfil = response.body()
                 } else {
                     errorMessage = "Error al cargar perfil: ${response.code()}"
                 }
@@ -85,11 +87,19 @@ fun MiPerfilScreen(navController: NavController) {
                     .padding(24.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Box(
-                        modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
+                    if (userId != null && userId > 0L) {
+                        ProfilePhotoDisplay(
+                            photoUrl = ArchivoUrls.fotoUsuario(userId),
+                            placeholderIcon = Icons.Default.Person,
+                            size = 80
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier.size(80.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.3f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
+                        }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(text = nombre, color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -145,6 +155,24 @@ fun MiPerfilScreen(navController: NavController) {
                             PersonalInfoRow(icon = Icons.Default.Code, label = "Habilidades", value = p.habilidades, multiline = true)
                             PersonalInfoRow(icon = Icons.Default.Work, label = "Experiencia", value = p.experiencia ?: "Sin experiencia previa", multiline = true)
                             PersonalInfoRow(icon = Icons.Default.AccessTime, label = "Disponibilidad", value = p.disponibilidad)
+
+                            p.cvUrl?.let { cv ->
+                                if (cv.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        "Currículum Vitae (Enlace)",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = UniEmpleoColors.Blue
+                                    )
+                                    Text(
+                                        text = cv,
+                                        fontSize = 13.sp,
+                                        color = Color.Blue,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

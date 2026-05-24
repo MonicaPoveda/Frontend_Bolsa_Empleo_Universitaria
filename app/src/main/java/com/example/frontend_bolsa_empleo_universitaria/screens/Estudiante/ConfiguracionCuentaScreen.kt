@@ -23,6 +23,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarPerfilUsuario
 import com.example.frontend_bolsa_empleo_universitaria.model.ActualizarUsuario
+import com.example.frontend_bolsa_empleo_universitaria.repository.ArchivoRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoSection
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PerfilViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PerfilViewModelFactory
@@ -33,6 +36,7 @@ import kotlinx.coroutines.launch
 fun ConfiguracionCuentaScreen(navController: NavController) {
     val context = LocalContext.current
     val tokenManager = remember { Token(context) }
+    val archivoRepo = remember { ArchivoRepository(RetrofitClient.archivoApi, context) }
     val scope = rememberCoroutineScope()
 
     val viewModel: PerfilViewModel = viewModel(
@@ -58,6 +62,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
     var semestre by remember { mutableStateOf("") }
     var habilidades by remember { mutableStateOf("") }
     var experiencia by remember { mutableStateOf("") }
+    var cvUrl by remember { mutableStateOf("") }
     var disponibilidad by remember { mutableStateOf("INMEDIATA") }
     var expanded by remember { mutableStateOf(false) }
     val disponibilidadOptions = listOf("INMEDIATA", "1 MES", "3 MESES", "6 MESES")
@@ -66,6 +71,8 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+    var hasProfilePhoto by remember { mutableStateOf(false) }
+    val userIdForPhoto = tokenManager.getUserId()
 
     // ✅ Inicializar campos personales usando getters específicos del Token
     LaunchedEffect(Unit) {
@@ -88,6 +95,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
             semestre = it.semestre ?: ""
             habilidades = it.habilidades ?: ""
             experiencia = it.experiencia ?: ""
+            cvUrl = it.cvUrl ?: ""
             disponibilidad = it.disponibilidad ?: "INMEDIATA"
         }
     }
@@ -123,6 +131,18 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                if (userIdForPhoto != null && userIdForPhoto > 0L) {
+                    ProfilePhotoSection(
+                        photoUrl = ArchivoUrls.fotoUsuario(userIdForPhoto),
+                        hasUploadedPhoto = hasProfilePhoto,
+                        onUpload = { uri, replace ->
+                            archivoRepo.subirFotoUsuario(userIdForPhoto, uri, replace).also { result ->
+                                if (result.isSuccess) hasProfilePhoto = true
+                            }
+                        }
+                    )
+                }
+
                 // --- Datos Personales ---
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -334,6 +354,17 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                 minLines = 2
                             )
                         }
+
+                        OutlinedTextField(
+                            value = cvUrl,
+                            onValueChange = { cvUrl = it },
+                            label = { Text("URL de tu CV (Drive, LinkedIn, etc.)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            placeholder = { Text("https://...") },
+                            supportingText = { Text("Ingresa un enlace a tu CV en la nube.") }
+                        )
+
                         ExposedDropdownMenuBox(
                             expanded = expanded,
                             onExpandedChange = { expanded = it }
@@ -444,7 +475,7 @@ fun ConfiguracionCuentaScreen(navController: NavController) {
                                             semestre = semestre.ifBlank { null },
                                             habilidades = habilidades,
                                             experiencia = experiencia.ifBlank { null },
-                                            cvUrl = null,
+                                            cvUrl = cvUrl.ifBlank { null },
                                             disponibilidad = disponibilidad,
                                             idUsuario = userId
                                         )

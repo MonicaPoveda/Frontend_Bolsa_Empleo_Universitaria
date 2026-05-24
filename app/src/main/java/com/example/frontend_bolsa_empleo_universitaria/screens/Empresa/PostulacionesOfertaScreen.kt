@@ -29,7 +29,9 @@ import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionView
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.PostulacionViewModelFactory
 import com.example.frontend_bolsa_empleo_universitaria.repository.PostulacionRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.SeguimientoPostulacionRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import kotlinx.coroutines.launch
 
 private val BlueGradientStart = UniEmpleoColors.Blue
@@ -410,20 +412,12 @@ fun PostulanteCardSimple(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE3F2FD)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = "Estudiante",
-                        tint = BlueGradientStart,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
+                ProfilePhotoDisplay(
+                    photoUrl = ArchivoUrls.fotoUsuario(postulacion.idUsuario),
+                    size = 48,
+                    placeholderIcon = Icons.Default.Person,
+                    modifier = Modifier.background(Color(0xFFE3F2FD), CircleShape)
+                )
                 Spacer(modifier = Modifier.width(12.dp))
 
                 Column(modifier = Modifier.weight(1f)) {

@@ -7,23 +7,24 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.WorkOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
-import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoGradient
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.*
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 
 private val BlueGradientStart = UniEmpleoColors.Blue
 private val BackgroundGray = UniEmpleoColors.Background
@@ -35,245 +36,147 @@ fun PerfilEstudianteEmpresaScreen(
     navController: NavController
 ) {
     var perfil by remember { mutableStateOf<Perfil?>(null) }
-    var usuarioNombre by remember { mutableStateOf("") }
+    var usuarioNombre by remember { mutableStateOf("Cargando...") }
     var usuarioEmail by remember { mutableStateOf("") }
+    var usuarioTelefono by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    
+    var messageState by remember { mutableStateOf(AdminMessageState()) }
+    val cacheBuster = remember { System.currentTimeMillis() }
 
-    // Cargar perfil del estudiante
     LaunchedEffect(idUsuario) {
         isLoading = true
         try {
-            // Obtener perfil profesional
-            val responsePerfil = RetrofitClient.perfilApi.listarPerfiles()
-            if (responsePerfil.isSuccessful) {
-                val perfiles = responsePerfil.body() ?: emptyList()
-                perfil = perfiles.find { it.idUsuario == idUsuario }
-            }
-
-            // Obtener datos básicos del usuario (nombre, email)
-            val responseUsuarios = RetrofitClient.usuarioApi.listar()
-            if (responseUsuarios.isSuccessful) {
-                val usuarios = responseUsuarios.body() ?: emptyList()
-                val usuario = usuarios.find { it.idUsuario == idUsuario }
+            // 1. CARGAR DATOS DE USUARIO (SIEMPRE INTENTAR)
+            val responseUsuario = RetrofitClient.usuarioApi.obtenerPorId(idUsuario)
+            if (responseUsuario.isSuccessful) {
+                val usuario = responseUsuario.body()
                 usuarioNombre = "${usuario?.nombre ?: ""} ${usuario?.apellido ?: ""}".trim()
                 usuarioEmail = usuario?.email ?: ""
+                usuarioTelefono = usuario?.telefono ?: ""
             }
+
+            // 2. CARGAR PERFIL PROFESIONAL (PUEDE FALLAR 404 SI NO ESTÁ CREADO)
+            val responsePerfil = RetrofitClient.perfilApi.obtenerPerfilPorUsuario(idUsuario)
+            if (responsePerfil.isSuccessful) {
+                perfil = responsePerfil.body()
+            } else if (responsePerfil.code() == 403) {
+                messageState = AdminMessageState("No tienes permisos para ver el perfil profesional.", AdminMessageType.WARNING, true)
+            }
+            // El 404 no lo tratamos como error crítico para que se vea al menos el nombre
         } catch (e: Exception) {
-            errorMessage = e.message
+            messageState = AdminMessageState("Error de conexión al cargar datos.", AdminMessageType.ERROR, true)
         } finally {
             isLoading = false
         }
     }
 
     Scaffold(
+        containerColor = BackgroundGray,
         topBar = {
             TopAppBar(
-                title = {
-                    Text(
-                        "Perfil del Estudiante",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
+                title = { Text("Perfil del Usuario", color = Color.White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = Color.White
-                        )
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = BlueGradientStart)
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .background(BackgroundGray)
-        ) {
-            when {
-                isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            Column(
+                modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Tarjeta Principal (Información Básica siempre visible)
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    color = Color.White,
+                    shadowElevation = 2.dp
+                ) {
+                    Column(
+                        modifier = Modifier.padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        CircularProgressIndicator(color = BlueGradientStart)
-                    }
-                }
-                errorMessage != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.ErrorOutline, null, modifier = Modifier.size(64.dp), tint = Color.Red)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Error: $errorMessage", color = Color.Red)
-                        }
-                    }
-                }
-                else -> {
-                    // Header gradiente
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(UniEmpleoGradient)
-                            .padding(24.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.White.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Person,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = usuarioNombre.ifBlank { "Estudiante" },
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = usuarioEmail.ifBlank { "Email no disponible" },
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 14.sp
-                            )
-                        }
-                    }
+                        ProfilePhotoDisplay(
+                            photoUrl = ArchivoUrls.fotoUsuario(idUsuario),
+                            cacheBuster = cacheBuster,
+                            size = 100,
+                            modifier = Modifier.clip(CircleShape).background(BackgroundGray)
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        Text(usuarioNombre, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = UniEmpleoColors.Text)
+                        Text(perfil?.carrera ?: "Estudiante", fontSize = 14.sp, color = UniEmpleoColors.Blue, fontWeight = FontWeight.Medium)
+                        
+                        Spacer(modifier = Modifier.height(24.dp))
+                        HorizontalDivider(color = Color(0xFFF3F4F6))
+                        Spacer(modifier = Modifier.height(24.dp))
 
+                        PerfilInfoRow(Icons.Default.Email, "Correo", usuarioEmail)
+                        if (usuarioTelefono.isNotBlank()) {
+                            PerfilInfoRow(Icons.Default.Phone, "Teléfono", usuarioTelefono)
+                        }
+                        
+                        perfil?.let { p ->
+                            PerfilInfoRow(Icons.Default.School, "Universidad", p.universidad)
+                            PerfilInfoRow(Icons.Default.WorkOutline, "Disponibilidad", p.disponibilidad)
+                        }
+                    }
+                }
+
+                if (perfil != null) {
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    // Información del perfil profesional
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                "Perfil profesional",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BlueGradientStart
-                            )
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Text("Habilidades y Experiencia", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = UniEmpleoColors.Text)
                             Spacer(modifier = Modifier.height(12.dp))
-
-                            if (perfil == null) {
-                                Text(
-                                    "Este estudiante no ha completado su perfil profesional.",
-                                    color = Color.Gray
-                                )
-                            } else {
-                                val p = perfil!!
-                                PerfilInfoRow(
-                                    icon = Icons.Default.School,
-                                    label = "Carrera",
-                                    value = p.carrera.ifBlank { "No especificada" }
-                                )
-                                PerfilInfoRow(
-                                    icon = Icons.Default.Business,
-                                    label = "Universidad",
-                                    value = p.universidad.ifBlank { "No especificada" }
-                                )
-                                PerfilInfoRow(
-                                    icon = Icons.Default.Numbers,
-                                    label = "Semestre",
-                                    value = p.semestre?.ifBlank { "No especificado" } ?: "No especificado"
-                                )
-                                PerfilInfoRow(
-                                    icon = Icons.Default.Code,
-                                    label = "Habilidades",
-                                    value = p.habilidades.ifBlank { "No especificadas" },
-                                    multiline = true
-                                )
-                                PerfilInfoRow(
-                                    icon = Icons.Default.Work,
-                                    label = "Experiencia",
-                                    value = p.experiencia?.ifBlank { "Sin experiencia previa" } ?: "Sin experiencia previa",
-                                    multiline = true
-                                )
-                                PerfilInfoRow(
-                                    icon = Icons.Default.AccessTime,
-                                    label = "Disponibilidad",
-                                    value = p.disponibilidad.ifBlank { "No especificada" }
-                                )
+                            Text(perfil?.experiencia ?: "Sin experiencia registrada.", fontSize = 14.sp, color = UniEmpleoColors.Muted, lineHeight = 20.sp)
+                            
+                            if (perfil?.habilidades?.isNotBlank() == true) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Text("Habilidades: ${perfil?.habilidades}", fontSize = 13.sp, color = UniEmpleoColors.Blue)
                             }
                         }
                     }
-
-                    // Botón de contacto
+                } else if (!isLoading) {
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(
-                                "Contacto",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = BlueGradientStart
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            PerfilInfoRow(
-                                icon = Icons.Default.Email,
-                                label = "Correo electrónico",
-                                value = usuarioEmail.ifBlank { "No disponible" }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Text("El perfil profesional no ha sido completado.", fontSize = 12.sp, color = Color.Gray)
                 }
+            }
+
+            // Banner de Mensaje arriba de todo
+            AdminMessageBanner(
+                state = messageState,
+                onDismiss = { messageState = messageState.copy(visible = false) },
+                modifier = Modifier.align(Alignment.TopCenter).padding(8.dp)
+            )
+
+            if (isLoading) {
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter), color = BlueGradientStart)
             }
         }
     }
 }
 
 @Composable
-fun PerfilInfoRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    value: String,
-    multiline: Boolean = false
-) {
-    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = BlueGradientStart)
-        Spacer(modifier = Modifier.width(12.dp))
+private fun PerfilInfoRow(icon: ImageVector, label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Surface(modifier = Modifier.size(36.dp), shape = CircleShape, color = Color(0xFFF0F7FF)) {
+            Box(contentAlignment = Alignment.Center) { Icon(icon, null, modifier = Modifier.size(18.dp), tint = UniEmpleoColors.Blue) }
+        }
+        Spacer(modifier = Modifier.width(16.dp))
         Column {
-            Text(label, fontSize = 12.sp, color = Color.Gray)
-            Text(
-                text = value,
-                fontSize = 14.sp,
-                color = Color.Black,
-                lineHeight = if (multiline) 22.sp else 20.sp
-            )
+            Text(label, fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+            Text(value, fontSize = 14.sp, color = UniEmpleoColors.Text, fontWeight = FontWeight.SemiBold)
         }
     }
 }

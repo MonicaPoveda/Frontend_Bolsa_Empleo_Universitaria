@@ -25,7 +25,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import android.net.Uri
+import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
+import com.example.frontend_bolsa_empleo_universitaria.repository.ArchivoRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.EmpresaDocumentSection
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
 // Paleta de colores Premium Clean (Estilo Notion/Stripe)
@@ -41,6 +46,8 @@ private val SuccessGreenBg = Color(0xFFECFDF5)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PerfilEmpresaAdminScreen(idEmpresa: Long, navController: NavController, viewModel: AdminViewModel) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val archivoRepo = remember { ArchivoRepository(RetrofitClient.archivoApi, context) }
     val empresas by viewModel.empresasAceptadas.collectAsState()
     val empresa = empresas.find { it.idEmpresa == idEmpresa }
 
@@ -89,25 +96,12 @@ fun PerfilEmpresaAdminScreen(idEmpresa: Long, navController: NavController, view
                         Column(modifier = Modifier.padding(24.dp)) {
                             // Header: Icono + Nombre + Sector
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    modifier = Modifier.size(64.dp),
-                                    shape = RoundedCornerShape(12.dp),
-                                    color = Color(0xFFF3F4F6),
-                                    border = androidx.compose.foundation.BorderStroke(1.dp, BorderLight)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = when(it.sector?.lowercase()) {
-                                                "tecnología", "ti", "sistemas" -> Icons.Default.Code
-                                                "ventas", "comercial" -> Icons.Default.TrendingUp
-                                                else -> Icons.Default.Business
-                                            },
-                                            contentDescription = null,
-                                            tint = Color(0xFF1E3A8A),
-                                            modifier = Modifier.size(32.dp)
-                                        )
-                                    }
-                                }
+                                ProfilePhotoDisplay(
+                                    photoUrl = ArchivoUrls.fotoEmpresa(it.idEmpresa ?: idEmpresa),
+                                    placeholderIcon = Icons.Default.Business,
+                                    size = 64,
+                                    modifier = Modifier.clip(RoundedCornerShape(12.dp))
+                                )
                                 
                                 Spacer(modifier = Modifier.width(16.dp))
                                 
@@ -163,7 +157,17 @@ fun PerfilEmpresaAdminScreen(idEmpresa: Long, navController: NavController, view
                                 lineHeight = 20.sp
                             )
 
-                            Spacer(modifier = Modifier.height(32.dp))
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            EmpresaDocumentSection(
+                                editable = false,
+                                onUpload = { _: Uri, _: Boolean -> Result.failure(Exception("Solo lectura")) },
+                                onViewDocument = {
+                                    archivoRepo.descargarYAbrirDocumentoEmpresa(it.idEmpresa ?: idEmpresa)
+                                }
+                            )
+
+                            Spacer(modifier = Modifier.height(24.dp))
                             Text(
                                 "GESTIÓN", 
                                 fontSize = 11.sp, 

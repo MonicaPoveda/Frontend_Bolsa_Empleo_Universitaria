@@ -15,12 +15,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.AdminMessageBanner
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
@@ -33,24 +33,14 @@ private val BackgroundGray = UniEmpleoColors.Background
 fun EmpresasGestionScreen(navController: NavController, viewModel: AdminViewModel) {
     val empresas by viewModel.empresasAceptadas.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
-    val mensaje by viewModel.mensaje.collectAsState()
+    val adminMessage by viewModel.adminMessage.collectAsState()
     
-    val snackbarHostState = remember { SnackbarHostState() }
-
     var empresaAEliminar by remember { mutableStateOf<Long?>(null) }
     var nombreEmpresaAEliminar by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.listarEmpresasAceptadas()
-    }
-
-    // Mostrar Snackbar cuando hay un mensaje nuevo
-    LaunchedEffect(mensaje) {
-        mensaje?.let {
-            snackbarHostState.showSnackbar(it)
-            viewModel.clearMensaje()
-        }
     }
 
     if (showDeleteDialog) {
@@ -79,7 +69,6 @@ fun EmpresasGestionScreen(navController: NavController, viewModel: AdminViewMode
 
     Scaffold(
         containerColor = BackgroundGray,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text("Directorio Empresarial", fontWeight = FontWeight.Bold, color = Color.White) },
@@ -92,48 +81,58 @@ fun EmpresasGestionScreen(navController: NavController, viewModel: AdminViewMode
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (isLoading && empresas.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = AdminIndigo)
-                }
-            } else if (empresas.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("No hay empresas registradas", color = Color.Gray)
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(empresas) { empresa ->
-                        AdminEnterpriseCard(
-                            nombre = empresa.nombre ?: "Sin nombre",
-                            sector = empresa.sector ?: "General",
-                            ciudad = empresa.ciudad ?: "N/A",
-                            onClick = {
-                                navController.navigate("perfil_empresa_admin/${empresa.idEmpresa}")
-                            },
-                            onDelete = {
-                                empresaAEliminar = empresa.idEmpresa
-                                nombreEmpresaAEliminar = empresa.nombre ?: ""
-                                showDeleteDialog = true
-                            }
-                        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            ) {
+                if (isLoading && empresas.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AdminIndigo)
+                    }
+                } else if (empresas.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text("No hay empresas registradas", color = Color.Gray)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(empresas) { empresa ->
+                            AdminEnterpriseCard(
+                                idEmpresa = empresa.idEmpresa,
+                                nombre = empresa.nombre ?: "Sin nombre",
+                                sector = empresa.sector ?: "General",
+                                ciudad = empresa.ciudad ?: "N/A",
+                                onClick = {
+                                    navController.navigate("perfil_empresa_admin/${empresa.idEmpresa}")
+                                },
+                                onDelete = {
+                                    empresaAEliminar = empresa.idEmpresa
+                                    nombreEmpresaAEliminar = empresa.nombre ?: ""
+                                    showDeleteDialog = true
+                                }
+                            )
+                        }
                     }
                 }
             }
+            
+            // Banner centralizado
+            AdminMessageBanner(
+                state = adminMessage,
+                onDismiss = { viewModel.dismissAdminMessage() },
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = padding.calculateTopPadding() + 8.dp)
+            )
         }
     }
 }
 
 @Composable
-fun AdminEnterpriseCard(nombre: String, sector: String, ciudad: String, onClick: () -> Unit, onDelete: () -> Unit) {
+fun AdminEnterpriseCard(idEmpresa: Long, nombre: String, sector: String, ciudad: String, onClick: () -> Unit, onDelete: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -146,20 +145,11 @@ fun AdminEnterpriseCard(nombre: String, sector: String, ciudad: String, onClick:
             modifier = Modifier.padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Brush.linearGradient(listOf(AdminIndigo, AdminIndigoLight))),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = if (nombre.isNotEmpty()) nombre.take(1).uppercase() else "E",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp
-                )
-            }
+            ProfilePhotoDisplay(
+                photoUrl = "https://backend-sistema-empleo-universitario.onrender.com/api/archivos/foto/empresa/$idEmpresa",
+                size = 52,
+                modifier = Modifier.clip(RoundedCornerShape(12.dp))
+            )
 
             Spacer(modifier = Modifier.width(16.dp))
 

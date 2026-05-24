@@ -193,7 +193,7 @@ fun RegistroEstudianteScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            BolsaOutlinedFormField(
+                BolsaOutlinedFormField(
                 value = nombre,
                 onValueChange = {
                     nombre = it
@@ -201,8 +201,8 @@ fun RegistroEstudianteScreen(navController: NavController) {
                 },
                 label = "Nombre",
                 placeholder = "Ej: Juan",
-                isError = nombreError != null && nombre.isNotEmpty(),
-                supportingText = if (nombreError != null && nombre.isNotEmpty()) {
+                isError = nombreError != null,
+                supportingText = if (nombreError != null) {
                     {
                         Text(
                             text = nombreError!!,
@@ -224,8 +224,8 @@ fun RegistroEstudianteScreen(navController: NavController) {
                 },
                 label = "Apellido",
                 placeholder = "Ej: Pérez",
-                isError = apellidoError != null && apellido.isNotEmpty(),
-                supportingText = if (apellidoError != null && apellido.isNotEmpty()) {
+                isError = apellidoError != null,
+                supportingText = if (apellidoError != null) {
                     {
                         Text(
                             text = apellidoError!!,
@@ -247,9 +247,9 @@ fun RegistroEstudianteScreen(navController: NavController) {
                 },
                 label = "Correo electrónico",
                 placeholder = "estudiante@universidad.edu.co o usuario@gmail.com",
-                isError = emailError != null && email.isNotEmpty(),
+                isError = emailError != null,
                 supportingText = when {
-                    emailError != null && email.isNotEmpty() -> {
+                    emailError != null -> {
                         {
                             Text(
                                 text = emailError!!,
@@ -319,8 +319,8 @@ fun RegistroEstudianteScreen(navController: NavController) {
                 },
                 label = "Teléfono",
                 placeholder = "3001234567",
-                isError = telefonoError != null && telefono.isNotEmpty(),
-                supportingText = if (telefonoError != null && telefono.isNotEmpty()) {
+                isError = telefonoError != null,
+                supportingText = if (telefonoError != null) {
                     {
                         Text(
                             text = telefonoError!!,
@@ -343,9 +343,9 @@ fun RegistroEstudianteScreen(navController: NavController) {
                 label = "Contraseña",
                 placeholder = "Mínimo 6 caracteres",
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = passwordError != null && password.isNotEmpty(),
+                isError = passwordError != null,
                 supportingText = when {
-                    passwordError != null && password.isNotEmpty() -> {
+                    passwordError != null -> {
                         {
                             Text(
                                 text = passwordError!!,
@@ -388,9 +388,9 @@ fun RegistroEstudianteScreen(navController: NavController) {
                 label = "Confirmar contraseña",
                 placeholder = "Repite tu contraseña",
                 visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = confirmPasswordError != null && confirmPassword.isNotEmpty(),
+                isError = confirmPasswordError != null,
                 supportingText = when {
-                    confirmPasswordError != null && confirmPassword.isNotEmpty() -> {
+                    confirmPasswordError != null -> {
                         {
                             Text(
                                 text = confirmPasswordError!!,
@@ -502,6 +502,10 @@ fun RegistroEstudianteScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             // Botón Registrar
+            val isFormValid = nombreError == null && apellidoError == null && 
+                             emailError == null && telefonoError == null && 
+                             passwordError == null && confirmPasswordError == null
+
             Button(
                 onClick = {
                     // Validar todos los campos antes de enviar
@@ -592,7 +596,7 @@ fun RegistroEstudianteScreen(navController: NavController) {
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
+                enabled = !isLoading && isFormValid
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp))

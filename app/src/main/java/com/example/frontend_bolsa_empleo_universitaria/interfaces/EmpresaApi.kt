@@ -24,7 +24,6 @@ interface EmpresaApi {
         @Body request: SolicitudRegistroEmpresa
     ): Response<EmpresaPendiente>
 
-
     // ==================== LISTAR ====================
 
     @GET("api/empresas/listar")

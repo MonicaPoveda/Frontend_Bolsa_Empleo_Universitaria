@@ -31,6 +31,10 @@ class Token(context: Context) {
             .apply()
     }
 
+    fun saveUserTelefono(telefono: String) {
+        prefs.edit().putString("user_telefono", telefono).apply()
+    }
+
     fun getUserNombre(): String = prefs.getString("user_nombre", "Usuario") ?: "Usuario"
     fun getUserApellido(): String = prefs.getString("user_apellido", "") ?: ""
 
@@ -80,7 +84,10 @@ class Token(context: Context) {
     // NUEVO: Verificar si hay una empresa logueada
     fun hasEmpresaId(): Boolean = getEmpresaId() > 0
 
-    fun isEstudiante(): Boolean = getUserRole() == "ESTUDIANTE"
+    fun isEstudiante(): Boolean {
+        val role = getUserRole()
+        return role == "ESTUDIANTE" || role == "EGRESADO"
+    }
 
     fun isEmpresa(): Boolean = getUserRole() == "EMPRESA"
 

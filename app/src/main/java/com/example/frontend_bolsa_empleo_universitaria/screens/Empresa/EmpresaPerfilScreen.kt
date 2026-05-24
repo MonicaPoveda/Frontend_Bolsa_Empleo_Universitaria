@@ -20,7 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaDto
+import com.example.frontend_bolsa_empleo_universitaria.repository.ArchivoRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.EmpresaDocumentSection
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.launch
 
@@ -32,6 +36,7 @@ private val BackgroundGray = BolsaTokens.Palette.Background
 fun EmpresaPerfilScreen(padding: PaddingValues) {
     val context = LocalContext.current
     val token = remember { Token(context) }
+    val archivoRepo = remember { ArchivoRepository(RetrofitClient.archivoApi, context) }
     val scope = rememberCoroutineScope()
 
     var empresa by remember { mutableStateOf<EmpresaDto?>(null) }
@@ -175,19 +180,28 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         // Avatar
-                        Box(
-                            modifier = Modifier
-                                .size(90.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                Icons.Default.Business,
-                                contentDescription = "Avatar",
-                                tint = Color.White,
-                                modifier = Modifier.size(50.dp)
+                        val empresaId = e.idEmpresa ?: token.getEmpresaId()
+                        if (empresaId > 0L) {
+                            ProfilePhotoDisplay(
+                                photoUrl = ArchivoUrls.fotoEmpresa(empresaId),
+                                placeholderIcon = Icons.Default.Business,
+                                size = 90
                             )
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .size(90.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White.copy(alpha = 0.2f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.Business,
+                                    contentDescription = "Avatar",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(50.dp)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(20.dp))
@@ -330,7 +344,17 @@ fun EmpresaPerfilScreen(padding: PaddingValues) {
                         }
                     }
 
-                    // ✅ Botón de editar perfil ELIMINADO
+                    // Documento empresarial
+                    item {
+                        val empresaId = e.idEmpresa ?: token.getEmpresaId()
+                        if (empresaId > 0L) {
+                            EmpresaDocumentSection(
+                                editable = false,
+                                onUpload = { _, _ -> Result.failure(Exception("Edita tu perfil para subir documentos")) },
+                                onViewDocument = { archivoRepo.descargarYAbrirDocumentoEmpresa(empresaId) }
+                            )
+                        }
+                    }
 
                     item { Spacer(modifier = Modifier.height(16.dp)) }
                 }

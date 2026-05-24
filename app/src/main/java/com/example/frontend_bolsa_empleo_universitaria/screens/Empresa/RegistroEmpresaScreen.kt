@@ -1,7 +1,10 @@
 package com.example.frontend_bolsa_empleo_universitaria.screens.Empresa
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -18,464 +22,503 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.SolicitudRegistroEmpresa
+import com.example.frontend_bolsa_empleo_universitaria.repository.ArchivoRepository
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaOutlinedFormField
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.EmpresaDocumentSection
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+import com.example.frontend_bolsa_empleo_universitaria.utils.EmpresaSolicitudCache
+import com.example.frontend_bolsa_empleo_universitaria.utils.EmpresaSolicitudDraft
+import com.example.frontend_bolsa_empleo_universitaria.utils.HttpErrorParser
 import kotlinx.coroutines.launch
 import java.util.regex.Pattern
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegistroEmpresaScreen(navController: NavController) {
-    val scope = rememberCoroutineScope()
+fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "") {
     val context = LocalContext.current
+    val solicitudCache = remember { EmpresaSolicitudCache(context) }
+    val archivoRepository = remember { ArchivoRepository(RetrofitClient.archivoApi, context) }
+    val scope = rememberCoroutineScope()
+    var pasoActual by remember { mutableIntStateOf(1) }
 
     var isLoading by remember { mutableStateOf(false) }
     var showError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var showSuccess by remember { mutableStateOf(false) }
-    var successMessage by remember { mutableStateOf("") }
+    var cacheLoaded by remember { mutableStateOf(false) }
+    var sinDatosLocales by remember { mutableStateOf(false) }
 
-    // Campos del formulario SOLO los que requiere el backend para la solicitud
     var nombre by remember { mutableStateOf("") }
-    var nombreError by remember { mutableStateOf<String?>(null) }
-
-    var email by remember { mutableStateOf("") }
-    var emailError by remember { mutableStateOf<String?>(null) }
-
+    var email by remember { mutableStateOf(initialEmail) }
     var password by remember { mutableStateOf("") }
-    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPassword by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
 
-    var confirmPassword by remember { mutableStateOf("") }
-    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+    var sector by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("") }
+    var ciudad by remember { mutableStateOf("") }
+    var descripcion by remember { mutableStateOf("") }
 
-    // Validaciones específicas para solicitud de empresa
-    fun validarNombreEmpresa(nombre: String): String? {
+    var idEmpresaPendiente by remember { mutableStateOf<Long?>(null) }
+    val esModoEdicion = initialEmail.isNotBlank()
+
+    LaunchedEffect(initialEmail) {
+        if (initialEmail.isNotBlank()) {
+            isLoading = true
+            val draft = solicitudCache.load(initialEmail)
+            if (draft != null) {
+                idEmpresaPendiente = draft.idEmpresaPendiente
+                nombre = draft.nombre
+                email = draft.email
+                sector = draft.sector
+                telefono = draft.telefono
+                ciudad = draft.ciudad
+                descripcion = draft.descripcion
+                sinDatosLocales = false
+            } else {
+                email = initialEmail
+                sinDatosLocales = true
+            }
+            cacheLoaded = true
+            isLoading = false
+        } else {
+            cacheLoaded = true
+        }
+    }
+
+    fun validarEmail(email: String): String? {
+        val pattern = Pattern.compile("^[A-Za-z0-9+_.-]+@(?!gmail\\.com$|hotmail\\.com$|outlook\\.com$)[A-Za-z0-9.-]+\\.(com|co|net)$")
         return when {
-            nombre.isBlank() -> "El nombre de la empresa es obligatorio"
-            nombre.length < 3 -> "El nombre debe tener al menos 3 caracteres"
-            nombre.length > 50 -> "El nombre no puede tener más de 50 caracteres"
+            email.isBlank() -> "El correo es obligatorio"
+            !pattern.matcher(email).matches() -> "Usa un correo empresarial válido (.com, .co, .net)"
             else -> null
         }
     }
 
-    fun validarEmailEmpresa(email: String): String? {
-        val emailPattern = Pattern.compile(
-            "^[A-Za-z0-9+_.-]+@(?!gmail\\.com$|hotmail\\.com$|outlook\\.com$)[A-Za-z0-9.-]+\\.(com|co|net)$"
+    fun validarPassword(pass: String): String? {
+        return when {
+            pass.length < 6 -> "Mínimo 6 caracteres"
+            !pass.matches(Regex(".*[A-Z].*")) -> "Falta una mayúscula"
+            !pass.matches(Regex(".*[0-9].*")) -> "Falta un número"
+            !pass.matches(Regex(".*[@#\\$%^&+=!].*")) -> "Falta un carácter especial"
+            else -> null
+        }
+    }
+
+  fun persistDraft() {
+        if (email.isBlank()) return
+        solicitudCache.save(
+            EmpresaSolicitudDraft(
+                nombre = nombre,
+                email = email,
+                sector = sector,
+                telefono = telefono,
+                ciudad = ciudad,
+                descripcion = descripcion,
+                idEmpresaPendiente = idEmpresaPendiente
+            )
         )
-
-        return when {
-            email.isBlank() -> "El correo electrónico es obligatorio"
-            !email.contains("@") -> "El correo debe contener '@'"
-            email.contains("gmail.com") ||
-                    email.contains("hotmail.com") ||
-                    email.contains("outlook.com") ->
-                "❌ Solo se permiten correos empresariales (.com, .co, .net). No se permiten correos personales"
-            !emailPattern.matcher(email).matches() ->
-                "Formato inválido. Solo se permiten dominios .com, .co, .net"
-            else -> null
-        }
-    }
-
-    fun validarPassword(password: String): String? {
-        return when {
-            password.isBlank() -> "La contraseña es obligatoria"
-            password.length < 6 -> "La contraseña debe tener al menos 6 caracteres"
-            password.length > 20 -> "La contraseña no puede tener más de 20 caracteres"
-            !password.matches(Regex(".*[A-Z].*")) -> "Debe contener al menos una mayúscula"
-            !password.matches(Regex(".*[a-z].*")) -> "Debe contener al menos una minúscula"
-            !password.matches(Regex(".*[0-9].*")) -> "Debe contener al menos un número"
-            !password.matches(Regex(".*[@#\$%^&+=!].*")) -> "Debe contener al menos un carácter especial (@#\$%^&+=!)"
-            else -> null
-        }
-    }
-
-    // Validaciones en tiempo real
-    LaunchedEffect(nombre) { nombreError = validarNombreEmpresa(nombre) }
-    LaunchedEffect(email) { emailError = validarEmailEmpresa(email) }
-    LaunchedEffect(password) { passwordError = validarPassword(password) }
-    LaunchedEffect(confirmPassword) {
-        confirmPasswordError = when {
-            confirmPassword.isBlank() -> "Debes confirmar tu contraseña"
-            confirmPassword != password -> "Las contraseñas no coinciden"
-            else -> null
-        }
     }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Registro de Empresa") },
+                title = {
+                    Text(
+                        if (pasoActual == 1) {
+                            if (esModoEdicion) "Corregir solicitud" else "Paso 1: Cuenta"
+                        } else {
+                            "Paso 2: Perfil"
+                        },
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = { navController.navigateUp() }) {
+                    IconButton(onClick = { if (pasoActual == 2) pasoActual = 1 else navController.navigateUp() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                    containerColor = BolsaTokens.Palette.Primary,
+                    titleContentColor = Color.White,
+                    navigationIconContentColor = Color.White
                 )
             )
         }
-    ) { paddingValues ->
+    ) { padding ->
+        if (isLoading || !cacheLoaded) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = BolsaTokens.Palette.Primary)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Cargando datos...", color = BolsaTokens.Palette.TextSecondary)
+                }
+            }
+            return@Scaffold
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(24.dp)
         ) {
-            Text(
-                text = "Solicita tu Registro",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Completa tus datos para solicitar registro.\nUn administrador revisará tu solicitud.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            BolsaOutlinedFormField(
-                value = nombre,
-                onValueChange = {
-                    nombre = it
-                    showError = false
-                },
-                label = "Nombre de la empresa",
-                placeholder = "Ej: Mi Empresa SAS",
-                isError = nombreError != null && nombre.isNotEmpty(),
-                supportingText = if (nombreError != null && nombre.isNotEmpty()) {
-                    {
-                        Text(
-                            text = nombreError!!,
-                            color = BolsaTokens.Palette.Error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                } else null,
-                leadingIcon = { Icon(Icons.Default.Business, contentDescription = "Empresa", tint = BolsaTokens.Palette.Primary) }
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            BolsaOutlinedFormField(
-                value = email,
-                onValueChange = {
-                    email = it.lowercase()
-                    showError = false
-                },
-                label = "Correo electrónico",
-                placeholder = "empresa@midominio.com.co",
-                isError = emailError != null && email.isNotEmpty(),
-                supportingText = when {
-                    emailError != null && email.isNotEmpty() -> {
-                        {
-                            Text(
-                                text = emailError!!,
-                                color = BolsaTokens.Palette.Error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    email.isNotEmpty() && emailError == null -> {
-                        {
-                            Text(
-                                text = "✓ Correo empresarial válido",
-                                color = BolsaTokens.Palette.Primary,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    else -> null
-                },
-                leadingIcon = { Icon(Icons.Default.Email, contentDescription = "Email", tint = BolsaTokens.Palette.Primary) }
-            )
-
-            // Tarjeta informativa sobre correos permitidos
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer
-                ),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = "Info",
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                StepIndicator(step = 1, active = pasoActual >= 1)
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(2.dp)
+                        .background(if (pasoActual == 2) BolsaTokens.Palette.Primary else Color.LightGray)
+                )
+                StepIndicator(step = 2, active = pasoActual == 2)
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            if (esModoEdicion && sinDatosLocales) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFBEB)),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, null, tint = Color(0xFFB45309))
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "📧 Solo correos empresariales:",
-                            style = MaterialTheme.typography.labelMedium,
+                            "No encontramos un borrador local. Completa los datos de perfil para reenviar tu solicitud.",
+                            fontSize = 13.sp,
+                            color = Color(0xFF92400E)
+                        )
+                    }
+                }
+            }
+
+            if (esModoEdicion) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Solicitud rechazada", fontWeight = FontWeight.Bold, color = Color(0xFFDC2626))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            "Puedes corregir los datos de texto y reenviar. Los archivos (foto/documentos) estarán disponibles cuando tu cuenta sea aprobada.",
+                            fontSize = 13.sp,
+                            color = Color(0xFF991B1B)
+                        )
+                    }
+                }
+            }
+
+            if (pasoActual == 1) {
+                Text(
+                    text = if (esModoEdicion) "Corregir solicitud de registro" else "Crea tu cuenta empresarial",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                if (esModoEdicion) {
+                    Text(
+                        "El correo y la contraseña no se modifican. Puedes actualizar el nombre y los datos del perfil en el siguiente paso.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+
+                BolsaOutlinedFormField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = "Nombre de la empresa",
+                    isError = nombre.length < 3,
+                    supportingText = if (nombre.length < 3) {
+                        { Text("Mínimo 3 caracteres", color = BolsaTokens.Palette.Error) }
+                    } else null,
+                    leadingIcon = { Icon(Icons.Default.Business, null, tint = BolsaTokens.Palette.Primary) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val emailErr = if (esModoEdicion) null else validarEmail(email)
+                BolsaOutlinedFormField(
+                    value = email,
+                    onValueChange = { if (!esModoEdicion) email = it.lowercase() },
+                    label = "Correo corporativo",
+                    enabled = !esModoEdicion,
+                    isError = emailErr != null,
+                    supportingText = if (emailErr != null) {
+                        { Text(emailErr, color = BolsaTokens.Palette.Error) }
+                    } else null,
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Email,
+                            null,
+                            tint = if (esModoEdicion) Color.Gray else BolsaTokens.Palette.Primary
+                        )
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (!esModoEdicion) {
+                    val passErr = validarPassword(password)
+                    BolsaOutlinedFormField(
+                        value = password,
+                        onValueChange = { password = it },
+                        label = "Contraseña",
+                        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        isError = passErr != null,
+                        supportingText = if (passErr != null) {
+                            { Text(passErr, color = BolsaTokens.Palette.Error) }
+                        } else null,
+                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = BolsaTokens.Palette.Primary) },
+                        trailingIcon = {
+                            IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                Icon(if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null)
+                            }
+                        }
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    BolsaOutlinedFormField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = "Confirmar contraseña",
+                        isError = confirmPassword != password,
+                        supportingText = if (confirmPassword != password) {
+                            { Text("No coinciden", color = BolsaTokens.Palette.Error) }
+                        } else null,
+                        visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        leadingIcon = { Icon(Icons.Default.LockClock, null, tint = BolsaTokens.Palette.Primary) }
+                    )
+                } else {
+                    BolsaOutlinedFormField(
+                        value = "********",
+                        onValueChange = {},
+                        label = "Contraseña",
+                        enabled = false,
+                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color.Gray) }
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = {
+                        persistDraft()
+                        pasoActual = 2
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius),
+                    enabled = if (esModoEdicion) {
+                        nombre.length >= 3
+                    } else {
+                        nombre.length >= 3 &&
+                            validarEmail(email) == null &&
+                            validarPassword(password) == null &&
+                            password == confirmPassword
+                    }
+                ) {
+                    Text("Siguiente: Datos de perfil", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.ChevronRight, null)
+                }
+            } else {
+                Text("Completa el perfil de la empresa", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.height(24.dp))
+
+                BolsaOutlinedFormField(
+                    value = sector,
+                    onValueChange = { sector = it },
+                    label = "Sector económico",
+                    placeholder = "Ej: Tecnología, Salud...",
+                    isError = sector.length < 3,
+                    supportingText = if (sector.length < 3) {
+                        { Text("Mínimo 3 caracteres", color = BolsaTokens.Palette.Error) }
+                    } else null,
+                    leadingIcon = { Icon(Icons.Default.Category, null, tint = BolsaTokens.Palette.Primary) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                BolsaOutlinedFormField(
+                    value = telefono,
+                    onValueChange = { if (it.length <= 10) telefono = it.filter { c -> c.isDigit() } },
+                    label = "Teléfono de contacto",
+                    placeholder = "10 dígitos",
+                    isError = telefono.length != 10,
+                    supportingText = if (telefono.length != 10) {
+                        { Text("Deben ser 10 dígitos", color = BolsaTokens.Palette.Error) }
+                    } else null,
+                    leadingIcon = { Icon(Icons.Default.Phone, null, tint = BolsaTokens.Palette.Primary) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                BolsaOutlinedFormField(
+                    value = ciudad,
+                    onValueChange = { ciudad = it },
+                    label = "Ciudad / Ubicación",
+                    isError = ciudad.length < 3,
+                    supportingText = if (ciudad.length < 3) {
+                        { Text("Mínimo 3 caracteres", color = BolsaTokens.Palette.Error) }
+                    } else null,
+                    leadingIcon = { Icon(Icons.Default.LocationOn, null, tint = BolsaTokens.Palette.Primary) }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                BolsaOutlinedFormField(
+                    value = descripcion,
+                    onValueChange = { descripcion = it },
+                    label = "Descripción de la empresa",
+                    placeholder = "Mínimo 20 caracteres sobre tu empresa...",
+                    singleLine = false,
+                    modifier = Modifier.height(120.dp),
+                    isError = descripcion.length < 20,
+                    supportingText = if (descripcion.length < 20) {
+                        { Text("${descripcion.length}/20 caracteres mínimos", color = BolsaTokens.Palette.Error) }
+                    } else null
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Sección de Documentos - Solo disponible si ya hay un ID (Registro inicial exitoso o modo edición)
+                if (idEmpresaPendiente != null) {
+                    EmpresaDocumentSection(
+                        editable = true,
+                        hasDocument = false, // Podríamos consultar el estado si fuera necesario
+                        onUpload = { uri, isReplace ->
+                            archivoRepository.subirDocumentoEmpresa(idEmpresaPendiente!!, uri, isReplace)
+                        },
+                        onViewDocument = {
+                            archivoRepository.descargarYAbrirDocumentoEmpresa(idEmpresaPendiente!!)
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                } else {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = BolsaTokens.Palette.PrimaryLight.copy(alpha = 0.1f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, null, tint = BolsaTokens.Palette.Primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Podrás subir el documento PDF después de enviar la solicitud por primera vez.",
+                                fontSize = 12.sp,
+                                color = BolsaTokens.Palette.Primary
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                if (showError) {
+                    Text(
+                        errorMessage,
+                        color = BolsaTokens.Palette.Error,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = {
+                        isLoading = true
+                        showError = false
+                        scope.launch {
+                            try {
+                                persistDraft()
+                                val request = SolicitudRegistroEmpresa(
+                                    idEmpresaPendiente = idEmpresaPendiente,
+                                    nombre = nombre.trim(),
+                                    email = email.trim().lowercase(),
+                                    password = if (esModoEdicion) null else password,
+                                    sector = sector.trim(),
+                                    telefono = telefono.trim(),
+                                    ciudad = ciudad.trim(),
+                                    descripcion = descripcion.trim()
+                                )
+                                val response = RetrofitClient.empresaApi.enviarSolicitudEmpresa(request)
+                                if (response.isSuccessful) {
+                                    val body = response.body()
+                                    idEmpresaPendiente = body?.idEmpresaPendiente ?: idEmpresaPendiente
+                                    persistDraft()
+                                    showSuccess = true
+                                } else {
+                                    errorMessage = HttpErrorParser.fromResponse(response)
+                                    showError = true
+                                }
+                            } catch (e: Exception) {
+                                errorMessage = "Error de conexión: ${e.message ?: "Intenta más tarde"}"
+                                showError = true
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    enabled = !isLoading &&
+                        sector.length >= 3 &&
+                        telefono.length == 10 &&
+                        ciudad.length >= 3 &&
+                        descripcion.length >= 20,
+                    shape = RoundedCornerShape(BolsaTokens.Dimens.buttonRadius)
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text(
+                            if (esModoEdicion) "Reenviar solicitud corregida" else "Enviar solicitud de registro",
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        }
+
+        if (showSuccess) {
+            AlertDialog(
+                onDismissRequest = { navController.navigate("login") { popUpTo("login") { inclusive = true } } },
+                confirmButton = {
+                    Button(onClick = { navController.navigate("login") { popUpTo("login") { inclusive = true } } }) {
+                        Text("Entendido")
+                    }
+                },
+                title = { Text(if (esModoEdicion) "¡Solicitud reenviada!" else "¡Solicitud enviada!") },
+                text = {
                     Text(
-                        text = "• ✅ Dominios permitidos: .com, .co, .net\n" +
-                                "• ❌ No se permiten: @gmail.com, @hotmail.com, @outlook.com\n" +
-                                "• 📝 Ejemplo: empresa@midominio.com.co",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontSize = 11.sp
+                        if (esModoEdicion) {
+                            "Tu solicitud corregida fue reenviada. El administrador la revisará nuevamente."
+                        } else {
+                            "Tu solicitud fue enviada. El administrador revisará tu perfil empresarial."
+                        }
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            BolsaOutlinedFormField(
-                value = password,
-                onValueChange = {
-                    password = it
-                    showError = false
-                },
-                label = "Contraseña",
-                placeholder = "Mínimo 6 caracteres",
-                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = passwordError != null && password.isNotEmpty(),
-                supportingText = when {
-                    passwordError != null && password.isNotEmpty() -> {
-                        {
-                            Text(
-                                text = passwordError!!,
-                                color = BolsaTokens.Palette.Error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    password.isNotEmpty() && passwordError == null -> {
-                        {
-                            Text(
-                                text = "✓ Contraseña segura",
-                                color = BolsaTokens.Palette.Primary,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    else -> null
-                },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Contraseña", tint = BolsaTokens.Palette.Primary) },
-                trailingIcon = {
-                    IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                        Icon(
-                            if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (isPasswordVisible) "Ocultar" else "Mostrar",
-                            tint = BolsaTokens.Palette.TextSecondary
-                        )
-                    }
-                }
             )
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            BolsaOutlinedFormField(
-                value = confirmPassword,
-                onValueChange = {
-                    confirmPassword = it
-                    showError = false
-                },
-                label = "Confirmar contraseña",
-                placeholder = "Repite tu contraseña",
-                visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = confirmPasswordError != null && confirmPassword.isNotEmpty(),
-                supportingText = when {
-                    confirmPasswordError != null && confirmPassword.isNotEmpty() -> {
-                        {
-                            Text(
-                                text = confirmPasswordError!!,
-                                color = BolsaTokens.Palette.Error,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    confirmPassword.isNotEmpty() && confirmPasswordError == null -> {
-                        {
-                            Text(
-                                text = "✓ Las contraseñas coinciden",
-                                color = BolsaTokens.Palette.Primary,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    }
-                    else -> null
-                },
-                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = "Confirmar", tint = BolsaTokens.Palette.Primary) }
-            )
-
-            // Mensaje de error general
-            if (showError && errorMessage.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Icon(
-                            Icons.Default.Error,
-                            contentDescription = "Error",
-                            tint = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = errorMessage,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-            }
-
-            // Mensaje de éxito
-            if (showSuccess) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.CheckCircle,
-                                contentDescription = "Éxito",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "¡Solicitud Enviada!",
-                                color = MaterialTheme.colorScheme.primary,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = successMessage,
-                            color = MaterialTheme.colorScheme.primary,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Botón Enviar Solicitud
-            Button(
-                onClick = {
-                    val nombreValid = validarNombreEmpresa(nombre)
-                    val emailValid = validarEmailEmpresa(email)
-                    val passwordValid = validarPassword(password)
-                    val confirmValid = if (confirmPassword != password) "Las contraseñas no coinciden" else null
-
-                    when {
-                        nombreValid != null -> {
-                            showError = true
-                            errorMessage = "❌ $nombreValid"
-                            showSuccess = false
-                        }
-                        emailValid != null -> {
-                            showError = true
-                            errorMessage = "❌ $emailValid"
-                            showSuccess = false
-                        }
-                        passwordValid != null -> {
-                            showError = true
-                            errorMessage = "❌ $passwordValid"
-                            showSuccess = false
-                        }
-                        confirmValid != null -> {
-                            showError = true
-                            errorMessage = "❌ $confirmValid"
-                            showSuccess = false
-                        }
-                        else -> {
-                            showError = false
-                            isLoading = true
-
-                            scope.launch {
-                                try {
-                                    val request = SolicitudRegistroEmpresa(
-                                        nombre = nombre,
-                                        email = email,
-                                        password = password
-                                    )
-
-                                    println("📤 Enviando solicitud: $request")
-
-                                    val response = RetrofitClient.empresaApi.enviarSolicitudEmpresa(request)
-
-                                    isLoading = false
-
-                                    if (response.isSuccessful) {
-                                        val solicitud = response.body()
-                                        showSuccess = true
-                                        successMessage = "✅ ¡Solicitud enviada!\n" +
-                                                "📧 Correo: ${solicitud?.email}\n" +
-                                                "📊 Estado: ${solicitud?.estado}\n" +
-                                                "📝 ${solicitud?.mensaje}\n\n" +
-                                                "⏳ Espera la aprobación del administrador para iniciar sesión."
-
-                                        // Limpiar campos
-                                        nombre = ""
-                                        email = ""
-                                        password = ""
-                                        confirmPassword = ""
-                                    } else {
-                                        val errorBody = response.errorBody()?.string()
-                                        showError = true
-                                        errorMessage = when {
-                                            errorBody?.contains("Solo correos empresariales") == true ->
-                                                "❌ Solo se permiten correos empresariales (.com, .co, .net)"
-                                            else -> "❌ Error al enviar solicitud: ${errorBody ?: "Intenta nuevamente"}"
-                                        }
-                                    }
-                                } catch (e: Exception) {
-                                    isLoading = false
-                                    showError = true
-                                    errorMessage = "❌ Error de conexión: ${e.message}"
-                                    e.printStackTrace()
-                                }
-                            }
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isLoading
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                } else {
-                    Text("Enviar Solicitud de Registro")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(
-                onClick = { navController.navigate("login") }
-            ) {
-                Text("¿Ya tienes cuenta aprobada? Inicia sesión aquí")
-            }
+@Composable
+fun StepIndicator(step: Int, active: Boolean) {
+    Surface(
+        color = if (active) BolsaTokens.Palette.Primary else Color.LightGray,
+        shape = CircleShape,
+        modifier = Modifier.size(32.dp)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(step.toString(), color = Color.White, fontWeight = FontWeight.Bold)
         }
     }
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.google.gson.GsonBuilder
 import okhttp3.ConnectionPool
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -21,8 +22,7 @@ object RetrofitClient {
         "/api/empresas/login",
         "/api/empresas/recuperar-password",
         "/api/empresas/guardar",
-        "/api/empresas-pendientes/enviar",
-        "/api/empresas-pendientes/listar"
+        "/api/empresas-pendientes/enviar"
     )
 
     lateinit var appContext: Context
@@ -56,7 +56,8 @@ object RetrofitClient {
 
         val contentTypeInterceptor = okhttp3.Interceptor { chain ->
             val original = chain.request()
-            if (original.body != null) {
+            val body = original.body
+            if (body != null && body !is MultipartBody) {
                 val newRequest = original.newBuilder()
                     .header("Content-Type", "application/json")
                     .header("Accept", "application/json")
@@ -98,6 +99,7 @@ object RetrofitClient {
     val ofertaLaboralApi: OfertaLaboralApi by lazy { retrofit.create(OfertaLaboralApi::class.java) }
     val postulacionApi: PostulacionApi by lazy { retrofit.create(PostulacionApi::class.java) }  // ← Solo una vez
     val seguimientoPostulacionApi: SeguimientoPostulacionApi by lazy { retrofit.create(SeguimientoPostulacionApi::class.java) }
+    val archivoApi: ArchivoApi by lazy { retrofit.create(ArchivoApi::class.java) }
 
     fun init(context: Context) {
         appContext = context.applicationContext

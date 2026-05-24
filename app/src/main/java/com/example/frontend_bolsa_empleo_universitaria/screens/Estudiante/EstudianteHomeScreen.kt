@@ -86,8 +86,10 @@ import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaEmptyS
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaFilterTextField
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaFilterToggleRow
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaPrimarySearchBar
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
@@ -120,6 +122,7 @@ fun EstudianteHomeScreen(
     var selectedDrawerItem by remember { mutableStateOf("inicio") }
 
     val nombreUsuario = token.getUserNombre()
+    val cacheBuster = remember { System.currentTimeMillis() }
 
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val empresaRepository = remember { EmpresaRepository(RetrofitClient.empresaApi) }
@@ -168,10 +171,14 @@ fun EstudianteHomeScreen(
                         .padding(vertical = 28.dp, horizontal = 22.dp)
                 ) {
                     Column {
-                        UniEmpleoLogo(
-                            modifier = Modifier.size(68.dp),
-                            containerColor = Color.White.copy(alpha = 0.22f),
-                            cornerRadius = 18.dp
+                        ProfilePhotoDisplay(
+                            photoUrl = ArchivoUrls.fotoUsuario(token.getUserId() ?: 0L),
+                            cacheBuster = cacheBuster,
+                            size = 68,
+                            placeholderIcon = Icons.Default.Person,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color.White.copy(alpha = 0.22f))
                         )
                         Spacer(modifier = Modifier.height(14.dp))
                         Text(

@@ -51,6 +51,7 @@ class LoginViewModel(
                         val rolApp = when (rolBackend) {
                             "ADMIN" -> "ADMIN"
                             "EMPR" -> "EMPRESA"
+                            "EGRESADO" -> "EGRESADO"
                             else -> "ESTUDIANTE"
                         }
 

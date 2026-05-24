@@ -42,6 +42,9 @@ interface UsuarioApi {
 
     // ==================== BÚSQUEDAS ====================
 
+    @GET("api/usuarios/{id}")
+    suspend fun obtenerPorId(@Path("id") id: Long): Response<UsuarioDTO>
+
     @GET("api/usuarios/buscar-email")
     suspend fun buscarPorEmail(@Query("email") email: String): Response<UsuarioDTO>
 }

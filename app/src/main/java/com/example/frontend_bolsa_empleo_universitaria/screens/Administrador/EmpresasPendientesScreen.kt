@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.AdminMessageBanner
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 
@@ -44,15 +46,13 @@ private val SuccessGreenBg = Color(0xFFECFDF5)
 fun EmpresasPendientesScreen(navController: NavController, viewModel: AdminViewModel) {
     val todasLasSolicitudes by viewModel.empresasPendientes.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+    val adminMessage by viewModel.adminMessage.collectAsState()
     
-    // Estado para controlar la pestaña seleccionada
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Pendientes", "Rechazadas")
 
-    // Separación de listas por estado
     val listaPendientes = todasLasSolicitudes.filter { it.estado.equals("PENDIENTE", ignoreCase = true) }
     val listaRechazadas = todasLasSolicitudes.filter { it.estado.equals("RECHAZADA", ignoreCase = true) }
-    
     val listaAMostrar = if (selectedTabIndex == 0) listaPendientes else listaRechazadas
 
     LaunchedEffect(Unit) {
@@ -73,7 +73,6 @@ fun EmpresasPendientesScreen(navController: NavController, viewModel: AdminViewM
                     colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = CleanWhite)
                 )
                 
-                // Pestañas Organizadoras
                 SecondaryTabRow(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = CleanWhite,
@@ -111,112 +110,118 @@ fun EmpresasPendientesScreen(navController: NavController, viewModel: AdminViewM
             }
         }
     ) { padding ->
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            if (isLoading) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = AccentIndigo)
-                }
-            } else if (listaAMostrar.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
-                        Surface(modifier = Modifier.size(72.dp), shape = CircleShape, color = Color(0xFFF3F4F6)) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    if (selectedTabIndex == 0) Icons.Default.CheckCircleOutline else Icons.Default.Info, 
-                                    null, 
-                                    modifier = Modifier.size(32.dp), 
-                                    tint = TextSecondary.copy(alpha = 0.4f)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Text(
-                            text = if (selectedTabIndex == 0) "¡Bandeja limpia!" else "Sin rechazadas",
-                            fontWeight = FontWeight.Bold, color = TextMain, fontSize = 16.sp
-                        )
-                        Text(
-                            text = if (selectedTabIndex == 0) "No hay solicitudes esperando revisión en este momento." else "Las empresas que rechaces aparecerán en esta sección.",
-                            fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center
-                        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+                if (isLoading && todasLasSolicitudes.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = AccentIndigo)
                     }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(listaAMostrar) { empresa ->
-                        val esRechazada = empresa.estado.equals("RECHAZADA", ignoreCase = true)
-                        
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable { navController.navigate("detalle_solicitud/${empresa.idEmpresaPendiente}") },
-                            colors = CardDefaults.cardColors(containerColor = CleanWhite),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(12.dp))) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(4.dp)
-                                        .height(48.dp)
-                                        .align(Alignment.CenterStart)
-                                        .background(if (esRechazada) StatusRed else if (empresa.actualizada) SuccessGreen else AccentIndigo)
-                                )
+                } else if (listaAMostrar.isEmpty()) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+                            Surface(modifier = Modifier.size(72.dp), shape = CircleShape, color = Color(0xFFF3F4F6)) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        if (selectedTabIndex == 0) Icons.Default.CheckCircleOutline else Icons.Default.Info, 
+                                        null, 
+                                        modifier = Modifier.size(32.dp), 
+                                        tint = TextSecondary.copy(alpha = 0.4f)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(20.dp))
+                            Text(
+                                text = if (selectedTabIndex == 0) "¡Bandeja limpia!" else "Sin rechazadas",
+                                fontWeight = FontWeight.Bold, color = TextMain, fontSize = 16.sp
+                            )
+                            Text(
+                                text = if (selectedTabIndex == 0) "No hay solicitudes esperando revisión." else "Las empresas rechazadas aparecerán aquí.",
+                                fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(listaAMostrar) { empresa ->
+                            val esRechazada = empresa.estado.equals("RECHAZADA", ignoreCase = true)
+                            
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { 
+                                        navController.navigate("detalle_solicitud/${empresa.idEmpresaPendiente}")
+                                    },
+                                colors = CardDefaults.cardColors(containerColor = CleanWhite),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Box(modifier = Modifier.fillMaxWidth().border(1.dp, BorderLight, RoundedCornerShape(12.dp))) {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(4.dp)
+                                            .height(48.dp)
+                                            .align(Alignment.CenterStart)
+                                            .background(if (esRechazada) StatusRed else if (empresa.actualizada) SuccessGreen else AccentIndigo)
+                                    )
 
-                                Row(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Surface(
-                                        modifier = Modifier.size(44.dp),
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = Color(0xFFF9FAFB)
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(Icons.Default.Business, null, tint = Color(0xFF475569), modifier = Modifier.size(22.dp))
-                                        }
-                                    }
-                                    
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(text = empresa.nombre, fontWeight = FontWeight.Bold, color = TextMain, fontSize = 14.sp)
-                                            if (empresa.actualizada && !esRechazada) {
-                                                Spacer(modifier = Modifier.width(8.dp))
-                                                Surface(color = SuccessGreenBg, shape = RoundedCornerShape(4.dp)) {
-                                                    Text("ACTUALIZADA", color = SuccessGreen, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                        ProfilePhotoDisplay(
+                                            photoUrl = "https://backend-sistema-empleo-universitario.onrender.com/api/archivos/foto/empresa/${empresa.idEmpresaPendiente}",
+                                            size = 44,
+                                            modifier = Modifier.clip(RoundedCornerShape(10.dp))
+                                        )
+                                        
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(text = empresa.nombre, fontWeight = FontWeight.Bold, color = TextMain, fontSize = 14.sp)
+                                                if (empresa.actualizada && !esRechazada) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Surface(color = SuccessGreenBg, shape = RoundedCornerShape(4.dp)) {
+                                                        Text("ACTUALIZADA", color = SuccessGreen, fontSize = 8.sp, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                                    }
                                                 }
                                             }
+                                            Text(text = empresa.email, fontSize = 11.sp, color = TextSecondary)
                                         }
-                                        Text(text = empresa.email, fontSize = 11.sp, color = TextSecondary)
-                                    }
 
-                                    Surface(
-                                        color = if (esRechazada) StatusRedBg else StatusGoldBg,
-                                        shape = RoundedCornerShape(100.dp)
-                                    ) {
-                                        Text(
-                                            text = if (esRechazada) "${empresa.rechazos}/3" else "Pendiente",
-                                            color = if (esRechazada) StatusRed else StatusGold,
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
-                                        )
+                                        Surface(
+                                            color = if (esRechazada) StatusRedBg else StatusGoldBg,
+                                            shape = RoundedCornerShape(100.dp)
+                                        ) {
+                                            Text(
+                                                text = if (esRechazada) "${empresa.rechazos}/3" else "Pendiente",
+                                                color = if (esRechazada) StatusRed else StatusGold,
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                                            )
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
                                     }
-                                    
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
                     }
                 }
             }
+            
+            AdminMessageBanner(
+                state = adminMessage,
+                onDismiss = { viewModel.dismissAdminMessage() },
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = padding.calculateTopPadding() + 8.dp)
+            )
         }
     }
 }

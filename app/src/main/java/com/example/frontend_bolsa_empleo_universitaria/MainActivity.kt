@@ -133,8 +133,12 @@ fun AppNavigation() {
 
         composable("registro_estudiante") { RegistroEstudianteScreen(navController = navController) }
         
-        composable("registro_empresa") { 
-            RegistroEmpresaScreen(navController = navController) 
+        composable(
+            route = "registro_empresa?email={email}",
+            arguments = listOf(navArgument("email") { defaultValue = ""; type = NavType.StringType })
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            RegistroEmpresaScreen(navController = navController, initialEmail = email)
         }
 
         composable("editar_perfil_empresa") { EditarPerfilEmpresaScreen(navController = navController) }
@@ -205,6 +209,7 @@ fun AppNavigation() {
         composable("mis_postulaciones") { MisPostulacionesScreen(navController = navController) }
         composable("mi_perfil") { MiPerfilScreen(navController = navController) }
         composable("configuracion_cuenta") { ConfiguracionCuentaScreen(navController = navController) }
+        composable("admin_mi_perfil") { AdminMiPerfilScreen(navController = navController) }
         composable("sobre_nosotros") { SobreNosotrosScreen(navController = navController) }
     }
 }

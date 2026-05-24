@@ -7,9 +7,9 @@ import com.example.frontend_bolsa_empleo_universitaria.model.Perfil
 class PerfilRepository(private val api: PerfilApi) {
     suspend fun obtenerPerfilPorUsuario(userId: Long): Perfil? {
         return try {
-            val response = api.listarPerfiles()
+            val response = api.obtenerPerfilPorUsuario(userId)
             if (response.isSuccessful) {
-                response.body()?.find { it.idUsuario == userId }
+                response.body()
             } else {
                 null
             }

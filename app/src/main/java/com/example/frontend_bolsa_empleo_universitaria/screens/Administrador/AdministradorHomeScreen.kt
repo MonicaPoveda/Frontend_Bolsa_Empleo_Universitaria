@@ -30,9 +30,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.model.*
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.BolsaOutlinedFormField
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoColors
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.AdminViewModel
 import kotlinx.coroutines.delay
@@ -51,6 +53,7 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
     val token = remember { Token(context) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val cacheBuster = remember { System.currentTimeMillis() }
     
     // Recolectamos los estados del ViewModel con los delegados corregidos
     val empresasAceptadas by adminViewModel.empresasAceptadas.collectAsState()
@@ -84,13 +87,17 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                         .padding(top = 48.dp, bottom = 24.dp, start = 24.dp, end = 24.dp)
                 ) {
                     Column {
-                        UniEmpleoLogo(
-                            modifier = Modifier.size(64.dp),
-                            containerColor = Color.White.copy(0.2f),
-                            cornerRadius = 18.dp
+                        ProfilePhotoDisplay(
+                            photoUrl = ArchivoUrls.fotoUsuario(token.getUserId() ?: 0L),
+                            cacheBuster = cacheBuster,
+                            size = 64,
+                            placeholderIcon = Icons.Default.Person,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color.White.copy(alpha = 0.22f))
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("Administrador", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(token.getUserNombre().ifEmpty { "Administrador" }, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         Text(token.getUserEmail() ?: "admin@sistema.com", color = Color.White.copy(0.7f), fontSize = 13.sp)
                     }
                 }
@@ -102,6 +109,9 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                     }
                     AdminDrawerItem(Icons.Outlined.Description, "Notificaciones", badge = if(pendingCount > 0) "$pendingCount" else null) { 
                         scope.launch { drawerState.close(); navController.navigate("notificaciones") }
+                    }
+                    AdminDrawerItem(Icons.Outlined.Person, "Mi perfil") {
+                        scope.launch { drawerState.close(); navController.navigate("admin_mi_perfil") }
                     }
                     AdminDrawerItem(Icons.Default.Info, "Sobre nosotros") {
                         scope.launch { drawerState.close(); navController.navigate("sobre_nosotros") }
@@ -165,7 +175,7 @@ fun AdministradorHomeScreen(navController: NavController, adminViewModel: AdminV
                 } else {
                     items(empresasFiltradas) { empresa ->
                         Box(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
-                            ModernAdminCard(empresa.nombre ?: "Empresa", empresa.sector ?: "General") {
+                            ModernAdminCard(empresa) {
                                 navController.navigate("perfil_empresa_admin/${empresa.idEmpresa}")
                             }
                         }
@@ -200,27 +210,19 @@ fun StatCard(label: String, value: String, icon: ImageVector, color: Color, modi
 }
 
 @Composable
-fun ModernAdminCard(nombre: String, sector: String, onClick: () -> Unit) {
+fun ModernAdminCard(empresa: EmpresaDto, onClick: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth().clickable { onClick() }, shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White), elevation = CardDefaults.cardElevation(2.dp)) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(AdminIndigo.copy(0.1f)), contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = when(sector.lowercase()) {
-                        "tecnología", "ti", "sistemas" -> Icons.Default.Code
-                        "ventas", "comercial" -> Icons.AutoMirrored.Filled.TrendingUp
-                        "salud", "medicina" -> Icons.Default.MedicalServices
-                        "educación" -> Icons.Default.School
-                        else -> Icons.Default.Business
-                    },
-                    contentDescription = null,
-                    tint = AdminIndigo,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            ProfilePhotoDisplay(
+                photoUrl = ArchivoUrls.fotoEmpresa(empresa.idEmpresa),
+                size = 40,
+                placeholderIcon = Icons.Default.Business,
+                modifier = Modifier.background(AdminIndigo.copy(0.1f), CircleShape)
+            )
             Spacer(modifier = Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(nombre, fontWeight = FontWeight.Bold, color = Color.Black)
-                Text(sector, fontSize = 12.sp, color = Color.Gray)
+                Text(empresa.nombre ?: "Empresa", fontWeight = FontWeight.Bold, color = Color.Black)
+                Text(empresa.sector ?: "General", fontSize = 12.sp, color = Color.Gray)
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Color.LightGray)
         }

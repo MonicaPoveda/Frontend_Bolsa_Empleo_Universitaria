@@ -37,4 +37,15 @@ interface AdminApi {
 
     @GET("api/postulaciones/oferta/{idOferta}")
     suspend fun listarPostulacionesPorOferta(@Path("idOferta") idOferta: Long): Response<List<PostulacionDto>>
+
+    // En tu interfaz EmpresaApi (o donde tengas los endpoints)
+
+    @GET("api/empresas-pendientes/listar")
+    suspend fun listarSolicitudesPendientes(): Response<List<SolicitudRegistroEmpresa>>
+
+    @PUT("api/empresas-pendientes/actualizar")
+    suspend fun actualizarSolicitud(@Body solicitud: SolicitudRegistroEmpresa): Response<Void>
+
+
+
 }

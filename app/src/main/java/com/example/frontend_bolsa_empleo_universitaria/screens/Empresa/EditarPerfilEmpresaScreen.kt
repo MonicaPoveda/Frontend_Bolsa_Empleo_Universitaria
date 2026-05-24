@@ -19,7 +19,11 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.EmpresaDto
+import com.example.frontend_bolsa_empleo_universitaria.repository.ArchivoRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.EmpresaDocumentSection
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoSection
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import kotlinx.coroutines.launch
 
@@ -33,7 +37,11 @@ fun EditarPerfilEmpresaScreen(
 ) {
     val context = LocalContext.current
     val token = remember { Token(context) }
+    val archivoRepo = remember { ArchivoRepository(RetrofitClient.archivoApi, context) }
     val scope = rememberCoroutineScope()
+
+    var hasPhoto by remember { mutableStateOf(false) }
+    var hasDocument by remember { mutableStateOf(false) }
 
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
@@ -125,6 +133,34 @@ fun EditarPerfilEmpresaScreen(
                 }
 
                 else -> {
+                    val empresaId = empresa?.idEmpresa ?: token.getEmpresaId()
+
+                    if (empresaId > 0L) {
+                        ProfilePhotoSection(
+                            photoUrl = ArchivoUrls.fotoEmpresa(empresaId),
+                            title = "Logo / foto de la empresa",
+                            placeholderIcon = Icons.Default.Business,
+                            hasUploadedPhoto = hasPhoto,
+                            onUpload = { uri, replace ->
+                                archivoRepo.subirFotoEmpresa(empresaId, uri, replace).also { result ->
+                                    if (result.isSuccess) hasPhoto = true
+                                }
+                            }
+                        )
+
+                        EmpresaDocumentSection(
+                            hasDocument = hasDocument,
+                            onUpload = { uri, replace ->
+                                archivoRepo.subirDocumentoEmpresa(empresaId, uri, replace).also { result ->
+                                    if (result.isSuccess) hasDocument = true
+                                }
+                            },
+                            onViewDocument = { archivoRepo.descargarYAbrirDocumentoEmpresa(empresaId) }
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
                     // Tarjeta de información
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -343,6 +379,10 @@ fun EditarPerfilEmpresaScreen(
                                         successMessage = "Perfil actualizado exitosamente"
                                         // Actualizar los datos en la empresa
                                         empresa = empresaActualizada
+
+                                        // Sincronizar con el token local para que el Drawer se actualice
+                                        token.saveUserName(nombre, "")
+                                        token.saveUserTelefono(telefono)
                                     } else {
                                         errorMessage = "Error al actualizar: ${response.code()}"
                                     }

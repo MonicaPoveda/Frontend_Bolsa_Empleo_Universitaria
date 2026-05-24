@@ -289,7 +289,7 @@ fun EmpresaRechazadaDialog(info: EmpresaStatusInfo, onDismiss: () -> Unit, onNav
                     Text(text = info.mensaje.replace("RECHAZADA:", "").trim(), modifier = Modifier.padding(12.dp), style = MaterialTheme.typography.bodySmall)
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Haz clic abajo para completar los documentos solicitados.")
+                Text("Haz clic abajo para corregir los datos de tu solicitud y reenviarla al administrador.")
             }
         },
         confirmButton = { Button(onClick = onNavigateToRegistro) { Text("Corregir y Reenviar") } },

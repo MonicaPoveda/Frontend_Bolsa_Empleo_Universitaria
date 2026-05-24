@@ -31,8 +31,10 @@ import com.example.frontend_bolsa_empleo_universitaria.interfaces.RetrofitClient
 import com.example.frontend_bolsa_empleo_universitaria.model.OfertaLaboralResponse
 import com.example.frontend_bolsa_empleo_universitaria.repository.EmpresaRepository
 import com.example.frontend_bolsa_empleo_universitaria.repository.OfertasRepository
+import com.example.frontend_bolsa_empleo_universitaria.ui.components.ProfilePhotoDisplay
 import com.example.frontend_bolsa_empleo_universitaria.ui.components.UniEmpleoLogo
 import com.example.frontend_bolsa_empleo_universitaria.ui.theme.BolsaTokens
+import com.example.frontend_bolsa_empleo_universitaria.utils.ArchivoUrls
 import com.example.frontend_bolsa_empleo_universitaria.utils.Token
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModel
 import com.example.frontend_bolsa_empleo_universitaria.viewModel.OfertasViewModelFactory
@@ -65,7 +67,10 @@ fun EmpresaHomeScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
     var selectedDrawerItem by remember { mutableStateOf("inicio") }
 
-    val nombreEmpresa = token.getUserEmail()?.split("@")?.firstOrNull() ?: "Empresa"
+    val nombreEmpresa = token.getUserNombre().ifEmpty { 
+        token.getUserEmail()?.split("@")?.firstOrNull() ?: "Empresa" 
+    }
+    val cacheBuster = remember { System.currentTimeMillis() }
 
     val repository = remember { OfertasRepository(RetrofitClient.ofertaLaboralApi) }
     val empresaRepository = remember { EmpresaRepository(RetrofitClient.empresaApi) }
@@ -123,10 +128,14 @@ fun EmpresaHomeScreen(navController: NavController) {
                         .padding(vertical = 28.dp, horizontal = 20.dp)
                 ) {
                     Column {
-                        UniEmpleoLogo(
-                            modifier = Modifier.size(64.dp),
-                            containerColor = Color.White.copy(alpha = 0.3f),
-                            cornerRadius = 18.dp
+                        ProfilePhotoDisplay(
+                            photoUrl = ArchivoUrls.fotoEmpresa(idEmpresa),
+                            cacheBuster = cacheBuster,
+                            size = 64,
+                            placeholderIcon = Icons.Default.Business,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(18.dp))
+                                .background(Color.White.copy(alpha = 0.22f))
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(text = nombreEmpresa, color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)

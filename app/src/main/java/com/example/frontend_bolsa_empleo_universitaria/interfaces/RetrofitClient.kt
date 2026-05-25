@@ -22,7 +22,7 @@ object RetrofitClient {
         "/api/empresas/guardar",
         "/api/empresas-pendientes/enviar",
         "/api/empresas-pendientes/listar",
-        "/api/archivos/documento/empresa",
+        // ✅ Solo el documento de empresa pendiente es público durante el registro
         "/api/archivos/documento/empresa-pendiente"
     )
 
@@ -81,7 +81,6 @@ object RetrofitClient {
             .addInterceptor(authInterceptor)
             .addInterceptor(contentTypeInterceptor)
             .addInterceptor(logging)
-            // ✅ Aumentado a 180 segundos para Render
             .connectTimeout(180, TimeUnit.SECONDS)
             .readTimeout(180, TimeUnit.SECONDS)
             .writeTimeout(180, TimeUnit.SECONDS)

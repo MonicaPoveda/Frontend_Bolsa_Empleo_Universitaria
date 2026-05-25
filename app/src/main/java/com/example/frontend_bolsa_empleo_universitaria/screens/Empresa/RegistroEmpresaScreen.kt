@@ -185,7 +185,7 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                     supportingText = if (nombre.isBlank()) {
                         { Text("El nombre es obligatorio", color = BolsaTokens.Palette.Error) }
                     } else null,
-                    leadingIcon = { Icon(Icons.Default.Business, null, tint = BolsaTokens.Palette.Primary) }
+                    leadingIcon = { Icon(Icons.Default.Business, null) }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -199,7 +199,7 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                     supportingText = validarEmail(email)?.let {
                         { Text(it, color = BolsaTokens.Palette.Error) }
                     },
-                    leadingIcon = { Icon(Icons.Default.Email, null, tint = BolsaTokens.Palette.Primary) }
+                    leadingIcon = { Icon(Icons.Default.Email, null) }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -214,10 +214,10 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                             { Text(it, color = BolsaTokens.Palette.Error) }
                         },
                         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        leadingIcon = { Icon(Icons.Default.Lock, null, tint = BolsaTokens.Palette.Primary) },
+                        leadingIcon = { Icon(Icons.Default.Lock, null) },
                         trailingIcon = {
                             IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
-                                Icon(if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility, null)
+                                Icon(if (isPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, null)
                             }
                         }
                     )
@@ -230,10 +230,10 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                         label = "Confirmar contraseña",
                         isError = confirmPassword != password,
                         supportingText = if (confirmPassword != password) {
-                            { Text("No coinciden", color = BolsaTokens.Palette.Error) }
+                            { Text("Las contraseñas no coinciden", color = BolsaTokens.Palette.Error) }
                         } else null,
                         visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        leadingIcon = { Icon(Icons.Default.LockClock, null, tint = BolsaTokens.Palette.Primary) }
+                        leadingIcon = { Icon(Icons.Default.LockClock, null) }
                     )
                 }
                 Spacer(modifier = Modifier.height(32.dp))
@@ -277,7 +277,7 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                 }
 
                 if (showError) {
-                    Text(errorMessage, color = BolsaTokens.Palette.Error, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
+                    Text(errorMessage, color = Color.Red, fontSize = 12.sp, modifier = Modifier.padding(vertical = 8.dp))
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
@@ -309,7 +309,7 @@ fun RegistroEmpresaScreen(navController: NavController, initialEmail: String = "
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
                     } else {
-                        Text(if (idEmpresaPendiente != null) "Actualizar Información" else "Enviar Solicitud", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text(if (idEmpresaPendiente != null) "Actualizar Datos" else "Enviar Solicitud", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                     }
                 }
             }

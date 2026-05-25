@@ -55,6 +55,7 @@ interface ArchivoApi {
         @Path("id") id: Long
     ): Response<ResponseBody>
 
+    // Endpoints para empresa-pendiente
     @Multipart
     @POST("api/archivos/documento/empresa-pendiente/{id}")
     suspend fun subirDocumentoEmpresaPendiente(

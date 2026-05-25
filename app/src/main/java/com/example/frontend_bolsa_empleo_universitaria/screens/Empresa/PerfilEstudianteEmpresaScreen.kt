@@ -47,10 +47,10 @@ fun PerfilEstudianteEmpresaScreen(
     LaunchedEffect(idUsuario) {
         isLoading = true
         try {
-            // 1. CARGAR DATOS DE USUARIO (SIEMPRE INTENTAR)
-            val responseUsuario = RetrofitClient.usuarioApi.obtenerPorId(idUsuario)
+            // 1. CARGAR DATOS DE USUARIO (Usando listar y filtrar por ID localmente)
+            val responseUsuario = RetrofitClient.usuarioApi.listar()
             if (responseUsuario.isSuccessful) {
-                val usuario = responseUsuario.body()
+                val usuario = responseUsuario.body()?.find { it.idUsuario == idUsuario }
                 usuarioNombre = "${usuario?.nombre ?: ""} ${usuario?.apellido ?: ""}".trim()
                 usuarioEmail = usuario?.email ?: ""
                 usuarioTelefono = usuario?.telefono ?: ""
@@ -63,7 +63,6 @@ fun PerfilEstudianteEmpresaScreen(
             } else if (responsePerfil.code() == 403) {
                 messageState = AdminMessageState("No tienes permisos para ver el perfil profesional.", AdminMessageType.WARNING, true)
             }
-            // El 404 no lo tratamos como error crítico para que se vea al menos el nombre
         } catch (e: Exception) {
             messageState = AdminMessageState("Error de conexión al cargar datos.", AdminMessageType.ERROR, true)
         } finally {
@@ -75,7 +74,7 @@ fun PerfilEstudianteEmpresaScreen(
         containerColor = BackgroundGray,
         topBar = {
             TopAppBar(
-                title = { Text("Perfil del Usuario", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("Perfil del Candidato", color = Color.White, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver", tint = Color.White)
@@ -90,7 +89,7 @@ fun PerfilEstudianteEmpresaScreen(
                 modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Tarjeta Principal (Información Básica siempre visible)
+                // Tarjeta Principal
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(24.dp),
@@ -111,7 +110,7 @@ fun PerfilEstudianteEmpresaScreen(
                         Spacer(modifier = Modifier.height(16.dp))
                         
                         Text(usuarioNombre, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold, color = UniEmpleoColors.Text)
-                        Text(perfil?.carrera ?: "Estudiante", fontSize = 14.sp, color = UniEmpleoColors.Blue, fontWeight = FontWeight.Medium)
+                        Text(perfil?.carrera ?: "Candidato", fontSize = 14.sp, color = UniEmpleoColors.Blue, fontWeight = FontWeight.Medium)
                         
                         Spacer(modifier = Modifier.height(24.dp))
                         HorizontalDivider(color = Color(0xFFF3F4F6))
@@ -153,7 +152,6 @@ fun PerfilEstudianteEmpresaScreen(
                 }
             }
 
-            // Banner de Mensaje arriba de todo
             AdminMessageBanner(
                 state = messageState,
                 onDismiss = { messageState = messageState.copy(visible = false) },

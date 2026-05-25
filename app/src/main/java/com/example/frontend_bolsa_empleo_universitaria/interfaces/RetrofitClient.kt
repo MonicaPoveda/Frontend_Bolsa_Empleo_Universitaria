@@ -42,13 +42,17 @@ object RetrofitClient {
             val requestBuilder = original.newBuilder()
             val path = original.url.encodedPath
 
+            // Verificamos si la ruta es pública
             val isPublic = publicAuthPaths.any { path.contains(it, ignoreCase = true) }
 
             if (!isPublic) {
-                tokenManager?.getToken()?.takeIf { it.isNotBlank() }?.let { token ->
-                    requestBuilder.header("Authorization", "Bearer $token")
-                }
+                tokenManager?.getToken()
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { token ->
+                        requestBuilder.header("Authorization", "Bearer $token")
+                    }
             } else {
+                // Para rutas públicas, nos aseguramos de NO enviar basura de sesiones previas
                 requestBuilder.removeHeader("Authorization")
             }
 
@@ -59,6 +63,7 @@ object RetrofitClient {
             val original = chain.request()
             val path = original.url.encodedPath
             
+            // Si es una ruta de archivos, NO tocamos los headers para evitar romper el boundary de multipart
             if (path.contains("/api/archivos/", ignoreCase = true)) {
                 return@Interceptor chain.proceed(original)
             }
@@ -87,10 +92,12 @@ object RetrofitClient {
             .retryOnConnectionFailure(true)
             .build()
 
+        val gson = GsonBuilder().setDateFormat("yyyy-MM-dd").create()
+
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(GsonBuilder().setDateFormat("yyyy-MM-dd").create()))
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
